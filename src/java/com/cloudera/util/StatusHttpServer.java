@@ -186,7 +186,7 @@ public class StatusHttpServer {
             Throwable sub = ex.getThrowable(0);
             if (sub instanceof BindException) {
               if (!findPort)
-                throw (BindException) sub; // java.net.BindException
+                throw (BindException)sub; // java.net.BindException
               needNewPort = true;
             }
           }
