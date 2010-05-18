@@ -18,8 +18,6 @@
 
 package com.cloudera.util;
 
-import java.io.IOException;
-
 import org.junit.Test;
 
 import com.cloudera.flume.agent.FlumeNode;
@@ -32,7 +30,7 @@ import com.cloudera.flume.conf.FlumeConfiguration;
 public class TestStatusHttpServer {
 
   @Test
-  public void testOpenClose() throws IOException, Exception {
+  public void testOpenClose() throws Exception {
     // Set directory of webapps to build-specific dir
     FlumeConfiguration.get().set(FlumeConfiguration.WEBAPPS_PATH, 
         "build/webapps");

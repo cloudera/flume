@@ -35,15 +35,27 @@ public class HBaseEventSink extends EventSink.Base {
   HTable table;
 
   public HBaseEventSink(String tableName, String familyName) {
+    // You need a configuration object to tell the client where to connect.
+    // When you create a HBaseConfiguration, it reads in whatever you've set
+    // into your hbase-site.xml and in hbase-default.xml, as long as these can
+    // be found on the CLASSPATH
+    this(tableName, familyName, new HBaseConfiguration());
+  }
+
+  public HBaseEventSink(String tableName, String familyName,
+      HBaseConfiguration config)
+  {
     Preconditions.checkNotNull(tableName);
     Preconditions.checkNotNull(familyName);
     this.tableName = tableName;
     this.familyName = familyName;
-  }
 
+    this.config = config;
+  }
+  
   @Override
   public void append(Event e) throws IOException {
-    Put p = new Put(Bytes.toBytes(Long.toString(e.getNanos())));
+    Put p = new Put(Bytes.toBytes(e.getNanos()));
     
     p.add(Bytes.toBytes(familyName), Bytes.toBytes("timestamp"),
         Bytes.toBytes(e.getTimestamp()));
@@ -65,12 +77,6 @@ public class HBaseEventSink extends EventSink.Base {
 
   @Override
   public void open() throws IOException {
-    // You need a configuration object to tell the client where to connect.
-    // When you create a HBaseConfiguration, it reads in whatever you've set
-    // into your hbase-site.xml and in hbase-default.xml, as long as these can
-    // be found on the CLASSPATH
-    config = new HBaseConfiguration();
-
     // This instantiates an HTable object that connects you to
     // the tableName table.
     table = new HTable(config, tableName);
