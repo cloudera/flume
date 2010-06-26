@@ -19,7 +19,7 @@
 # This file is used to generate the BuildStamp.java class that
 # records the user, url, revision and timestamp.
 version=$1
-revision=$HADOOP_REVISION
+revision=$FLUME_REVISION
 #if [ -z "$revision" ] ; then
 #  revision=`svn info | sed -n -e 's/Last Changed Rev: \(.*\)/\1/p'`
 #fi

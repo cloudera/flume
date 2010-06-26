@@ -429,7 +429,7 @@ to call at top-level: ant deploy-contrib compile-core-test
       of the output directory -->
     <exec executable="sh">
        <arg line="src/saveVersion.sh ${version}"/>
-      <!--  <env key="HADOOP_REVISION" value="${cloudera.hash}" /> -->
+      <env key="FLUME_REVISION" value="${cloudera.hash}" /> 
     </exec>
     <javac 
      encoding="${build.encoding}" 

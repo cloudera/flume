@@ -1,0 +1,37 @@
+#!/bin/bash
+# Copyright (c) 2009 Cloudera, inc
+#
+# Performs a release build
+
+set -ex
+
+JAVA32_HOME=${JAVA32_HOME:-$JAVA_HOME}
+
+# Check that JVMs support the right architectures
+# Passing -d with an architecture that's not supported results
+# in a non-zero exit code even with -version
+if ! $JAVA32_HOME/bin/java -d32 -version ; then
+  echo Your jvm in $JAVA32_HOME seems like it doesnt support 32-bit mode 1>&2
+  echo Please set JAVA32_HOME to point to a 32-bit JDK
+  exit 1
+fi
+
+if ! [ -e $JAVA5_HOME/bin/java ]; then
+  echo No JAVA5_HOME set. Forrest documentation requires Java 5 to be 1>&2
+  echo installed. 1>&2
+  exit 1
+fi
+
+if ! [ -e $FORREST_HOME/bin/forrest ]; then
+  echo No FORREST_HOME set. Forrest documentation requires Forrest to be 1>&2
+  echo installed. 1>&2
+  exit 1
+fi
+
+# Do the build
+BIN_DIR=$(readlink -f $(dirname $0))
+RELEASE_DIR=$BIN_DIR/..
+
+cd $RELEASE_DIR
+
+JAVA_HOME=$JAVA32_HOME  ant clean tar -Dversion=${FULL_VERSION} -propertyfile cloudera/build.properties 
