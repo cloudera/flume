@@ -17,6 +17,7 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.SinkFactory.SinkBuilder;
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventSink;
@@ -86,7 +87,7 @@ public class HBaseEventSink extends EventSink.Base {
     return new SinkBuilder() {
 
       @Override
-      public EventSink build(String... argv) {
+      public EventSink build(Context context, String... argv) {
         Preconditions.checkArgument(argv.length == 2,
             "usage: hbase(table, family)");
 

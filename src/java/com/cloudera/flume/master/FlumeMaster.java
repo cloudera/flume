@@ -295,7 +295,6 @@ public class FlumeMaster implements Reportable {
       if (cfg.getMasterStore().equals(ZK_CFG_STORE)) {
         ZooKeeperService.get().shutdown();
       }
-
     } catch (IOException e) {
       LOG.error("Exception when shutting down master! " + e.getMessage());
       LOG.debug(e, e);

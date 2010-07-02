@@ -100,6 +100,7 @@ to call at top-level: ant deploy-contrib compile-core-test
   <property name="ivy.lib" value="${lib.dir}"/>
   <property name="ivy.test.lib" value="${test.lib.dir}"/>
   <property name="ivy.tools.lib" value="${build.dir}/libtools"/>
+  <property name="ivysettings.xml" value="${basedir}/ivysettings.xml"/>
 
   <!-- eclipse property set -->
   <property name="build.dir.eclipse" value=".eclipse"/>
@@ -112,6 +113,8 @@ to call at top-level: ant deploy-contrib compile-core-test
   <path id="libs.classpath">
     <pathelement location="${conf.dir}"/>
     <fileset dir="${lib.dir}">
+      <!-- hadoop webapp has to be first on the classpath -->
+      <include name="**/*hadoop-core*.jar" />
       <include name="**/*.jar" />
       <exclude name="**/excluded/" />
     </fileset>
@@ -197,31 +200,33 @@ to call at top-level: ant deploy-contrib compile-core-test
     <property name="ivy.initialized" value="true"/>
   </target>
 
-  <target name="ivy-init" depends="ivy-download,ivy-taskdef"/>
+  <target name="ivy-init" depends="ivy-download,ivy-taskdef">
+    <ivy:settings id="${ant.project.name}" file="${ivysettings.xml}"/>
+  </target>
 
   <target name="ivy-retrieve" depends="init,ivy-init">
-    <ivy:retrieve type="jar" conf="default"
+    <ivy:retrieve settingsRef="${ant.project.name}" type="jar" conf="default"
                   pattern="${ivy.lib}/[artifact]-[revision].[ext]"/>
   </target>
 
   <target name="ivy-retrieve-test" depends="init,ivy-init">
-    <ivy:retrieve type="jar" conf="test"
+    <ivy:retrieve settingsRef="${ant.project.name}" type="jar" conf="test"
                   pattern="${ivy.test.lib}/[artifact]-[revision].[ext]"/>
   </target>
 
   <target name="ivy-retrieve-findbugs" depends="init,ivy-init">
-    <ivy:retrieve type="jar" conf="findbugs"
-                  pattern="${ivy.tools.lib}/[artifact]-[revision].[ext]"/>
+    <ivy:retrieve settingsRef="${ant.project.name}" type="jar" conf="findbugs"
+                  pattern="${ivy.test.lib}/[artifact]-[revision].[ext]"/>
   </target>
 
   <target name="ivy-retrieve-coverage" depends="init,ivy-init">
-    <ivy:retrieve type="jar" conf="coverage"
-                  pattern="${ivy.tools.lib}/[artifact]-[revision].[ext]"/>
+    <ivy:retrieve settingsRef="${ant.project.name}" type="jar" conf="coverage"
+                  pattern="${ivy.test.lib}/[artifact]-[revision].[ext]"/>
   </target>
 
   <target name="ivy-retrieve-releaseaudit" depends="init,ivy-init">
-    <ivy:retrieve type="jar" conf="releaseaudit"
-                  pattern="${ivy.tools.lib}/[artifact]-[revision].[ext]"/>
+    <ivy:retrieve settingsRef="${ant.project.name}" type="jar" conf="releaseaudit"
+                  pattern="${ivy.test.lib}/[artifact]-[revision].[ext]"/>
     <ivy:cachepath pathid="releaseaudit-classpath" conf="releaseaudit"/>
   </target>
 
@@ -436,7 +441,8 @@ to call at top-level: ant deploy-contrib compile-core-test
 
   </target>
 
-  <target name="compile-core" depends="init,version,compile-aho,compile-gen">
+  <target name="compile-core"
+          depends="init,ivy-retrieve,version,compile-aho,compile-gen">
 
     <!-- Compile Java files (excluding JSPs) checking warnings -->
     <javac 
