@@ -83,7 +83,7 @@ public class StatusHttpServer {
     // set up the context for "/" jsp files
     String webapp = appDir + "/" + name;
     LOG.info("starting web app in directory: " + webapp);
-    webAppContext = new WebAppContext("/", webapp);
+    webAppContext = new WebAppContext(webapp, "/");
     webServer.setHandler(webAppContext);
     addServlet("stacks", "/stacks", StackServlet.class);
   }
