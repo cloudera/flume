@@ -12,6 +12,7 @@ package com.cloudera.flume.handlers.hbase;
 import java.io.IOException;
 import java.util.Map.Entry;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
@@ -32,7 +33,7 @@ public class HBaseEventSink extends EventSink.Base {
   String tableName;
   String familyName;
 
-  HBaseConfiguration config;
+  Configuration config;
   HTable table;
 
   public HBaseEventSink(String tableName, String familyName) {
@@ -40,11 +41,11 @@ public class HBaseEventSink extends EventSink.Base {
     // When you create a HBaseConfiguration, it reads in whatever you've set
     // into your hbase-site.xml and in hbase-default.xml, as long as these can
     // be found on the CLASSPATH
-    this(tableName, familyName, new HBaseConfiguration());
+    this(tableName, familyName, HBaseConfiguration.create());
   }
 
   public HBaseEventSink(String tableName, String familyName,
-      HBaseConfiguration config)
+      Configuration config)
   {
     Preconditions.checkNotNull(tableName);
     Preconditions.checkNotNull(familyName);
