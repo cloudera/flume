@@ -1,0 +1,146 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-15">
+<title></title>
+</head>
+
+<body>
+<h1>Release Notes - Flume - Version v0.9.1</h1>
+    
+<h2>        Bug
+</h2>
+<ul>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-1'>FLUME-1</a>] -         JSP web pages do not have &lt;title&gt; tag sets
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-4'>FLUME-4</a>] -         TestConcurrentDFOMan.test*logicalNodes fails intermittently.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-7'>FLUME-7</a>] -         Flume node gets into a bad state if the last good config gets set to a bad state.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-8'>FLUME-8</a>] -         .gitignore file missing from repo.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-9'>FLUME-9</a>] -         DFO's subsink should survive errors.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-14'>FLUME-14</a>] -         Documentation typo
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-25'>FLUME-25</a>] -         TestGangliaSink fails intermittently
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-36'>FLUME-36</a>] -         Thrift's FramedTransport is not supported
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-37'>FLUME-37</a>] -         Decomissioning a node does not kill the thread
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-38'>FLUME-38</a>] -         Duplicate logical-&gt;physical mappings
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-43'>FLUME-43</a>] -         Flume's flume.master.servers can accept masters with :'s in them which can cause unexpected problems.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-44'>FLUME-44</a>] -         Flume nodes are in DECOMMISSIONED state if master is killed and brough back up.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-46'>FLUME-46</a>] -         flume script in CDH3b2 tar archive fails with NoClassDefFoundError
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-47'>FLUME-47</a>] -         DEVNOTES are out of date relative to eclipse based development
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-53'>FLUME-53</a>] -         Heartbeat from node &quot;hangs&quot; when changing configuration.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-54'>FLUME-54</a>] -         SyslogWireExtractor expects '/n' delemiter
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-55'>FLUME-55</a>] -         Bug in E2E translations with decorators.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-61'>FLUME-61</a>] -         user guide is missing detail on external ZooKeeper use
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-67'>FLUME-67</a>] -         LazyOpenDecorator closes subsink even if it has only been logically opened.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-68'>FLUME-68</a>] -         Default logicalnode's WAL and DFO logs write to inconsistent log directory
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-70'>FLUME-70</a>] -         Flume shell command typo
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-71'>FLUME-71</a>] -         Config entered with no nodename breaks config store
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-82'>FLUME-82</a>] -         user man issue with nc to tcp port
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-94'>FLUME-94</a>] -         Whitespace only input in shell results in warning message
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-105'>FLUME-105</a>] -         Can't re-add a decommissioned node
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-111'>FLUME-111</a>] -         flume-site.xml.template needs updating
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-113'>FLUME-113</a>] -         TailDirSource causes master to fail if directory doesn't exist
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-115'>FLUME-115</a>] -         If ZK is being used but zk classes are missing flume should exit with reasonable error message.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-116'>FLUME-116</a>] -         build tools dependencies can cause xml parser conflict
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-117'>FLUME-117</a>] -         license header missing in TestDiskFailoverBehavior.java
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-119'>FLUME-119</a>] -         bin/flume HADOOP_HOME unset warning should check for lib/hadoop*core.jar
+</li>
+</ul>
+    
+<h2>        Improvement
+</h2>
+<ul>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-12'>FLUME-12</a>] -         add eclipse project generation to flume build.xml
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-24'>FLUME-24</a>] -         Integrate corrected DFO translation into FlumeNode
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-30'>FLUME-30</a>] -         ant javadoc target
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-42'>FLUME-42</a>] -         Log filename that permission error is occuring on
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-51'>FLUME-51</a>] -         Documentation doesn't mention tail source's restartFromEnd
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-56'>FLUME-56</a>] -         Document custom source creation and installation
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-69'>FLUME-69</a>] -         Improve collectorSink related logs and comments.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-84'>FLUME-84</a>] -         Flume daemons should expose static configuration settings
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-85'>FLUME-85</a>] -         On server startup, environment should be logged
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-87'>FLUME-87</a>] -         Flume node can constantly emits scary  &quot;Logical Node 'localhost' not configured on master&quot; message 
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-124'>FLUME-124</a>] -         flume 0.9.0 documentation copyedit.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-125'>FLUME-125</a>] -         Bump flume documentation version to 0.9.1
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-128'>FLUME-128</a>] -         Add license and copyright to documentation source.
+</li>
+</ul>
+    
+<h2>        New Feature
+</h2>
+<ul>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-22'>FLUME-22</a>] -         Post documentation into github repository.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-26'>FLUME-26</a>] -         Add a directory tail source.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-29'>FLUME-29</a>] -         Compression Interface for Sinks
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-72'>FLUME-72</a>] -         bin/flume cleanup; echo command option, fix classpaths
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-83'>FLUME-83</a>] -         Provide mechanism to query Flume daemons for all valid sources, sinks, and decorators
+</li>
+</ul>
+    
+<h2>        Task
+</h2>
+<ul>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-28'>FLUME-28</a>] -         Bump flume version in build.xml to 0.9.1-dev
+</li>
+</ul>
+    
+<h2>        Sub-task
+</h2>
+<ul>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-101'>FLUME-101</a>] -         update plugin docs and provide a working example
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-102'>FLUME-102</a>] -         Update Driver.join api so that it can timeout.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-103'>FLUME-103</a>] -         Fix DFO Agent/Deco decommissioning 
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-104'>FLUME-104</a>] -         Fix E2E Agent/Deco decommissioning
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-120'>FLUME-120</a>] -         Make insistent decorators interruptable
+</li>
+</ul>
+
+</body> </html>
