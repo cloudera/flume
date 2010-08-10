@@ -1,0 +1,236 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-15">
+<title></title>
+</head>
+
+<body>
+<h1>Release Notes - Flume - Version v0.9.2</h1>
+
+<h2>        Bug
+</h2>
+<ul>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-2'>FLUME-2</a>] -         Flume node's tail source does not report error or go into error state to user attempts to tail a file it doesn't have permissions to read.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-3'>FLUME-3</a>] -         Ant failed due to old Thrift jar
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-45'>FLUME-45</a>] -         Logical nodes can be assigned to spawned/mapped to multiple physical nodes
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-75'>FLUME-75</a>] -         Flume user guide does not document node state &quot;LOST&quot;
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-78'>FLUME-78</a>] -          java.lang.NullPointerException in CustomDfsSink.close
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-151'>FLUME-151</a>] -         Commands in Flow Isolation section are incorrect.  
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-152'>FLUME-152</a>] -         Flume shell script does not work from bin directory
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-153'>FLUME-153</a>] -         Nodes get LOST on config change
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-154'>FLUME-154</a>] -         Scribe source.next() does not exit if it is closed.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-158'>FLUME-158</a>] -         Recovered DFO logs cause collector Sink to exit with error.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-159'>FLUME-159</a>] -         console/stdin source's next call does not exit when source is closed.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-160'>FLUME-160</a>] -         Event.TAG_REGEX does not match necessary special characters
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-167'>FLUME-167</a>] -         Flow isolation (multiple flows case) + user guide correction request
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-183'>FLUME-183</a>] -         loadNode() in LogicalNode.java does not use the arguments passed to it
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-191'>FLUME-191</a>] -         Nodes cannot reconnect to master when master is not shut down gracefully
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-192'>FLUME-192</a>] -         BatchingDecorator pegs cpu if it remains open and no new events are added.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-198'>FLUME-198</a>] -         Flume should generate docs in a doc directory
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-200'>FLUME-200</a>] -         Add avro.gen.dir to classpath using 'ant eclipse'
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-205'>FLUME-205</a>] -         TailSource reads lines using a method(readLine) which does character set interpretation and that breaks all my UTF-8 characters
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-207'>FLUME-207</a>] -         Fix spelling errors in Flume User Guide
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-218'>FLUME-218</a>] -         race condition in tailsource
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-222'>FLUME-222</a>] -         flume one-shot node (-1 option) does not exit if configured node(s) becomes idle
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-224'>FLUME-224</a>] -         SaveConfigCommand saves to flume.master.savefile rather than file specified
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-229'>FLUME-229</a>] -         Flume collector not recovering properly if the hdfs namenode goes down.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-232'>FLUME-232</a>] -         TailSource will add newlines in the middle of log lines
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-234'>FLUME-234</a>] -         Flume agent node not always closing deleted files
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-235'>FLUME-235</a>] -         Flume agent holds on to deleted file handles
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-248'>FLUME-248</a>] -         TailSource not closing files
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-254'>FLUME-254</a>] -         Extra \x00 characters are prepended when using exec(&quot;tail -F /path/to/file&quot;)
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-260'>FLUME-260</a>] -         Incorrect link to &quot;Master Overview&quot; in the web-app from a remote machine
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-263'>FLUME-263</a>] -         DirWatcher does not match filename of deleted files against supplied REGEX
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-264'>FLUME-264</a>] -         exec high CPU usage
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-267'>FLUME-267</a>] -         default path in /tmp should include username
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-268'>FLUME-268</a>] -         bin/flume should pipe pushd/popd output to /dev/null
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-270'>FLUME-270</a>] -         bin/flume should respect HADOOP_CONF_DIR and use core and hdfs settings from there.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-272'>FLUME-272</a>] -         autoCollectorSource missing from user guide
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-275'>FLUME-275</a>] -         README has bad links
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-276'>FLUME-276</a>] -         PollingSource was copied from another, but text not updated
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-284'>FLUME-284</a>] -         HDFS WriteableEvent does not correctly limit body size
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-286'>FLUME-286</a>] -         DFO mode does not detect network failure
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-302'>FLUME-302</a>] -         Get rid of log Level stuff in FlumeNode
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-303'>FLUME-303</a>] -         Get rid of usage of log4j ISO8601DateFormat
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-304'>FLUME-304</a>] -         Not everything logs with the right logger
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-311'>FLUME-311</a>] -         Documentation typos
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-333'>FLUME-333</a>] -         'ant tar' did not include LICENSE, RELEASENOTES, README, and NOTICE
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-345'>FLUME-345</a>] -         Generated html from ASCIIDOC contains GPL code.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-348'>FLUME-348</a>] -         ThriftEventAdaptor should return null when a nonexistent attribute is fetched
+</li>
+</ul>
+    
+<h2>        Improvement
+</h2>
+<ul>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-15'>FLUME-15</a>] -         Flume shell error messages are not useful
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-89'>FLUME-89</a>] -         Documentation: when first mentioning collectorSink, point out that the default time for log files being rolled is 30 seconds and is set by flume.collector.roll.millis
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-132'>FLUME-132</a>] -         Extend output file compression to handle other codecs
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-162'>FLUME-162</a>] -         Incorrect documentation around auto*Sink and auto*Source chains
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-169'>FLUME-169</a>] -         Upgrade to thrift 0.3.0
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-170'>FLUME-170</a>] -         Report failure to user if user attempts to map logical node to multiple physical nodes.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-190'>FLUME-190</a>] -         It would be nice to have an index.html in flume docs
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-202'>FLUME-202</a>] -         Upgrade to Thrift-0.4.0
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-213'>FLUME-213</a>] -         Upgrade Avro from 1.3.3 to 1.4 in Flume
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-214'>FLUME-214</a>] -         Flume should be able to compile/run against non-kerberos hdfs
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-221'>FLUME-221</a>] -         Consider renaming rpcSink / rpcSource to reflect that they are Thrift specific
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-227'>FLUME-227</a>] -         Web pages should show flume version / hash 
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-230'>FLUME-230</a>] -         ChokeManager should work with ZK based configuration store.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-241'>FLUME-241</a>] -         Document the environment variables used by Flume
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-252'>FLUME-252</a>] -         Update Tail to get rid of races and truncation problems.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-255'>FLUME-255</a>] -         Node/Master web app's Environment table entries should be sorted.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-256'>FLUME-256</a>] -         Node/Master's Extension web page should be easier to read
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-259'>FLUME-259</a>] -         Migration tool for changes in master serialisation formats
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-262'>FLUME-262</a>] -         Typo fixes to com.cloudera.flume.core comments
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-271'>FLUME-271</a>] -         Flume node outputs unhelpful error message when keytab/principal is misconfigured
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-274'>FLUME-274</a>] -         Move RpcSink and RpcSource to handlers.rpc and out of handlers.thrift
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-283'>FLUME-283</a>] -         Change logging to slf4j
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-290'>FLUME-290</a>] -         Add RPC properties to flume-conf.xml file
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-307'>FLUME-307</a>] -         Auto-generate all build version strings during build.
+</li>
+</ul>
+    
+<h2>        New Feature
+</h2>
+<ul>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-64'>FLUME-64</a>] -         Basic Throttling in a FlumeNode
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-95'>FLUME-95</a>] -         Check JVM version on service startup
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-106'>FLUME-106</a>] -         Avro Integration for Flume
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-121'>FLUME-121</a>] -         Flume Cookbook - easy example recipes for flume configuration.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-133'>FLUME-133</a>] -         Add support for Avro Native output files.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-140'>FLUME-140</a>] -         create a command line tool which allows catting a file to a collector
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-149'>FLUME-149</a>] -         Support listing logical / physical mapping from shell
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-172'>FLUME-172</a>] -         Create standard unit tests for sources
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-182'>FLUME-182</a>] -         New Decorator to throttle data and shell command to configure it
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-197'>FLUME-197</a>] -         Enable flume to write to kerberos protected hdfs clusters
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-210'>FLUME-210</a>] -         Scripts for end-to-end testing
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-211'>FLUME-211</a>] -         Basic E2E, DFO, and BE mode correctness tests.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-258'>FLUME-258</a>] -         TailDir should include source file name metadata for sink
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-289'>FLUME-289</a>] -         Flume man pages.
+</li>
+</ul>
+    
+<h2>        Task
+</h2>
+<ul>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-155'>FLUME-155</a>] -         Formalise behaviour of sinks, sources and decorators
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-228'>FLUME-228</a>] -         Add Documentation for throughput Choking decorator.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-266'>FLUME-266</a>] -         Flume 0.9.1 update 1 release notes.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-335'>FLUME-335</a>] -         Include asciidoc artifacts in repo and only build docs when necessary
+</li>
+</ul>
+    
+<h2>        Sub-task
+</h2>
+<ul>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-135'>FLUME-135</a>] -         Update Flume to Jetty 6.1
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-136'>FLUME-136</a>] -         Port Configuration Server to Avro
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-137'>FLUME-137</a>] -         Port Report Server to Avro
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-138'>FLUME-138</a>] -         Port Event Server to Avro
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-139'>FLUME-139</a>] -         Port Control Server to Avro
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-177'>FLUME-177</a>] -         Recipe for hooking up Apache2 to flume
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-178'>FLUME-178</a>] -         Recipe for hooking up syslog to flume
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-180'>FLUME-180</a>] -         Recipe for hooking scribe to flume
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-186'>FLUME-186</a>] -         Thin Client in CPP that takes sytem-time and fills a flume evt struct and sends some data to hardcorded-host and harcoded-port
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-206'>FLUME-206</a>] -         Recipes for source and sink testing
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-212'>FLUME-212</a>] -         Static Linking of Thrift library
+</li>
+</ul>
+
+</body> </html>
