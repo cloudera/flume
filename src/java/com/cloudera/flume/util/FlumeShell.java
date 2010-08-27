@@ -59,6 +59,7 @@ import com.cloudera.flume.master.Command;
 import com.cloudera.flume.reporter.server.FlumeReport;
 import com.cloudera.flume.reporter.server.FlumeReportServer;
 import com.cloudera.flume.shell.CommandBuilder;
+import com.cloudera.util.CheckJavaVersion;
 
 /**
  * The FlumeShell is a command-line-interface for a Flume master.
@@ -852,7 +853,12 @@ public class FlumeShell {
       TTransportException {
     FlumeNode.logVersion(LOG, Level.DEBUG);
     FlumeNode.logEnvironment(LOG, Level.DEBUG);
-
+    // Make sure the Java version is not older than 1.6
+    if (!CheckJavaVersion.isVersionOk()) {
+      LOG
+          .error("Exiting because of an old Java version or Java version in bad format");
+      System.exit(-1);
+    }
     CommandLine cmd = null;
     Options options = new Options();
     options.addOption("?", false, "Command line usage");
