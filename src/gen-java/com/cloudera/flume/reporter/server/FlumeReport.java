@@ -15,15 +15,18 @@ import java.util.HashSet;
 import java.util.EnumSet;
 import java.util.Collections;
 import java.util.BitSet;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.thrift.*;
+import org.apache.thrift.async.*;
 import org.apache.thrift.meta_data.*;
+import org.apache.thrift.transport.*;
 import org.apache.thrift.protocol.*;
 
-public class FlumeReport implements TBase<FlumeReport._Fields>, java.io.Serializable, Cloneable {
+public class FlumeReport implements TBase<FlumeReport, FlumeReport._Fields>, java.io.Serializable, Cloneable {
   private static final TStruct STRUCT_DESC = new TStruct("FlumeReport");
 
   private static final TField STRING_METRICS_FIELD_DESC = new TField("stringMetrics", TType.MAP, (short)3);
@@ -40,12 +43,10 @@ public class FlumeReport implements TBase<FlumeReport._Fields>, java.io.Serializ
     LONG_METRICS((short)4, "longMetrics"),
     DOUBLE_METRICS((short)5, "doubleMetrics");
 
-    private static final Map<Integer, _Fields> byId = new HashMap<Integer, _Fields>();
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
     static {
       for (_Fields field : EnumSet.allOf(_Fields.class)) {
-        byId.put((int)field._thriftId, field);
         byName.put(field.getFieldName(), field);
       }
     }
@@ -54,7 +55,16 @@ public class FlumeReport implements TBase<FlumeReport._Fields>, java.io.Serializ
      * Find the _Fields constant that matches fieldId, or null if its not found.
      */
     public static _Fields findByThriftId(int fieldId) {
-      return byId.get(fieldId);
+      switch(fieldId) {
+        case 3: // STRING_METRICS
+          return STRING_METRICS;
+        case 4: // LONG_METRICS
+          return LONG_METRICS;
+        case 5: // DOUBLE_METRICS
+          return DOUBLE_METRICS;
+        default:
+          return null;
+      }
     }
 
     /**
@@ -93,22 +103,22 @@ public class FlumeReport implements TBase<FlumeReport._Fields>, java.io.Serializ
 
   // isset id assignments
 
-  public static final Map<_Fields, FieldMetaData> metaDataMap = Collections.unmodifiableMap(new EnumMap<_Fields, FieldMetaData>(_Fields.class) {{
-    put(_Fields.STRING_METRICS, new FieldMetaData("stringMetrics", TFieldRequirementType.DEFAULT, 
+  public static final Map<_Fields, FieldMetaData> metaDataMap;
+  static {
+    Map<_Fields, FieldMetaData> tmpMap = new EnumMap<_Fields, FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.STRING_METRICS, new FieldMetaData("stringMetrics", TFieldRequirementType.DEFAULT, 
         new MapMetaData(TType.MAP, 
             new FieldValueMetaData(TType.STRING), 
             new FieldValueMetaData(TType.STRING))));
-    put(_Fields.LONG_METRICS, new FieldMetaData("longMetrics", TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.LONG_METRICS, new FieldMetaData("longMetrics", TFieldRequirementType.DEFAULT, 
         new MapMetaData(TType.MAP, 
             new FieldValueMetaData(TType.STRING), 
             new FieldValueMetaData(TType.I64))));
-    put(_Fields.DOUBLE_METRICS, new FieldMetaData("doubleMetrics", TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.DOUBLE_METRICS, new FieldMetaData("doubleMetrics", TFieldRequirementType.DEFAULT, 
         new MapMetaData(TType.MAP, 
             new FieldValueMetaData(TType.STRING), 
             new FieldValueMetaData(TType.DOUBLE))));
-  }});
-
-  static {
+    metaDataMap = Collections.unmodifiableMap(tmpMap);
     FieldMetaData.addStructMetaDataMap(FlumeReport.class, metaDataMap);
   }
 
@@ -184,6 +194,13 @@ public class FlumeReport implements TBase<FlumeReport._Fields>, java.io.Serializ
   @Deprecated
   public FlumeReport clone() {
     return new FlumeReport(this);
+  }
+
+  @Override
+  public void clear() {
+    this.stringMetrics = null;
+    this.longMetrics = null;
+    this.doubleMetrics = null;
   }
 
   public int getStringMetricsSize() {
@@ -408,6 +425,44 @@ public class FlumeReport implements TBase<FlumeReport._Fields>, java.io.Serializ
     return 0;
   }
 
+  public int compareTo(FlumeReport other) {
+    if (!getClass().equals(other.getClass())) {
+      return getClass().getName().compareTo(other.getClass().getName());
+    }
+
+    int lastComparison = 0;
+    FlumeReport typedOther = (FlumeReport)other;
+
+    lastComparison = Boolean.valueOf(isSetStringMetrics()).compareTo(typedOther.isSetStringMetrics());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetStringMetrics()) {      lastComparison = TBaseHelper.compareTo(this.stringMetrics, typedOther.stringMetrics);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(isSetLongMetrics()).compareTo(typedOther.isSetLongMetrics());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetLongMetrics()) {      lastComparison = TBaseHelper.compareTo(this.longMetrics, typedOther.longMetrics);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(isSetDoubleMetrics()).compareTo(typedOther.isSetDoubleMetrics());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetDoubleMetrics()) {      lastComparison = TBaseHelper.compareTo(this.doubleMetrics, typedOther.doubleMetrics);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    return 0;
+  }
+
   public void read(TProtocol iprot) throws TException {
     TField field;
     iprot.readStructBegin();
@@ -417,71 +472,68 @@ public class FlumeReport implements TBase<FlumeReport._Fields>, java.io.Serializ
       if (field.type == TType.STOP) { 
         break;
       }
-      _Fields fieldId = _Fields.findByThriftId(field.id);
-      if (fieldId == null) {
-        TProtocolUtil.skip(iprot, field.type);
-      } else {
-        switch (fieldId) {
-          case STRING_METRICS:
-            if (field.type == TType.MAP) {
+      switch (field.id) {
+        case 3: // STRING_METRICS
+          if (field.type == TType.MAP) {
+            {
+              TMap _map0 = iprot.readMapBegin();
+              this.stringMetrics = new HashMap<String,String>(2*_map0.size);
+              for (int _i1 = 0; _i1 < _map0.size; ++_i1)
               {
-                TMap _map0 = iprot.readMapBegin();
-                this.stringMetrics = new HashMap<String,String>(2*_map0.size);
-                for (int _i1 = 0; _i1 < _map0.size; ++_i1)
-                {
-                  String _key2;
-                  String _val3;
-                  _key2 = iprot.readString();
-                  _val3 = iprot.readString();
-                  this.stringMetrics.put(_key2, _val3);
-                }
-                iprot.readMapEnd();
+                String _key2;
+                String _val3;
+                _key2 = iprot.readString();
+                _val3 = iprot.readString();
+                this.stringMetrics.put(_key2, _val3);
               }
-            } else { 
-              TProtocolUtil.skip(iprot, field.type);
+              iprot.readMapEnd();
             }
-            break;
-          case LONG_METRICS:
-            if (field.type == TType.MAP) {
+          } else { 
+            TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        case 4: // LONG_METRICS
+          if (field.type == TType.MAP) {
+            {
+              TMap _map4 = iprot.readMapBegin();
+              this.longMetrics = new HashMap<String,Long>(2*_map4.size);
+              for (int _i5 = 0; _i5 < _map4.size; ++_i5)
               {
-                TMap _map4 = iprot.readMapBegin();
-                this.longMetrics = new HashMap<String,Long>(2*_map4.size);
-                for (int _i5 = 0; _i5 < _map4.size; ++_i5)
-                {
-                  String _key6;
-                  long _val7;
-                  _key6 = iprot.readString();
-                  _val7 = iprot.readI64();
-                  this.longMetrics.put(_key6, _val7);
-                }
-                iprot.readMapEnd();
+                String _key6;
+                long _val7;
+                _key6 = iprot.readString();
+                _val7 = iprot.readI64();
+                this.longMetrics.put(_key6, _val7);
               }
-            } else { 
-              TProtocolUtil.skip(iprot, field.type);
+              iprot.readMapEnd();
             }
-            break;
-          case DOUBLE_METRICS:
-            if (field.type == TType.MAP) {
+          } else { 
+            TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        case 5: // DOUBLE_METRICS
+          if (field.type == TType.MAP) {
+            {
+              TMap _map8 = iprot.readMapBegin();
+              this.doubleMetrics = new HashMap<String,Double>(2*_map8.size);
+              for (int _i9 = 0; _i9 < _map8.size; ++_i9)
               {
-                TMap _map8 = iprot.readMapBegin();
-                this.doubleMetrics = new HashMap<String,Double>(2*_map8.size);
-                for (int _i9 = 0; _i9 < _map8.size; ++_i9)
-                {
-                  String _key10;
-                  double _val11;
-                  _key10 = iprot.readString();
-                  _val11 = iprot.readDouble();
-                  this.doubleMetrics.put(_key10, _val11);
-                }
-                iprot.readMapEnd();
+                String _key10;
+                double _val11;
+                _key10 = iprot.readString();
+                _val11 = iprot.readDouble();
+                this.doubleMetrics.put(_key10, _val11);
               }
-            } else { 
-              TProtocolUtil.skip(iprot, field.type);
+              iprot.readMapEnd();
             }
-            break;
-        }
-        iprot.readFieldEnd();
+          } else { 
+            TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        default:
+          TProtocolUtil.skip(iprot, field.type);
       }
+      iprot.readFieldEnd();
     }
     iprot.readStructEnd();
 
