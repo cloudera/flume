@@ -421,14 +421,22 @@ abstract public class TranslatingConfigurationManager implements
    * {@inheritDoc}
    */
   @Override
-  synchronized public void addLogicalNode(String physNode, String logicNode) {
-    parentMan.addLogicalNode(physNode, logicNode);
+  synchronized public boolean addLogicalNode(String physNode, String logicNode) {
+    boolean result;
+
+    result = false;
+
+    if (!getLogicalNodeMap().containsValue(logicNode)) {
+      result = parentMan.addLogicalNode(physNode, logicNode);
+    }
     try {
       updateAll();
     } catch (IOException e) {
       LOG.error("Error when mapping logical->physical node" + logicNode + "->"
           + physNode, e);
     }
+
+    return result;
   }
 
   /**
