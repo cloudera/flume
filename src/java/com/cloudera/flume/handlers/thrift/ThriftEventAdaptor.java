@@ -123,42 +123,42 @@ class ThriftEventAdaptor extends Event {
    * future changes to the Event/ThriftFlumeEvent interface
    */
   public static ThriftFlumeEvent convert(Event e) {
-	  ThriftFlumeEvent evt = new ThriftFlumeEvent();
-	  evt.timestamp        = e.getTimestamp();
-	  evt.priority         = convert(e.getPriority());
-	  ByteBuffer buf       = ByteBuffer.wrap(e.getBody());
-	  evt.body             = buf;
-	  evt.nanos            = e.getNanos();
-	  evt.host             = e.getHost();
-	
-	  Map<String, byte[]> tempMap       = e.getAttrs();
-	  Map<String, ByteBuffer> returnMap = new HashMap<String, ByteBuffer>();
-	  for (String key : tempMap.keySet()) {
-	    buf.clear();
-		  buf = ByteBuffer.wrap(tempMap.get(key));
-		  returnMap.put(key, buf);
-		  }
-	  
-	  evt.fields     = returnMap;
-	  return evt;
+    ThriftFlumeEvent evt = new ThriftFlumeEvent();
+    evt.timestamp = e.getTimestamp();
+    evt.priority = convert(e.getPriority());
+    ByteBuffer buf = ByteBuffer.wrap(e.getBody());
+    evt.body = buf;
+    evt.nanos = e.getNanos();
+    evt.host = e.getHost();
+
+    Map<String, byte[]> tempMap = e.getAttrs();
+    Map<String, ByteBuffer> returnMap = new HashMap<String, ByteBuffer>();
+    for (String key : tempMap.keySet()) {
+      buf.clear();
+      buf = ByteBuffer.wrap(tempMap.get(key));
+      returnMap.put(key, buf);
+    }
+
+    evt.fields = returnMap;
+    return evt;
   }
 
   @Override
   public byte[] get(String attr) {
-	ByteBuffer buf = evt.fields.get(attr);
+    ByteBuffer buf = evt.fields.get(attr);
     return buf.array();
   }
 
   @Override
   public Map<String, byte[]> getAttrs() {
-    if (evt.fields == null) {   	
+    if (evt.fields == null) {
       return Collections.<String, byte[]> emptyMap();
     }
-    Map<String, ByteBuffer> tempMap= Collections.unmodifiableMap(evt.fields);
+    Map<String, ByteBuffer> tempMap = Collections.unmodifiableMap(evt.fields);
     Map<String, byte[]> returnMap = new HashMap<String, byte[]>();
     for (String key : tempMap.keySet()) {
-    	ByteBuffer buf = tempMap.get(key);
-    	returnMap.put(key, buf.array());
+      ByteBuffer buf = tempMap.get(key);
+      returnMap.put(key, buf.array());
     }
     return Collections.unmodifiableMap(returnMap);
   }
