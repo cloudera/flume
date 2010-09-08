@@ -3,7 +3,20 @@ Running Flume on HBase
 
 Here's how I've run flume against hbase in dev mode:
 
-1) download hbase 0.20.4 and start it via "bin/start-hbase.sh"
+1) download hbase hbase-0.89.20100621+17.tar.gz from  http://archive.cloudera.com/cdh/3/
+   a) find the portNumber that zookeeper of flume connects to (try running it once, by following step 3 or from the config)
+   b) overwrrite that as the default Zookepeer-clientPort in hbase-site.xml
+   In my case,
+
+   <property>
+    <name>hbase.zookeeper.property.clientPort</name>
+    <value>21810</value>
+    <description>Property from ZooKeeper's config zoo.cfg.
+    The port at which the clients will connect.
+    </description>
+  </property>
+
+   c) start it via "bin/start-hbase.sh"
 
 Note that starting hbase will also start ZooKeeper
 
