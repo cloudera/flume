@@ -25,7 +25,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,20 +35,19 @@ import org.junit.Test;
 
 import com.cloudera.flume.conf.FlumeConfiguration;
 import com.cloudera.flume.conf.FlumeSpecException;
-import com.cloudera.flume.conf.thrift.FlumeMasterCommand;
-import com.cloudera.flume.conf.thrift.FlumeNodeState;
 import com.cloudera.flume.master.StatusManager.NodeStatus;
 import com.cloudera.flume.reporter.ReportEvent;
 import com.cloudera.flume.reporter.ReportManager;
 import com.cloudera.flume.reporter.Reportable;
-import com.cloudera.flume.reporter.server.FlumeReport;
-import com.cloudera.flume.reporter.server.ReportServer;
 import com.cloudera.flume.util.MockClock;
 import com.cloudera.util.Clock;
 import com.cloudera.util.FileUtil;
 import com.cloudera.util.NetUtils;
 
 /**
+ * Tests the logic behind the MasterClientServer class. RPC-specific type
+ * conversion is already covered in TestRPCMechanisms, so we don't test that
+ * here.
 */
 public class TestMasterServers {
 
@@ -79,14 +77,15 @@ public class TestMasterServers {
   }
 
   @Test
-  public void testMasterClientServer() throws TException, IOException {
+  public void testMasterClientServerThrift() throws TException, IOException {
     master = new FlumeMaster(cfg);
     master.serve();
-    MasterClientServer mcs = new MasterClientServer(master);
+    MasterClientServer delegate = new MasterClientServer(master, cfg);
 
-    mcs.heartbeat("foo", "phys-node", NetUtils.localhost(), FlumeNodeState.HELLO, 0);
-    mcs.acknowledge("foo");
-    mcs.checkAck("foo");
+    delegate.heartbeat("foo", "phys-node", NetUtils.localhost(), 
+        StatusManager.NodeState.HELLO, 0);
+    delegate.acknowledge("foo");
+    delegate.checkAck("foo");
     
     Map<String, NodeStatus> statuses = master.getStatMan().getNodeStatuses();
     assertEquals(1, statuses.size());
@@ -94,13 +93,19 @@ public class TestMasterServers {
     assertNotNull(s);
     assertEquals("phys-node", s.physicalNode);
 
-    mcs.getConfig("host");
-    mcs.getLogicalNodes("host");
+    delegate.getConfig("host");
+    delegate.getLogicalNodes("host");
   }
 
+  @Test
+  public void testInvalidRPCSpec() {
+    cfg.set(FlumeConfiguration.MASTER_HEARBEAT_RPC, "INVALID");
+    assertEquals("THRIFT", cfg.getMasterHeartbeatRPC());
+  }
+  
   @Test(expected = IllegalArgumentException.class)
-  public void testNullMasterClient() {
-    new MasterClientServer(null);
+  public void testNullMasterClient() throws IOException {
+    new MasterClientServer(null, cfg);
   }
 
   @Test
@@ -108,13 +113,13 @@ public class TestMasterServers {
       FlumeSpecException {
     master = new FlumeMaster(cfg);
     master.serve();
-    MasterAdminServer mas = new MasterAdminServer(master);
+    MasterAdminServer mas = new MasterAdminServer(master, cfg);
 
     MockClock mclk = new MockClock(0);
     Clock.setClock(mclk);
 
     // populate status
-    MasterClientServer mcs = new MasterClientServer(master);
+    MasterClientServer delegate = new MasterClientServer(master, cfg);
     master.getSpecMan().setConfig("foo", "my-test-flow", "null", "null"); // set
                                                                           // at
                                                                           // time
@@ -125,14 +130,14 @@ public class TestMasterServers {
     mclk.forward(250);
 
     // make the first stamp in the "past" to force an update
-    changed1 = mcs.heartbeat("foo", "foo", NetUtils.localhost(),
-        FlumeNodeState.HELLO, cfgtime); // new
+    changed1 = delegate.heartbeat("foo", "foo", NetUtils.localhost(),
+        StatusManager.NodeState.HELLO, cfgtime); // new
     // node
     assertTrue(changed1);
     mclk.forward(500);
 
-    changed2 = mcs.heartbeat("foo", "foo", NetUtils.localhost(),
-        FlumeNodeState.HELLO, cfgtime);
+    changed2 = delegate.heartbeat("foo", "foo", NetUtils.localhost(),
+        StatusManager.NodeState.HELLO, cfgtime);
     assertFalse(changed2);
 
     master.getSpecMan().setConfig("foo", "my-test-flow", "null", "null");
@@ -143,15 +148,15 @@ public class TestMasterServers {
 
     // "check with the last version we had"
 
-    changed3 = mcs.heartbeat("foo", "foo", NetUtils.localhost(),
-        FlumeNodeState.HELLO, oldcfgtime);
+    changed3 = delegate.heartbeat("foo", "foo", NetUtils.localhost(),
+        StatusManager.NodeState.HELLO, oldcfgtime);
     assertTrue(changed3);
     mclk.forward(500);
 
     // "ok, we did a config update on the node"
 
-    changed4 = mcs.heartbeat("foo", "foo", NetUtils.localhost(),
-        FlumeNodeState.HELLO, cfgtime);
+    changed4 = delegate.heartbeat("foo", "foo", NetUtils.localhost(),
+        StatusManager.NodeState.HELLO, cfgtime);
     assertFalse(changed4);
     mclk.forward(500);
 
@@ -161,43 +166,20 @@ public class TestMasterServers {
     mas.getConfigs();
     mas.isFailure(0);
     mas.isSuccess(0);
-    mas.submit(new FlumeMasterCommand("noop", new ArrayList<String>()));
-
+    mas.submit(new Command("noop", new String[0]));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testNullMasterAdmin() {
-    new MasterAdminServer(null);
-  }
+    try {
+      new MasterAdminServer(null, cfg);
+    } catch (IOException e) {
 
-  @Test
-  public void testConverts() {
-    assertEquals(StatusManager.NodeState.HELLO, MasterClientServer
-        .stateFromThrift(FlumeNodeState.HELLO));
-    assertEquals(StatusManager.NodeState.ACTIVE, MasterClientServer
-        .stateFromThrift(FlumeNodeState.ACTIVE));
-    assertEquals(StatusManager.NodeState.ERROR, MasterClientServer
-        .stateFromThrift(FlumeNodeState.ERROR));
-    assertEquals(StatusManager.NodeState.IDLE, MasterClientServer
-        .stateFromThrift(FlumeNodeState.IDLE));
-    assertEquals(StatusManager.NodeState.CONFIGURING, MasterClientServer
-        .stateFromThrift(FlumeNodeState.CONFIGURING));
-
-    assertEquals(FlumeNodeState.HELLO, MasterClientServer
-        .stateToThrift(StatusManager.NodeState.HELLO));
-    assertEquals(FlumeNodeState.ACTIVE, MasterClientServer
-        .stateToThrift(StatusManager.NodeState.ACTIVE));
-    assertEquals(FlumeNodeState.ERROR, MasterClientServer
-        .stateToThrift(StatusManager.NodeState.ERROR));
-    assertEquals(FlumeNodeState.IDLE, MasterClientServer
-        .stateToThrift(StatusManager.NodeState.IDLE));
-    assertEquals(FlumeNodeState.CONFIGURING, MasterClientServer
-        .stateToThrift(StatusManager.NodeState.CONFIGURING));
-
+    }
   }
   
   @Test
-  public void testReports() throws TException {
+  public void testReports() throws TException, IOException {
     FlumeConfiguration.createTestableConfiguration();
     ReportManager rptMan = ReportManager.get();
     rptMan.clear();
@@ -208,18 +190,18 @@ public class TestMasterServers {
     FlumeMaster master = new FlumeMaster(new CommandManager(),
         new ConfigManager(), new StatusManager(), new MasterAckManager(),
         FlumeConfiguration.get());
-    MasterClientServer mcs = new MasterClientServer(master);
-    mcs.serve();
+    MasterClientServer delegate = new MasterClientServer(master, cfg);
+    delegate.masterRPC.serve();
     
     ReportEvent r = new ReportEvent("foo");
     r.setStringMetric("bar", "baz");
-    Map<String, FlumeReport> rptMap = new HashMap<String, FlumeReport>();
-    rptMap.put("test-report", ReportServer.reportToThrift(r));
-    mcs.putReports(rptMap);
+    Map<String, ReportEvent> rptMap = new HashMap<String, ReportEvent>();
+    rptMap.put("test-report", r);
+    delegate.putReports(rptMap);
     
     Map<String, Reportable> reportables = rptMan.getReportables();
     
-    mcs.stop();
+    delegate.stop();
     
     assertEquals(1, reportables.size());
     assertNotNull(reportables.get("test-report"));

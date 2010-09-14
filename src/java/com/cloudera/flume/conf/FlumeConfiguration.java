@@ -98,7 +98,7 @@ public class FlumeConfiguration extends Configuration {
   static public final int DEFAULT_REPORT_SERVER_PORT = 45678;
 
   public static final int DEFAULT_ZK_CLIENT_PORT = 3181;
-  public static final int DEFAULT_ZK_SERVER_QUORUM_PORT = 3182;  
+  public static final int DEFAULT_ZK_SERVER_QUORUM_PORT = 3182;
   public static final int DEFAULT_ZK_SERVER_ELECTION_PORT = 3183;
 
   // Default sink / source variables
@@ -140,17 +140,20 @@ public class FlumeConfiguration extends Configuration {
   public static final String COLLECTOR_ROLL_MILLIS = "flume.collector.roll.millis";
   public static final String COLLECTOR_OUTPUT_FORMAT = "flume.collector.output.format";
   public static final String COLLECTOR_DFS_COMPRESS_GZIP = "flume.collector.dfs.compress.gzip";
+  public static final String COLLECTOR_DFS_COMPRESS_CODEC = "flume.collector.dfs.compress.codec";
 
   // TODO(henry) move these to flume.master - they now tell the master which
   // interface / port to start up on
   public static final String MASTER_HTTP_PORT = "flume.master.http.port";
   public static final String MASTER_HEARTBEAT_PORT = "flume.master.heartbeat.port";
   public static final String MASTER_HEARTBEAT_SERVERS = "flume.master.heartbeat.servers";
+  public static final String MASTER_HEARBEAT_RPC = "flume.master.heartbeat.rpc";
 
   public static final String CONFIG_HEARTBEAT_PERIOD = "flume.config.heartbeat.period";
   public static final String MASTER_HEARTBEAT_MAX_MISSED = "flume.config.heartbeat.missed.max";
   public static final String NODE_HEARTBEAT_BACKOFF_LIMIT = "flume.node.heartbeat.backoff.ceiling";
   public static final String NODE_HTTP_AUTOFINDPORT = "flume.node.http.autofindport";
+  public static final String NODE_CLOSE_TIMEOUT = "flume.node.close.timeout";
   public static final String CONFIG_ADMIN_PORT = "flume.config.admin.port";
   public static final String REPORT_SERVER_PORT = "flume.report.server.port";
 
@@ -185,10 +188,8 @@ public class FlumeConfiguration extends Configuration {
   // ZooKeeper bits and pieces
   public static final String MASTER_ZK_LOGDIR = "flume.master.zk.logdir";
   public static final String MASTER_ZK_CLIENT_PORT = "flume.master.zk.client.port";
-  public static final String MASTER_ZK_SERVER_QUORUM_PORT =
-    "flume.master.zk.server.quorum.port";
-  public static final String MASTER_ZK_SERVER_ELECTION_PORT =
-    "flume.master.zk.server.election.port";
+  public static final String MASTER_ZK_SERVER_QUORUM_PORT = "flume.master.zk.server.quorum.port";
+  public static final String MASTER_ZK_SERVER_ELECTION_PORT = "flume.master.zk.server.election.port";
   public static final String MASTER_ZK_SERVERS = "flume.master.zk.servers";
   public static final String MASTER_ZK_USE_EXTERNAL = "flume.master.zk.use.external";
 
@@ -208,6 +209,10 @@ public class FlumeConfiguration extends Configuration {
   public static final String HIVE_PW = "flume.hive.userpw";
 
   public static final String PLUGIN_CLASSES = "flume.plugin.classes";
+
+  // Options for RPC type
+  public static final String RPC_TYPE_THRIFT = "THRIFT";
+  public static final String RPC_TYPE_AVRO = "AVRO";
 
   /**
    * Returns true if there is more than one server in MASTER_SERVERS.
@@ -245,8 +250,8 @@ public class FlumeConfiguration extends Configuration {
     Iterator<String> iter = l.iterator();
     StringBuilder builder = new StringBuilder();
     while (iter.hasNext()) {
-      builder.append(iter.next() + ":" + clientport + ":" + quorumport
-          + ":" + electionport);
+      builder.append(iter.next() + ":" + clientport + ":" + quorumport + ":"
+          + electionport);
       if (iter.hasNext()) {
         builder.append(',');
       }
@@ -545,9 +550,14 @@ public class FlumeConfiguration extends Configuration {
     return get(COLLECTOR_DFS_DIR, "file://tmp/flume/collected");
   }
 
+  @Deprecated
   public boolean getCollectorDfsCompressGzipStatus() {
     return getBoolean(COLLECTOR_DFS_COMPRESS_GZIP, false);
-}
+  }
+
+  public String getCollectorDfsCompressCodec() {
+    return get(COLLECTOR_DFS_COMPRESS_CODEC, "None");
+  }
 
   public long getCollectorRollMillis() {
     return getLong(COLLECTOR_ROLL_MILLIS, 30000);
@@ -654,6 +664,18 @@ public class FlumeConfiguration extends Configuration {
     Preconditions.checkState(server.length == 2, "Server spec "
         + serverList.get(serverid) + " is ill-formed");
     return Integer.parseInt(server[1].trim());
+  }
+
+  public String getMasterHeartbeatRPC() {
+    String[] validRPCProtocols = { RPC_TYPE_AVRO, RPC_TYPE_THRIFT };
+    String entered = get(MASTER_HEARBEAT_RPC, RPC_TYPE_THRIFT).toUpperCase();
+    for (String prot : validRPCProtocols) {
+      if (entered.equals(prot)) {
+        return prot;
+      }
+    }
+    // default
+    return RPC_TYPE_THRIFT;
   }
 
   public int getMasterGossipPeriodMs() {
@@ -902,5 +924,14 @@ public class FlumeConfiguration extends Configuration {
     pw.flush();
 
     return sw.getBuffer().toString();
+  }
+
+  /**
+   * If a logical node does not cleanly close after the specified amount of
+   * time, it is is interrupted and should exit in error state. This can occur
+   * because of some blocking sources, sinks, or decorators.
+   */
+  public long getNodeCloseTimeout() {
+    return getLong(NODE_CLOSE_TIMEOUT, 30000);
   }
 }

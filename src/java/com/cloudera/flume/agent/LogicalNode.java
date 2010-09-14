@@ -28,11 +28,11 @@ import org.apache.log4j.Logger;
 
 import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.FlumeBuilder;
+import com.cloudera.flume.conf.FlumeConfigData;
 import com.cloudera.flume.conf.FlumeConfiguration;
 import com.cloudera.flume.conf.FlumeSpecException;
-import com.cloudera.flume.conf.thrift.FlumeConfigData;
-import com.cloudera.flume.core.DriverListener;
 import com.cloudera.flume.core.Driver;
+import com.cloudera.flume.core.DriverListener;
 import com.cloudera.flume.core.EventSink;
 import com.cloudera.flume.core.EventSource;
 import com.cloudera.flume.core.connector.DirectDriver;
@@ -158,21 +158,26 @@ public class LogicalNode implements Reportable {
     newSrc = new LazyOpenSource<EventSource>(newSrc);
 
     openSourceSink(newSrc, newSnk);
-    loadNode(newSrc, newSnk);
+    loadNode();
   }
 
   /**
    * This stops any existing connection (source=>sink pumper), and then creates
    * a new one with the specified *already opened* source and sink arguments.
    */
-  private void loadNode(EventSource newSrc, EventSink newSnk)
+  private void loadNode()
       throws IOException {
 
     if (driver != null) {
       // stop the existing connector.
       driver.stop();
       try {
-        driver.join();
+        // default is 30s.
+        long timeout = FlumeConfiguration.get().getNodeCloseTimeout();
+        if (!driver.join(timeout)) {
+          LOG.error("Forcing driver to exit uncleanly");
+          driver.cancel(); // taking too long, cancel the thread
+        }
       } catch (InterruptedException e) {
         LOG.error("Previous driver took too long to close!", e);
       }
@@ -343,7 +348,7 @@ public class LogicalNode implements Reportable {
     return true;
   }
 
-  synchronized public void getReports(Map<String, ReportEvent> reports) {
+  public void getReports(Map<String, ReportEvent> reports) {
     String phyName = FlumeNode.getInstance().getPhysicalNodeName();
     String rprefix = phyName + "." + getName() + ".";
 
@@ -355,7 +360,7 @@ public class LogicalNode implements Reportable {
     }
   }
 
-  public synchronized ReportEvent getReport() {
+  public ReportEvent getReport() {
     ReportEvent rpt = new ReportEvent(nodeName);
     rpt.setStringMetric("nodename", nodeName);
     rpt.setStringMetric("version", new Date(lastGoodCfg.timestamp).toString());

@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.cloudera.flume.conf.FlumeSpecException;
-import com.cloudera.flume.conf.thrift.FlumeConfigData;
+import com.cloudera.flume.conf.FlumeConfigData;
 import com.cloudera.flume.reporter.Reportable;
 import com.google.common.collect.Multimap;
 
@@ -85,8 +85,10 @@ public interface ConfigurationManager extends Reportable {
   /**
    * Associates a new logical node to the specified physical node. If no
    * physical node exists, it is created as well.
+   *
+   * @return true upon success, false otherwise.
    */
-  public void addLogicalNode(String physNode, String logicNode);
+  public boolean addLogicalNode(String physNode, String logicNode);
 
   /**
    * This removes the logical node data flow configuration from both the flow

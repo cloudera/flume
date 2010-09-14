@@ -23,6 +23,8 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 
 import org.antlr.runtime.RecognitionException;
 import org.apache.log4j.Level;
@@ -33,7 +35,7 @@ import org.junit.Test;
 import com.cloudera.flume.conf.FlumeConfiguration;
 import com.cloudera.flume.conf.FlumeSpecException;
 import com.cloudera.flume.conf.PatternMatch;
-import com.cloudera.flume.conf.thrift.FlumeConfigData;
+import com.cloudera.flume.conf.FlumeConfigData;
 import com.cloudera.flume.master.ConfigManager;
 import com.cloudera.flume.master.ConfigurationManager;
 import com.cloudera.flume.master.StatusManager;
@@ -325,6 +327,28 @@ public class TestLogicalConfigManager {
             "< logicalSink(\"foo2\") ? <logicalSink(\"foo1\") ? logicalSink(\"foo1\") > > ",
             "null", "rpcSink( \"" + host + "\", " + foo2port + " " } };
     manyMappingHarness(lists);
+  }
+
+  /**
+   * Test to ensure attempts to map a single logical node to multiple physicals
+   * is discarded with a warning. This may be exception worthy.
+   */
+  @Test
+  public void testDuplicateAssignment() {
+    ConfigurationManager parent = new ConfigManager();
+    ConfigurationManager self = new ConfigManager();
+    StatusManager statman = new StatusManager();
+    ConfigurationManager trans = new LogicalConfigurationManager(parent, self,
+        statman);
+
+    trans.addLogicalNode("hostA", "foo");
+    assertEquals(1, trans.getLogicalNodeMap().size());
+
+    trans.addLogicalNode("hostB", "foo");
+    assertEquals(1, trans.getLogicalNodeMap().size());
+
+    assertEquals(Arrays.asList("foo"), trans.getLogicalNode("hostA"));
+    assertEquals(Collections.EMPTY_LIST, trans.getLogicalNode("hostB"));
   }
 
   /**

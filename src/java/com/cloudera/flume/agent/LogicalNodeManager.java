@@ -35,7 +35,7 @@ import com.cloudera.flume.conf.FlumeConfiguration;
 import com.cloudera.flume.conf.FlumeSpecException;
 import com.cloudera.flume.conf.LogicalNodeContext;
 import com.cloudera.flume.conf.ReportTestingContext;
-import com.cloudera.flume.conf.thrift.FlumeConfigData;
+import com.cloudera.flume.conf.FlumeConfigData;
 import com.cloudera.flume.core.CompositeSink;
 import com.cloudera.flume.core.EventSink;
 import com.cloudera.flume.core.EventSource;
@@ -124,9 +124,17 @@ public class LogicalNodeManager implements Reportable {
   }
 
   @Override
-  synchronized public ReportEvent getReport() {
+  public ReportEvent getReport() {
     ReportEvent rpt = new ReportEvent(getName());
-    for (LogicalNode t : threads.values()) {
+
+    Collection<LogicalNode> copy = null;
+    synchronized (this) {
+      // copy the logical node list in an sychronized way, and make sure when
+      // LogicalNode is locked we don't need the LogicalNodeManager lock.
+      copy = getNodes();
+    }
+
+    for (LogicalNode t : copy) {
       rpt.hierarchicalMerge(t.getName(), t.getReport());
     }
     return rpt;

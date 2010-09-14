@@ -41,7 +41,7 @@ import org.apache.zookeeper.data.Stat;
 import com.cloudera.flume.conf.FlumeBuilder;
 import com.cloudera.flume.conf.FlumeSpecException;
 import com.cloudera.flume.conf.FlumeSpecGen;
-import com.cloudera.flume.conf.thrift.FlumeConfigData;
+import com.cloudera.flume.conf.FlumeConfigData;
 import com.cloudera.flume.master.ZKClient.InitCallback;
 import com.cloudera.util.Clock;
 import com.cloudera.util.Pair;
@@ -429,7 +429,15 @@ public class ZooKeeperConfigStore extends ConfigStore implements Watcher {
 
   @Override
   public synchronized List<String> getLogicalNodes(String physNode) {
-    return Collections.unmodifiableList(nodeMap.get(physNode));
+    List<String> values;
+
+    values = nodeMap.get(physNode);
+
+    if (values == null) {
+      return Collections.emptyList();
+    }
+
+    return Collections.unmodifiableList(values);
   }
 
   @Override

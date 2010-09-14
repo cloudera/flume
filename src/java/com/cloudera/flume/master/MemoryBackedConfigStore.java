@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.cloudera.flume.conf.thrift.FlumeConfigData;
+import com.cloudera.flume.conf.FlumeConfigData;
 import com.cloudera.util.Clock;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
@@ -84,7 +84,15 @@ public class MemoryBackedConfigStore extends ConfigStore {
   }
 
   public List<String> getLogicalNodes(String physNode) {
-    return Collections.unmodifiableList(nodeMap.get(physNode));
+    List<String> values;
+
+    values = nodeMap.get(physNode);
+
+    if (values == null) {
+      return Collections.emptyList();
+    }
+
+    return Collections.unmodifiableList(values);
   }
 
   @Override

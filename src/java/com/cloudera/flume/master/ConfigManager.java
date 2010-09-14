@@ -37,7 +37,7 @@ import com.cloudera.flume.conf.FlumeBuilder;
 import com.cloudera.flume.conf.FlumeConfiguration;
 import com.cloudera.flume.conf.FlumeSpecException;
 import com.cloudera.flume.conf.FlumeSpecGen;
-import com.cloudera.flume.conf.thrift.FlumeConfigData;
+import com.cloudera.flume.conf.FlumeConfigData;
 import com.cloudera.flume.reporter.ReportEvent;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
@@ -263,9 +263,19 @@ public class ConfigManager implements ConfigurationManager {
   }
 
   @Override
-  synchronized public void addLogicalNode(String physNode, String logicNode) {
-    cfgStore.addLogicalNode(physNode, logicNode);
-    logicalToPhysical.put(logicNode, physNode);
+  synchronized public boolean addLogicalNode(String physNode, String logicNode) {
+    if (!logicalToPhysical.containsKey(logicNode)) {
+      cfgStore.addLogicalNode(physNode, logicNode);
+      logicalToPhysical.put(logicNode, physNode);
+
+      return true;
+    } else {
+      LOG.warn("Logical node " + logicNode
+        + " is already assigned to physical node "
+        + logicalToPhysical.get(logicNode) + ". Unmap it first.");
+
+      return false;
+    }
   }
 
   /**

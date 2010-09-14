@@ -25,7 +25,7 @@ import java.util.Map.Entry;
 
 import com.cloudera.flume.conf.FlumeConfiguration;
 import com.cloudera.flume.conf.FlumeSpecException;
-import com.cloudera.flume.conf.thrift.FlumeConfigData;
+import com.cloudera.flume.conf.FlumeConfigData;
 import com.cloudera.flume.master.ConfigManager;
 import com.cloudera.flume.master.ConfigurationManager;
 import com.cloudera.flume.master.StatusManager;
@@ -106,11 +106,15 @@ abstract public class FlowConfigManager implements ConfigurationManager {
    * manager
    */
   @Override
-  synchronized public void addLogicalNode(String physNode, String logicNode) {
-    parent.addLogicalNode(physNode, logicNode);
+  synchronized public boolean addLogicalNode(String physNode, String logicNode) {
+    boolean result;
+
+    result = parent.addLogicalNode(physNode, logicNode);
     String flowid = getFlowId(logicNode);
     ConfigurationManager fcfg = getCreateFlowConfigMan(flowid);
     fcfg.addLogicalNode(physNode, logicNode);
+
+    return result;
   }
 
   /**
