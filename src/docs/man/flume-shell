@@ -1,0 +1,76 @@
+= flume-shell(1)
+:doctype: manpage
+
+== NAME
+flume-shell - Flume shell
+
+== SYNOPSIS
+USAGE: *flume shell*  [-c <master>] [-?] [-e <cmd>] [-q] [-s <script>]
+
+== DESCRIPTION
+
+Start a Flume shell.  This is a scriptable interface to communicate
+with the Flume master used for configuring a Flume system.
+
+
+=== OPTIONS
+
+*-?,--help*::
+    Output usage help
+
+*-c <master>[:<adminport[:<reportport>]]*:: Connect to master on
+    adminport (destination for commands) with reporting port
+    reportport (for queriying metrics reports aggregated at master)
+
+*-e <cmd>*::
+    Run a single command, and then exit.  Usually coupled with -c.
+
+*-q*::
+    Run in quiet mode -- only print command results
+
+*-s <arg>*::
+    Run a Flume shell script and then automatically exit.
+
+=== EXIT STATUS
+
+*0*::
+    Success
+
+*n*::
+    Command id of the last failed command.
+
+== FILES
+
+include::files[]
+
+== ENVIRONMENT
+
+See flume(1) for more details.
+
+== EXAMPLES
+
+Execute an interactive Flume shell:
+
+$ flume shell
+
+Execute an interactive Flume shell that automatically connects to localhost:
+
+$ flume shell -c localhost
+
+Execute a Flume shell that automatically connects to localhost and
+then sends the +exec config foo console agentSink+ command:
+
+$ flume shell -c localhost -e 'exec config foo console agentSink'
+
+Execute a Flume shell that quietly executes the commands in
+commands.fsh.
+
+$ flume shell -q -s commands.fsh
+
+Execute a Flume shell that automatically connects to localhost and is
+piped commands from the commands.fsh file.
+
+$ cat commands.fsh > flume shell -c localhost
+
+include::footer[]
+

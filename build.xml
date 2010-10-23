@@ -731,7 +731,27 @@ to call at top-level: ant deploy-contrib compile-core-test
     </copy>
   </target>
 
- 
+  <target name="manpages" depends="init" description="Build manpages">
+    <mkdir dir="${basedir}/docs/man"/>
+    <exec executable="a2x" dir="${basedir}" failonerror="true">
+      <arg line="-f manpage -D ${basedir}/docs/man/ ${basedir}/src/docs/man/flume-node"/>
+    </exec>
+    <exec executable="a2x" dir="${basedir}" failonerror="true">
+      <arg line="-f manpage -D ${basedir}/docs/man/ ${basedir}/src/docs/man/flume"/>
+    </exec>
+
+    <exec executable="a2x" dir="${basedir}" failonerror="true">
+      <arg line="-f manpage -D ${basedir}/docs/man/ ${basedir}/src/docs/man/flume-shell"/>
+    </exec>
+
+    <exec executable="a2x" dir="${basedir}" failonerror="true">
+      <arg line="-f manpage -D ${basedir}/docs/man/ ${basedir}/src/docs/man/flume-master"/>
+    </exec>
+
+    <!-- in Ubuntu, copy to /usr/share/man/man1 -->
+
+  </target>
+  
   <!-- ================================================================== -->
   <!-- Make flume.tgz                                                     -->
   <!-- ================================================================== -->

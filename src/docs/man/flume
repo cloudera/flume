@@ -1,0 +1,63 @@
+= flume(1)
+:doctype: manpage
+
+== NAME
+
+flume - a distributed, reliable, scalable, near-realtime log
+collection system.
+
+== SYNOPSIS
+*flume* COMMAND ['OPTIONS']
+
+== DESCRIPTION
+
+The flume(1) command has subcommands to execute different parts of the
+Flume system.  The main subcommands are node, master, and shell.
+
+== COMMANDS
+
+*dump <source>*::
+    Starts a one shot Flume daemon that outputs data to the console.
+
+*node*::
+    Starts a Flume node daemon.  The node is run with the watchdog
+    program and cannot be used interactively. See flume-node for more
+    details.
+
+*node_nowatch*::
+    Starts a Flume node daemon.  The node is run without the watchdog
+    program, and can be used interactively.  See flume-node for more
+    details.
+
+*master*::
+    Starts a Flume master daemon.  This runs the master with a
+    watchdog program.  There can only be one master running on a node.
+    See flume-mater for more details.
+
+*shell*::
+    Starts the Flume shell.  See flume-shell for more details.
+
+*class <classname>*::
+    Executes the main program in the specified classname with the
+    Flume environment settings.
+
+*classpath*::
+    Dumps the java classpath used for when Flume programs are run.
+
+*version*::
+    Dumps the Flume version and build hash.
+
+== EXIT STATUS
+
+*0*::
+    Success
+
+*1*::
+    Failure (syntax or usage error; configuration error; document
+    processing failure; unexpected error).
+
+== ENVIRONMENT
+
+include::env[]
+
+include::footer[]

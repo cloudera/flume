@@ -1,0 +1,66 @@
+= flume-node(1)
+:doctype: manpage
+
+== NAME
+flume-node - Flume node
+flume-node_nowatch - Flume node with no watchdog
+
+== SYNOPSIS
+USAGE: *flume node* [-1] [-c <arg>] [-h] [-m] [-n <arg>] [-s] [-v]
+
+== DESCRIPTION
+
+Start a Flume node daemon or execute a Flume node in one-shot mode.
+
+== OPTIONS
+
+*-1*:: One shot mode -- do not attepmt to heartbeat with the Flume
+    master
+
+*-c <arg>*:: Initialialize with configuration.  This configuration
+    needs to be a single arg in the Flume configuraiton spec language.
+
+*-h*:: Output usage help
+
+*-m*:: Hard exit if memory constraints causes gc to starts thrashing.
+
+*-n <name>*:: Set physical node name for instance. Default is the
+  machine's hostname.  This is useful for if you want to run multiple
+  instances of Flume node on a single machine.
+
+*-s*:: Do not start local Flume status server on node.  Often used
+    with '-1' which allows a Flume node to exit after a source has
+    been exhausted.
+
+== EXIT STATUS
+
+*0*:: Success
+
+*1*:: Failure (syntax or usage error; configuration error; document
+    processing failure; unexpected error).
+
+== FILES
+
+include::files[]
+
+== ENVIRONMENT
+
+See flume(1) for more details.
+
+== EXAMPLES
+
+Start flume node with default physical node name:
+
+$ flume node
+
+Start a flume node with specfiied physical node name "physicalname"
+
+$ flume node -n physicalname
+
+Start a flume node that does not heartbeat, that does not have a
+status web page, with physical node name "foo", and configured to read
+/var/log/message and output to the console.
+
+$ flume node_nowatch -1 -s -n foo -c 'foo:text("/var/log/messages")|console;'
+
+include::footer[]

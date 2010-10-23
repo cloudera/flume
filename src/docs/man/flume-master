@@ -1,0 +1,55 @@
+= flume-master(1)
+:doctype: manpage
+
+== NAME
+flume-master - Flume master daemon
+
+== SYNOPSIS
+USAGE: *flume master* [-c <file>] [-f] [-i <id>]
+
+== DESCRIPTION
+
+Start a Flume master daemon.
+
+== OPTIONS
+
+*-c <file>* :: When starting the mater load the specified file
+  containing Flume node configurations.
+
+*-f* :: Start a fresh instance of the master that has no node
+  configurations and ignores previously saved confgurations.
+
+*-i <id>* :: Give node a specified master server id for a multi-master
+  deployment.  This must be an integer >=0.  See
+  <http://archive.cloudera.com/cdh/3/flume/UserGuide.html#_multiple_masters>
+
+
+== EXIT STATUS
+
+*0*::
+    Success
+
+*1*::
+    Failure (syntax or usage error; configuration error; document
+    processing failure; unexpected error).
+
+
+== FILES
+
+include::files[]
+
+== ENVIRONMENT
+
+See flume(1) for more details.
+
+== EXAMPLES
+
+$ flume master
+
+$ flume master -f
+
+$ flume master -i 1
+
+$ flume master -c configs.flume
+
+include::footer[]

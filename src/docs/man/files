@@ -1,0 +1,13 @@
+
+/etc/flume/conf :: This symbolic link points to the currently active
+Flume configuration directory.
+
+/etc/flume/conf/flume-site.xml :: This is the path to the currently
+deployed Flume site configuration.
+
+/etc/init.d/flume-node :: Service script for starting and stopping a
+Flume Node
+
+/etc/init.d/flume-master :: Service script for starting and stopping a
+Flume Master
+

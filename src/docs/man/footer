@@ -1,0 +1,16 @@
+
+== AUTHOR
+See the Contributors site here: <http://wiki.github.com/cloudera/flume/Contributors>
+
+== RESOURCES
+Github web site and code repository: <http://github.com/cloudera/flume/>
+
+Flume User guide: <http://archive.cloudera.com/cdh/3/flume/UserGuide.html>
+
+Flume Cookbook: <http://archive.cloudera.com/cdh/3/flume/Cookbook.html>
+
+== COPYING
+Copyright \(C) 2009-2010 Cloudera, Inc.
+
+== SEE ALSO
+   flume(1), flume-master(1), flume-node(1), flume-shell(1)
