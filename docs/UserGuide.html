@@ -553,8 +553,8 @@ footnotes: function () {
 <div id="header">
 <h1>Flume User Guide</h1>
 <span id="author">flume-dev@cloudera.org</span><br />
-<span id="revnumber">version 0.9.1,</span>
-<span id="revdate">August 9th 2010</span>
+<span id="revnumber">version 0.9.2,</span>
+<span id="revdate">November 15th, 2010</span>
 <div id="toc">
   <div id="toctitle">Table of Contents</div>
   <noscript><p><b>JavaScript must be enabled in your browser to display the table of contents.</b></p></noscript>
@@ -4197,8 +4197,8 @@ returning call stack.</p></div>
 <td class="icon">
 <div class="title">Note</div>
 </td>
-<td class="content">In v0.9.1, interruptions when caught should be handled by
-re-flagging the Thread&#8217;s interrupted flag (a call to
+<td class="content">In v0.9.1 and v0.9.2, interruptions when caught should be
+handled by re-flagging the Thread&#8217;s interrupted flag (a call to
 <tt>Thread.currentThread().interrupt()</tt>) and then throwing an
 IOException.  The API for extensions will likely change in the future
 to throw either an IOException or an InterruptedException.</td>
@@ -6158,6 +6158,26 @@ The place where a node gets its data stream.
 <h3 id="_history">history</h3><div style="clear:left"></div>
 <div class="dlist"><dl>
 <dt class="hdlist1">
+v0.9.2 11/15/10
+</dt>
+<dd>
+<p>
+Support for all hadoop supported compression codecs.
+Avro RPC support.  Flexible throughput thottling.  Useful error
+messsages in shell. Upgrades to Thrift RPC support.  Performance and
+robustness improvements in tail and exec.
+</p>
+</dd>
+<dt class="hdlist1">
+v0.9.1u1 10/12/10
+</dt>
+<dd>
+<p>
+Added write support for Kerberized HDFS. Flume
+cookbook.
+</p>
+</dd>
+<dt class="hdlist1">
 v0.9.1 8/9/10
 </dt>
 <dd>
@@ -6240,8 +6260,8 @@ collector programs, watchdog
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Version 0.9.1<br />
-Last updated 2010-10-19 05:28:08 PDT
+Version 0.9.2<br />
+Last updated 2010-11-14 02:16:52 PDT
 </div>
 </div>
 </body>
