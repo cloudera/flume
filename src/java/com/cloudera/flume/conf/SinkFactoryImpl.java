@@ -65,6 +65,7 @@ import com.cloudera.flume.handlers.debug.TextFileSink;
 import com.cloudera.flume.handlers.endtoend.AckChecksumChecker;
 import com.cloudera.flume.handlers.endtoend.AckChecksumInjector;
 import com.cloudera.flume.handlers.endtoend.ValueDecorator;
+import com.cloudera.flume.handlers.hbase.Attr2HBaseEventSink;
 import com.cloudera.flume.handlers.hbase.HBaseEventSink;
 import com.cloudera.flume.handlers.hdfs.CustomDfsSink;
 import com.cloudera.flume.handlers.hdfs.DFSEventSink;
@@ -150,6 +151,7 @@ public class SinkFactoryImpl extends SinkFactory {
 
       // experiemental
       { "hbase", HBaseEventSink.builder() },
+      { "attr2hbase", Attr2HBaseEventSink.builder() },
 
       // deprecated
       { "tsink", ThriftEventSink.builder() },
