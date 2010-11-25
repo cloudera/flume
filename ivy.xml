@@ -43,6 +43,8 @@
 
     <dependency org="junit" name="junit" rev="4.8.1" conf="test->default"/> 
     <dependency org="org.mockito" name="mockito-all" rev="1.8.1" conf="test->default"/>
+    <dependency org="com.rabbitmq" name="amqp-client" rev="2.1.0"/>
+
     <dependency org="com.google.code.findbugs" name="findbugs"
                 rev="1.3.9" conf="findbugs->default" />
     <dependency org="com.google.code.findbugs" name="findbugs-ant"
