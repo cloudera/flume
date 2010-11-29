@@ -20,7 +20,7 @@ with the Flume master used for configuring a Flume system.
 
 *-c <master>[:<adminport[:<reportport>]]*:: Connect to master on
     adminport (destination for commands) with reporting port
-    reportport (for queriying metrics reports aggregated at master)
+    reportport (for querying metrics reports aggregated at master)
 
 *-e <cmd>*::
     Run a single command, and then exit.  Usually coupled with -c.

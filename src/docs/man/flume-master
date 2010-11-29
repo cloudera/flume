@@ -17,7 +17,7 @@ Start a Flume master daemon.
   containing Flume node configurations.
 
 *-f* :: Start a fresh instance of the master that has no node
-  configurations and ignores previously saved confgurations.
+  configurations and ignores previously saved configurations.
 
 *-i <id>* :: Give node a specified master server id for a multi-master
   deployment.  This must be an integer >=0.  See

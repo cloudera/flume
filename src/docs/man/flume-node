@@ -17,8 +17,8 @@ Start a Flume node daemon or execute a Flume node in one-shot mode.
 *-1*:: One shot mode -- do not attepmt to heartbeat with the Flume
     master
 
-*-c <arg>*:: Initialialize with configuration.  This configuration
-    needs to be a single arg in the Flume configuraiton spec language.
+*-c <arg>*:: Initialize with configuration.  This configuration
+    needs to be a single arg in the Flume configuration spec language.
 
 *-h*:: Output usage help
 
@@ -53,7 +53,7 @@ Start flume node with default physical node name:
 
 $ flume node
 
-Start a flume node with specfiied physical node name "physicalname"
+Start a flume node with specfied physical node name "physicalname"
 
 $ flume node -n physicalname
 
