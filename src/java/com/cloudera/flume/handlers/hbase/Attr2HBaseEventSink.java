@@ -40,56 +40,123 @@ import java.util.Map.Entry;
  * This generates an HBase output sink which puts event attributes into HBase record based on their names.
  * It is similar to {@link com.cloudera.flume.handlers.hbase.HBaseEventSink}, please refer to README.txt for basic steps.
  *
- * Sink has the next parameters: attr2hbase("table" [,"family"[,"attrPrefix"[,"writeBufferSize"[,"writeToWal"]]]]).
+ * Sink has the next parameters: attr2hbase("table" [,"family"[, "writeBody"[,"attrPrefix"[,"writeBufferSize"[,"writeToWal"]]]]]).
  * "table"           - HBase table name to perform output into.
- * "family"          - Column family's name which is used to store "system" data (event's timestamp, host).
+ * "sysFamily"       - Column family's name which is used to store "system" data (event's timestamp, host, priority).
+ *                     In case this param is absent or ="" the sink doesn't write "system" data.
+ * "writeBody"       - Indicates whether event's body should be written among other "system" data.
+ *                     Default is "true" which means it should be written.
  *                     In case this param is absent or ="" the sink doesn't write "system" data.
  * "attrPrefix"      - Attributes with this prefix in key will be placed into HBase table. Default value: "2hb_".
- *                     Attribute key should be in the following format: "<attrPrefix><columnFamily>:<qualifier>",
- *                     e.g. "2hb_user:name" means that its value will be placed into "user" column family with "name" qualifier
- *                     Attribute with key "<attrPrefix>" should contain row key for Put, otherwise (if attribute is absent) event's getNanos() used as row key value
+ *                     Attribute key should be in the following format: "&lt;attrPrefix&gt;&lt;columnFamily&gt;:&lt;qualifier&gt;",
+ *                     e.g. "2hb_user:name" means that its value will be placed into "user" column family with "name" qualifier.
+ *                     Attribute with key "&lt;attrPrefix&gt;" SHOULD contain row key for Put,
+ *                     otherwise (if no row can be extracted) the event is skipped and no records are written to the HBase table.
+ *                     Next table shows what gets written into HBase table depending on the attribute name and other settings (in format columnFamily:qualifier->value, "-" means nothing is written).
+ * <blockquote><table border=1>
+ *   <tr>
+ *     <th>Event's attr ("name"->"value")</th>
+ *     <th>attrPrefix="2hb_", sysFamily=null</th>
+ *     <th>attrPrefix="2hb_", sysFamily="sysfam"</th>
+ *     <th>attrPrefix="", sysFamily="sysfam"</th>
+ *     <th>attrPrefix="", sysFamily=null</th>
+ *   </tr>
+ *   <tr>
+ *     <td>"any"->"foo"</td>
+ *     <td>-</td>
+ *     <td>-</td>
+ *     <td>sysfam:any->foo</td>
+ *     <td>-</td>
+ *   </tr>
+ *   <tr>
+ *     <td>"colfam:col"->"foo"</td>
+ *     <td>-</td>
+ *     <td>-</td>
+ *     <td>colfam:col->foo</td>
+ *     <td>colfam:col->foo</td>
+ *   </tr>
+ *   <tr>
+ *     <td>"2hb_any"->"foo"</td>
+ *     <td>-</td>
+ *     <td>sysfam:any->foo</td>
+ *     <td>sysfam:2hb_any->foo</td>
+ *     <td>-</td>
+ *   </tr>
+ *   <tr>
+ *     <td>"2hb_colfam:col"->"foo"</td>
+ *     <td>colfam:col->foo</td>
+ *     <td>colfam:col->foo</td>
+ *     <td>2hb_colfam:col->foo</td>
+ *     <td>2hb_colfam:col->foo</td>
+ *   </tr>
+ * </table></blockquote>
+ *
  * "writeBufferSize" - If provided, autoFlush for the HTable set to "false", and writeBufferSize is set to its value.
+ *                     If not provided, by default autoFlush is set to "true" (default HTable setting).
  *                     This setting is valuable to boost HBase write speed.
- * "writeToWal"      - Determines whether WAL should be used during writing to HBase.
+ * "writeToWal"      - Determines whether WAL should be used during writing to HBase. If not provided Puts are written to WAL by default
  *                     This setting is valuable to boost HBase write speed, but decreases reliability level. Use it if you know what it does.
  *
  * The Sink also implements method getSinkBuilders(), so it can be used as Flume's extension plugin (see flume.plugin.classes property of flume-site.xml config details)
  */
 public class Attr2HBaseEventSink extends EventSink.Base {
   private final static Logger LOG = Logger.getLogger(Attr2HBaseEventSink.class.getName());
-  public static final String USAGE = "usage: attr2hbase(\"table\" [,\"family\"[,\"attrPrefix\"[,\"writeBufferSize\"[,\"writeToWal\"]]]])";
+  public static final String USAGE = "usage: attr2hbase(\"table\" [,\"sysFamily\"[, \"writeBody\"[,\"attrPrefix\"[,\"writeBufferSize\"[,\"writeToWal\"]]]]])";
 
   private String tableName;
 
   /**
    * Column family name to store system data like timestamp of event, host
    */
-  private String familyName;
+  private byte[] systemFamilyName;
   private String attrPrefix = "2hb_";
   private long writeBufferSize = 0L;
   private boolean writeToWal = true;
+  private boolean writeBody = true;
 
   private Configuration config;
   private HTable table;
 
-  public Attr2HBaseEventSink(String tableName, String familyName, String attrPrefix,
+  /**
+   * Instantiates sink.
+   * See detailed explanation of parameters and their values at {@link com.cloudera.flume.handlers.hbase.Attr2HBaseEventSink}
+   * @param tableName HBase table name to output data into
+   * @param systemFamilyName name of columnFamily where to store event's system data
+   * @param writeBody Indicates whether event's body should be written
+   * @param attrPrefix attributes with this prefix in key will be placed into HBase table
+   * @param writeBufferSize HTable's writeBufferSize
+   * @param writeToWal determines whether WAL should be used during writing to HBase
+   */
+  public Attr2HBaseEventSink(String tableName, String systemFamilyName, boolean writeBody, String attrPrefix,
                                  long writeBufferSize, boolean writeToWal) {
     // You need a configuration object to tell the client where to connect.
     // When you create a HBaseConfiguration, it reads in whatever you've set
     // into your hbase-site.xml and in hbase-default.xml, as long as these can
     // be found on the CLASSPATH
-    this(tableName, familyName, attrPrefix, writeBufferSize, writeToWal, HBaseConfiguration.create());
+    this(tableName, systemFamilyName, writeBody, attrPrefix, writeBufferSize, writeToWal, HBaseConfiguration.create());
   }
 
-  public Attr2HBaseEventSink(String tableName, String familyName, String attrPrefix,
+  /**
+   * Instantiates sink.
+   * See detailed explanation of parameters and their values at {@link com.cloudera.flume.handlers.hbase.Attr2HBaseEventSink}
+   * @param tableName HBase table name to output data into
+   * @param systemFamilyName name of columnFamily where to store event's system data
+   * @param writeBody Indicates whether event's body should be written
+   * @param attrPrefix attributes with this prefix in key will be placed into HBase table
+   * @param writeBufferSize HTable's writeBufferSize
+   * @param writeToWal determines whether WAL should be used during writing to HBase
+   * @param config HBase configuration
+   */
+  public Attr2HBaseEventSink(String tableName, String systemFamilyName, boolean writeBody, String attrPrefix,
                                  long writeBufferSize, boolean writeToWal, Configuration config)
   {
-    Preconditions.checkNotNull(tableName);
+    Preconditions.checkNotNull(tableName, "HBase table's name MUST be provided.");
     this.tableName = tableName;
-    // familyName can be null or empty String, which means "don't store "system" data
-    if (familyName != null && !"".equals(familyName)) {
-      this.familyName = familyName;
+    // systemFamilyName can be null or empty String, which means "don't store "system" data
+    if (systemFamilyName != null && !"".equals(systemFamilyName)) {
+      this.systemFamilyName = Bytes.toBytes(systemFamilyName);
     }
+    this.writeBody = writeBody;
     if (attrPrefix!= null) {
       this.attrPrefix = attrPrefix;
     }
@@ -99,47 +166,82 @@ public class Attr2HBaseEventSink extends EventSink.Base {
 
     this.config = config;
   }
-  
+
   @Override
   public void append(Event e) throws IOException {
-    Put p;
-    // Attribute with key "<attrPrefix>" contains row key for Put
-    if (e.getAttrs().containsKey(attrPrefix)) {
-      p = new Put(e.getAttrs().get(attrPrefix));
-    } else {
-      p = new Put(Bytes.toBytes(e.getNanos()));
-    }
+    Put p = createPut(e);
 
-    if (familyName != null) {
-      p.add(Bytes.toBytes(familyName), Bytes.toBytes("timestamp"),
-          Bytes.toBytes(e.getTimestamp()));
-      p.add(Bytes.toBytes(familyName), Bytes.toBytes("host"),
-          Bytes.toBytes(e.getHost()));
-    }
-
-//  Body shouldn't be usually stored. TODO: make configurable?
-//    p.add(Bytes.toBytes(familyName), Bytes.toBytes("event"), e.getBody());
-
-    for (Entry<String, byte[]> a : e.getAttrs().entrySet()) {
-      if (a.getKey().startsWith(attrPrefix) && a.getKey().length() > attrPrefix.length()) {
-        String[] col = a.getKey().substring(attrPrefix.length()).split(":"); // please see the javadoc for attrPrefix for more info
-        p.add(Bytes.toBytes(col[0]), Bytes.toBytes(col[1]), a.getValue());
-      }
-    }
-
-    if (p.getFamilyMap().size() > 0) {
+    if (p != null && p.getFamilyMap().size() > 0) {
       p.setWriteToWAL(writeToWal);
       table.put(p);
     }
   }
 
+  // Made as package-private for unit-testing
+  Put createPut(Event e) {
+    Put p;
+    // Attribute with key "<attrPrefix>" contains row key for Put
+    if (e.getAttrs().containsKey(attrPrefix)) {
+      p = new Put(e.getAttrs().get(attrPrefix));
+    } else {
+      LOG.warn("Cannot extract key for HBase row, the attribute with key '" + attrPrefix + "' is not present in event's data.");
+      return null;
+    }
+
+    if (systemFamilyName != null) {
+      p.add(systemFamilyName, Bytes.toBytes("timestamp"),
+          Bytes.toBytes(e.getTimestamp()));
+      p.add(systemFamilyName, Bytes.toBytes("host"),
+          Bytes.toBytes(e.getHost()));
+      if (e.getPriority() != null) {
+        p.add(systemFamilyName, Bytes.toBytes("priority"),
+            Bytes.toBytes(e.getPriority().toString()));
+      }
+      if (writeBody) {
+        p.add(systemFamilyName, Bytes.toBytes("event"), e.getBody());
+      }
+    }
+
+    for (Entry<String, byte[]> a : e.getAttrs().entrySet()) {
+      attemptToAddAttribute(p, a);
+    }
+    return p;
+  }
+
+  // Made as package-private for unit-testing
+  // Entry here represents event's attribute: key is attribute name and value is attribute value
+  void attemptToAddAttribute(Put p, Entry<String, byte[]> a) {
+    String attrKey = a.getKey();
+    if (attrKey.startsWith(attrPrefix) && attrKey.length() > attrPrefix.length()) {
+      String keyWithoutPrefix = attrKey.substring(attrPrefix.length());
+      String[] col = keyWithoutPrefix.split(":", 2); // please see the javadoc of attrPrefix format for more info
+      // if both columnFamily and qualifier can be fetched from attribute's key
+      boolean hasColumnFamilyAndQualifier = col.length == 2 && col[0].length() > 0 && col[1].length() > 0;
+      if (hasColumnFamilyAndQualifier) {
+        p.add(Bytes.toBytes(col[0]), Bytes.toBytes(col[1]), a.getValue());
+        return;
+      } else if (systemFamilyName != null) {
+        p.add(systemFamilyName, Bytes.toBytes(keyWithoutPrefix), a.getValue());
+        return;
+      } else {
+        LOG.warn("Cannot determine column family and/or qualifier for attribute, attribute name: " + attrKey);
+      }
+    }
+  }
+
   @Override
   public void close() throws IOException {
-    table.close(); // performs flushCommits() internally, so we are good when autoFlush=false
+    if (table != null) {
+      table.close(); // performs flushCommits() internally, so we are good when autoFlush=false
+      table = null;
+    }
   }
 
   @Override
   public void open() throws IOException {
+    if (table != null) {
+      throw new IllegalStateException("HTable is already initialized. Looks like sink close() hasn't been proceeded properly.");
+    }
     // This instantiates an HTable object that connects you to
     // the tableName table.
     table = new HTable(config, tableName);
@@ -159,11 +261,15 @@ public class Attr2HBaseEventSink extends EventSink.Base {
 
         // TODO: check that arguments has proper types
 
-        return new Attr2HBaseEventSink(argv[0],
-                                           argv.length >= 2 ? argv[1] : null,
-                                           argv.length >= 3 ? argv[2] : null,
-                                           argv.length >= 4 ? Long.valueOf(argv[3]) : 0,
-                                           argv.length >= 5 ? Boolean.valueOf(argv[4]) : true);
+        String tableName = argv[0];
+        String systemFamilyName = argv.length >= 2 ? argv[1] : null;
+        // TODO: add more sophisticated boolean conversion
+        boolean writeBody = argv.length >= 3 ? Boolean.valueOf(argv[2].toLowerCase()) : true;
+        String attrPrefix = argv.length >= 4 ? argv[3] : null;
+        long bufferSize = argv.length >= 5 ? Long.valueOf(argv[4]) : 0;
+        // TODO: add more sophisticated boolean conversion
+        boolean writeToWal = argv.length >= 6 ? Boolean.valueOf(argv[5].toLowerCase()) : true;
+        return new Attr2HBaseEventSink(tableName, systemFamilyName, writeBody, attrPrefix, bufferSize, writeToWal);
       }
 
     };
@@ -173,3 +279,4 @@ public class Attr2HBaseEventSink extends EventSink.Base {
     return Arrays.asList(new Pair<String, SinkFactory.SinkBuilder>("attr2hbase", builder()));
   }
 }
+
