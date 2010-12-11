@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
 	*/
 
 	ThriftFlumeEvent evt;
-	evt.priority = INFO;
+	evt.priority = Priority::INFO;
 	struct timespec t_nanos;
 	if(0 == clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &t_nanos)) {
 	 evt.nanos = t_nanos.tv_sec * 1000000000LL + t_nanos.tv_nsec;
