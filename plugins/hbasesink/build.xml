@@ -31,7 +31,7 @@
     <!-- in case we are running in dev env -->
     <pathelement location="${flume.base}/build/classes"/>
     <fileset dir="${flume.base}/lib">
-      <include name="**/log4j-*.jar" />
+      <include name="**/slf4j-*.jar" />
       <include name="**/hadoop-*.jar" />
       <include name="**/guava-*.jar" />
     </fileset>

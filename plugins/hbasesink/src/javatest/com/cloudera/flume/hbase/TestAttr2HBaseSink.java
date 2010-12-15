@@ -68,6 +68,7 @@ public class TestAttr2HBaseSink {
     final String tableSysFamily = "sysFamily";
     final String tableFamily1 = "family1";
     final String tableFamily2 = "family2";
+    final String tableBodyMap = "sysFamily:event";
 
     // create the table and column family to be used by sink
     HTableDescriptor desc = new HTableDescriptor(tableName);
@@ -78,7 +79,7 @@ public class TestAttr2HBaseSink {
     admin.createTable(desc);
 
     // explicit constructor rather than builder - we want to control the conf
-    EventSink snk = new Attr2HBaseEventSink(tableName, tableSysFamily, true, "2hb_", 0, true, hbaseEnv.conf);
+    EventSink snk = new Attr2HBaseEventSink(tableName, tableSysFamily, tableBodyMap, "2hb_", 0, true, hbaseEnv.conf);
     snk.open();
     try {
       Event e1 = new EventImpl("message0".getBytes(), Clock.unixTime(),
