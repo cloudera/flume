@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cloudera.flume.handlers.hbase;
+package com.cloudera.flume.hbase;
 
 import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.SinkFactory;

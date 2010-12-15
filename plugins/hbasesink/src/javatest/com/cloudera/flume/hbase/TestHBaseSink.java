@@ -7,7 +7,7 @@
 // written authorization of Cloudera is strictly prohibited.
 //
 // Copyright (c) 2010 Cloudera, Inc.  All rights reserved.
-package com.cloudera.flume.handlers.hbase;
+package com.cloudera.flume.hbase;
 
 import java.io.IOException;
 
