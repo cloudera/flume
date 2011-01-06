@@ -68,7 +68,9 @@ public class TestAttr2HBaseSink {
     final String tableSysFamily = "sysFamily";
     final String tableFamily1 = "family1";
     final String tableFamily2 = "family2";
-    final String tableBodyMap = "sysFamily:event";
+    final String tableBody = "sysFamily";
+    final String tableBodyFamily = "event";
+    final Boolean writeBody = true;
 
     // create the table and column family to be used by sink
     HTableDescriptor desc = new HTableDescriptor(tableName);
@@ -79,7 +81,7 @@ public class TestAttr2HBaseSink {
     admin.createTable(desc);
 
     // explicit constructor rather than builder - we want to control the conf
-    EventSink snk = new Attr2HBaseEventSink(tableName, tableSysFamily, tableBodyMap, "2hb_", 0, true, hbaseEnv.conf);
+    EventSink snk = new Attr2HBaseEventSink(tableName, tableSysFamily, writeBody, tableBody, tableBodyFamily, "2hb_", 0, true, hbaseEnv.conf);
     snk.open();
     try {
       Event e1 = new EventImpl("message0".getBytes(), Clock.unixTime(),
@@ -139,7 +141,10 @@ public class TestAttr2HBaseSink {
 
   @Test
   public void testCreatePutWithoutSystemColumnFamily() {
-    Attr2HBaseEventSink snk = new Attr2HBaseEventSink("tableName", "", true, "2hb_", 0, true, null);
+    final String tableBody = "sysFamily";
+    final String tableBodyFamily = "event";
+    final Boolean writeBody = true;
+    Attr2HBaseEventSink snk = new Attr2HBaseEventSink("tableName", "", writeBody, tableBody, tableBodyFamily, "2hb_", 0, true, null);
 
     Event e = new EventImpl("message".getBytes(), Clock.unixTime(),
         Priority.INFO, 0, "localhost");
@@ -157,7 +162,10 @@ public class TestAttr2HBaseSink {
 
   @Test
   public void testDontWriteBody() {
-    Attr2HBaseEventSink snk = new Attr2HBaseEventSink("tableName", "sysFam", false, "2hb_", 0, true, null);
+    final String tableBody = "";
+    final String tableBodyFamily = "";
+    final Boolean writeBody = false;
+    Attr2HBaseEventSink snk = new Attr2HBaseEventSink("tableName", "sysFam", writeBody, tableBody, tableBodyFamily, "2hb_", 0, true, null);
 
     Event e = new EventImpl("message".getBytes(), Clock.unixTime(),
         Priority.INFO, 0, "localhost");
@@ -171,7 +179,10 @@ public class TestAttr2HBaseSink {
 
   @Test
   public void testCreatePutWithoutExplicitRowKey() {
-    Attr2HBaseEventSink snk = new Attr2HBaseEventSink("tableName", "sysFam", true, "2hb_", 0, true, null);
+    final String tableBody = "sysFamily";
+    final String tableBodyFamily = "event";
+    final Boolean writeBody = true;
+    Attr2HBaseEventSink snk = new Attr2HBaseEventSink("tableName", "sysFam", writeBody, tableBody, tableBodyFamily, "2hb_", 0, true, null);
 
     Event e = new EventImpl("message".getBytes(), Clock.unixTime(),
         Priority.INFO, 0, "localhost");
@@ -183,7 +194,10 @@ public class TestAttr2HBaseSink {
 
   @Test
   public void testAddAttributeWithSystemColumnFamSpecified() {
-    Attr2HBaseEventSink snk = new Attr2HBaseEventSink("tableName", "sysFam", true, "2hb_", 0, true, null);
+    final String tableBody = "sysFamily";
+    final String tableBodyFamily = "event";
+    final Boolean writeBody = true;
+    Attr2HBaseEventSink snk = new Attr2HBaseEventSink("tableName", "sysFam",writeBody, tableBody, tableBodyFamily, "2hb_", 0, true, null);
     byte[] foo = Bytes.toBytes("foo");
 
     Put put = new Put(foo);
@@ -203,7 +217,10 @@ public class TestAttr2HBaseSink {
 
   @Test
   public void testAddAttributeWithoutSystemColumnFam() {
-    Attr2HBaseEventSink snk = new Attr2HBaseEventSink("tableName", "", true, "2hb_", 0, true, null);
+    final String tableBody = "sysFamily";
+    final String tableBodyFamily = "event";
+    final Boolean writeBody = true;
+    Attr2HBaseEventSink snk = new Attr2HBaseEventSink("tableName", "", writeBody, tableBody, tableBodyFamily, "2hb_", 0, true, null);
     byte[] foo = Bytes.toBytes("foo");
 
     Put put = new Put(foo);
@@ -236,7 +253,10 @@ public class TestAttr2HBaseSink {
 
   @Test
   public void testAddAttributeWithSystemColumnFamSpecifiedAndEmptyPrefix() {
-    Attr2HBaseEventSink snk = new Attr2HBaseEventSink("tableName", "sysFam", true, "", 0, true, null);
+    final String tableBody = "sysFamily";
+    final String tableBodyFamily = "event";
+    final Boolean writeBody = true;
+    Attr2HBaseEventSink snk = new Attr2HBaseEventSink("tableName", "sysFam", writeBody, tableBody, tableBodyFamily, "", 0, true, null);
     byte[] foo = Bytes.toBytes("foo");
 
     Put put = new Put(foo);
