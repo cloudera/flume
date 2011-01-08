@@ -380,15 +380,16 @@ public class TailSource extends EventSource.Base {
             // no change
             LOG.debug("tail " + file + " : no change");
             return false;
-          } else {
-            // // 4) raf len == file len, last read == file len, lastMod diff ?!
-            // ->
-            // restart file.
-            LOG.debug("tail " + file
-                + " : same file len, but new last mod time" + " -> reset");
-            resetRAF();
-            return true;
-          }
+          } 
+
+          // // 4) raf len == file len, last read == file len, lastMod diff ?!
+          // ->
+          // restart file.
+          LOG.debug("tail " + file
+                  + " : same file len, but new last mod time" + " -> reset");
+          resetRAF();
+          return true;
+
         }
 
         // file has changed
@@ -415,6 +416,7 @@ public class TailSource extends EventSource.Base {
 
         int rd;
         while ((rd = in.read(buf)) > 0) {
+          fmod = file.lastModified();
           // need char encoder to find line breaks in buf.
           lastChannelPos += (rd < 0 ? 0 : rd); // rd == -1 if at end of
           // stream.
@@ -425,6 +427,7 @@ public class TailSource extends EventSource.Base {
           do {
 
             if (lastRd == -1 && rd == -1) {
+              LOG.debug("You can never get here");
               return madeProgress;
             }
 
@@ -445,15 +448,19 @@ public class TailSource extends EventSource.Base {
           // read, then it remain in the byte buffer.
 
         }
-
-        if (rd == -1 && flen != lastChannelSize) {
-          // we've rotated with a longer file.
-          LOG.debug("tail " + file
-              + " : no progress but raflen != filelen, resetting");
-          resetRAF();
-          return true;
-
+        
+        if(!madeProgress) {
+        // if both the file length changed and channel size not change, 
+        // we've rotated with a longer file
+          if (rd == -1 && flen != lastChannelSize) {
+            // we've rotated with a longer file.
+            LOG.debug("tail " + file
+                + " : no progress but raflen != filelen, resetting");
+            resetRAF();
+            return true;
+          }
         }
+
 
         // LOG.debug("tail " + file + ": read " + len + " bytes");
         LOG.debug("tail " + file + ": read " + lastChannelPos + " bytes");
