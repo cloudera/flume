@@ -35,6 +35,8 @@ import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.master.commands.CreateLogicalNodeForm;
 import com.cloudera.flume.master.commands.DecommissionLogicalNodeForm;
+import com.cloudera.flume.master.commands.PurgeAllCommand;
+import com.cloudera.flume.master.commands.PurgeCommand;
 import com.cloudera.flume.master.commands.RefreshAllCommand;
 import com.cloudera.flume.master.commands.RefreshCommand;
 import com.cloudera.flume.master.commands.SetChokeLimitForm;
@@ -42,6 +44,7 @@ import com.cloudera.flume.master.commands.UnconfigCommand;
 import com.cloudera.flume.master.commands.UnmapLogicalNodeForm;
 import com.cloudera.flume.master.commands.UpdateAllCommand;
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.ReportUtil;
 import com.cloudera.flume.reporter.Reportable;
 import com.google.common.base.Preconditions;
 
@@ -97,6 +100,8 @@ public class CommandManager implements Reportable {
       { "unconfig", UnconfigCommand.buildExecable() },
       { "refresh", RefreshCommand.buildExecable() },
       { "refreshAll", RefreshAllCommand.buildExecable() },
+      { "purge", PurgeCommand.buildExecable() },
+      { "purgeAll", PurgeAllCommand.buildExecable() },
       { "updateAll", UpdateAllCommand.buildExecable() },
       { "save", SaveConfigCommand.buildExecable() },
       { "load", LoadConfigCommand.buildExecable() },
@@ -106,7 +111,7 @@ public class CommandManager implements Reportable {
       { "unmap", UnmapLogicalNodeForm.buildExecable() },
       { "unmapAll", UnmapLogicalNodeForm.buildUnmapAllExecable() },
       { "setChokeLimit", SetChokeLimitForm.buildExecable() }
-  
+
   };
 
   public CommandManager() {
@@ -282,7 +287,7 @@ public class CommandManager implements Reportable {
 
   // TODO (jon) convert to a regular report
   @Override
-  public ReportEvent getReport() {
+  public ReportEvent getMetrics() {
 
     StringBuilder html = new StringBuilder();
     html.append("<div class=\"CommandManager\">");
@@ -323,4 +328,8 @@ public class CommandManager implements Reportable {
     return ReportEvent.createLegacyHtmlReport("", html.toString());
   }
 
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    return ReportUtil.noChildren();
+  }
 }

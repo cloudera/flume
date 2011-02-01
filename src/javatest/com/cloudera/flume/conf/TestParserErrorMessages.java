@@ -29,23 +29,25 @@ import org.junit.Test;
  * exception.
  */
 public class TestParserErrorMessages {
-  public static final Logger LOG = LoggerFactory.getLogger(TestParserErrorMessages.class);
+  public static final Logger LOG = LoggerFactory
+      .getLogger(TestParserErrorMessages.class);
 
   @Test
   public void testBadLexer() {
     try {
-      FlumeBuilder.buildSink(new Context(), "n@ot");
+      FlumeBuilder.buildSink(new Context(), "no@t");
     } catch (FlumeSpecException e) {
       LOG.info(e.getMessage());
       // this is a friendlier exception
-      assertEquals("Lexer error at char '@' at line 1 char 1", e.getMessage());
+      assertEquals("Lexer error at char '@' at line 1 char 2", e.getMessage());
     }
   }
 
   @Test
   public void testBadSourceValue() {
     try {
-      FlumeBuilder.buildSource("foo");
+      Context ctx = LogicalNodeContext.testingContext();
+      FlumeBuilder.buildSource(ctx, "foo");
     } catch (FlumeSpecException e) {
       LOG.info(e.getMessage());
       assertEquals("Invalid source: foo", e.getMessage());
@@ -124,9 +126,8 @@ public class TestParserErrorMessages {
     } catch (FlumeSpecException e) {
       LOG.info(e.getMessage());
       // this is a friendlier exception
-      assertEquals(
-          "Parser error: unexpected '=>' at position 24 line 1: '{ nullDeco =>  nullDeco =>  null }'",
-          e.getMessage());
+      assertEquals("Lexer error at token '=>' at line 1 char 24", e
+          .getMessage());
     }
 
   }

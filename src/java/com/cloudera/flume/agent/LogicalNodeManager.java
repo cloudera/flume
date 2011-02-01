@@ -21,6 +21,7 @@ package com.cloudera.flume.agent;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -32,11 +33,11 @@ import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.FlumeBuilder;
+import com.cloudera.flume.conf.FlumeConfigData;
 import com.cloudera.flume.conf.FlumeConfiguration;
 import com.cloudera.flume.conf.FlumeSpecException;
 import com.cloudera.flume.conf.LogicalNodeContext;
 import com.cloudera.flume.conf.ReportTestingContext;
-import com.cloudera.flume.conf.FlumeConfigData;
 import com.cloudera.flume.core.CompositeSink;
 import com.cloudera.flume.core.EventSink;
 import com.cloudera.flume.core.EventSource;
@@ -71,7 +72,8 @@ public class LogicalNodeManager implements Reportable {
   synchronized public void spawn(String name, String src, String snk)
       throws IOException, FlumeSpecException {
     Context ctx = new LogicalNodeContext(physicalNode, name);
-    spawn(ctx, name, FlumeBuilder.buildSource(src), new CompositeSink(ctx, snk));
+    spawn(ctx, name, FlumeBuilder.buildSource(ctx, src), new CompositeSink(ctx,
+        snk));
   }
 
   /**
@@ -106,14 +108,20 @@ public class LogicalNodeManager implements Reportable {
       threads.put(nd.getName(), nd);
     }
 
-    nd.openLoadNode(src, snk);
+    try {
+      nd.openLoadNode(src, snk);
+    } catch (InterruptedException e) {
+      // TODO verify this is reasonable behavior
+      LOG.error("spawn was interrupted", e);
+    }
 
   }
 
   /**
    * Turn a logical node off on a node
    */
-  synchronized public void decommission(String name) throws IOException {
+  synchronized public void decommission(String name) throws IOException,
+      InterruptedException {
     LogicalNode nd = threads.remove(name);
     if (nd == null) {
       throw new IOException("Attempting to decommission node '" + name
@@ -124,21 +132,30 @@ public class LogicalNodeManager implements Reportable {
 
   }
 
-  @Override
+  @Deprecated
   public ReportEvent getReport() {
     ReportEvent rpt = new ReportEvent(getName());
-
-    Collection<LogicalNode> copy = null;
-    synchronized (this) {
-      // copy the logical node list in an sychronized way, and make sure when
-      // LogicalNode is locked we don't need the LogicalNodeManager lock.
-      copy = getNodes();
-    }
-
-    for (LogicalNode t : copy) {
+    for (LogicalNode t : threads.values()) {
       rpt.hierarchicalMerge(t.getName(), t.getReport());
     }
     return rpt;
+  }
+
+  @Override
+  public ReportEvent getMetrics() {
+    ReportEvent rpt = new ReportEvent(getName());
+    // TODO add number of nodes present.
+    return rpt;
+  }
+
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    Collection<LogicalNode> copy = getNodes();
+    Map<String, Reportable> map = new HashMap<String, Reportable>(copy.size());
+    for (LogicalNode ln : copy) {
+      map.put(ln.getName(), ln);
+    }
+    return map;
   }
 
   public String getPhysicalNodeName() {
@@ -158,7 +175,7 @@ public class LogicalNodeManager implements Reportable {
    * Decommission all logical nodes except for those found in the excludes list.
    */
   synchronized public void decommissionAllBut(List<String> excludes)
-      throws IOException {
+      throws IOException, InterruptedException {
     Set<String> decoms = new HashSet<String>(threads.keySet()); // copy keyset
     decoms.removeAll(excludes);
 

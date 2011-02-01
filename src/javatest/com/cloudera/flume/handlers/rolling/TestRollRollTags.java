@@ -22,10 +22,12 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.commons.lang.StringEscapeUtils;
 import org.junit.Test;
 
 import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.FlumeSpecException;
+import com.cloudera.flume.conf.LogicalNodeContext;
 import com.cloudera.flume.core.Attributes;
 import com.cloudera.flume.core.CompositeSink;
 import com.cloudera.flume.core.Event;
@@ -49,13 +51,13 @@ public class TestRollRollTags {
   }
 
   @Test
-  public void testMaskNoConflict() throws IOException {
+  public void testMaskNoConflict() throws IOException, InterruptedException {
     MemorySinkSource mem = new MemorySinkSource();
-    EventSink s1 = new ValueDecorator<EventSink>(mem, "duped", "second"
-        .getBytes());
+    EventSink s1 = new ValueDecorator<EventSink>(mem, "duped",
+        "second".getBytes());
     EventSink s2 = new MaskDecorator<EventSink>(s1, "duped");
-    EventSink snk = new ValueDecorator<EventSink>(s2, "duped", "first"
-        .getBytes());
+    EventSink snk = new ValueDecorator<EventSink>(s2, "duped",
+        "first".getBytes());
     snk.open();
 
     Event e = new EventImpl("foo".getBytes());
@@ -67,7 +69,8 @@ public class TestRollRollTags {
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void testRollRollConflict() throws IOException, FlumeSpecException {
+  public void testRollRollConflict() throws IOException, FlumeSpecException,
+      InterruptedException {
     EventSink snk = new CompositeSink(new Context(),
         "{value(\"rolltag\",\"foofoo\") =>   roll(10000) {null} } ");
     Event e = new EventImpl("foo".getBytes());
@@ -76,7 +79,7 @@ public class TestRollRollTags {
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void testRollRollBork() throws IOException, FlumeSpecException {
+  public void testRollRollBork() throws IOException, FlumeSpecException, InterruptedException {
     EventSink snk = new CompositeSink(new Context(),
         "roll(10000) { roll(10000) { null } } ");
     Event e = new EventImpl("foo".getBytes());
@@ -85,7 +88,7 @@ public class TestRollRollTags {
   }
 
   @Test
-  public void testRollRollNoConflict() throws IOException, FlumeSpecException {
+  public void testRollRollNoConflict() throws IOException, FlumeSpecException, InterruptedException {
     EventSink snk = new CompositeSink(new Context(),
         "{value(\"rolltag\",\"foofoo\") =>  "
             + "{ mask(\"rolltag\")=>  roll(10000) { null}}} ");
@@ -96,7 +99,7 @@ public class TestRollRollTags {
   }
 
   @Test
-  public void testRollRollNoBork() throws IOException, FlumeSpecException {
+  public void testRollRollNoBork() throws IOException, FlumeSpecException, InterruptedException {
     EventSink snk = new CompositeSink(new Context(),
         "roll(10000) {{ mask(\"rolltag\") => roll(10000) {null} }} ");
     Event e = new EventImpl("foo".getBytes());
@@ -107,13 +110,14 @@ public class TestRollRollTags {
   // This used to trigger an exception but now that the rolltag is suppressed it
   // should no longer.
   @Test
-  public void testAgentCollector() throws FlumeSpecException, IOException {
+  public void testAgentCollector() throws FlumeSpecException, IOException, InterruptedException {
     BenchmarkHarness.setupLocalWriteDir();
     File path = File.createTempFile("collector", ".tmp");
     path.deleteOnExit();
 
-    EventSink snk = new CompositeSink(new Context(),
-        "{ ackedWriteAhead => roll(1000) { dfs(\"file://" + path + "\") } }");
+    EventSink snk = new CompositeSink(LogicalNodeContext.testingContext(),
+        "{ ackedWriteAhead => roll(1000) { dfs(\"file:///"
+            + StringEscapeUtils.escapeJava(path.getAbsolutePath()) + "\") } }");
     Event e = new EventImpl("foo".getBytes());
     snk.open();
     snk.append(e); // should not bork.
@@ -122,14 +126,16 @@ public class TestRollRollTags {
   }
 
   @Test
-  public void testAgentCollectorFixed() throws FlumeSpecException, IOException {
+  public void testAgentCollectorFixed() throws FlumeSpecException, IOException,
+      InterruptedException {
     BenchmarkHarness.setupLocalWriteDir();
     File path = File.createTempFile("collector", ".tmp");
     path.deleteOnExit();
 
-    EventSink snk = new CompositeSink(new Context(),
-        "{ ackedWriteAhead => { mask(\"rolltag\") => roll(1000) { dfs(\"file://"
-            + path + "\") } } }");
+    EventSink snk = new CompositeSink(LogicalNodeContext.testingContext(),
+        "{ ackedWriteAhead => { mask(\"rolltag\") => roll(1000) { dfs(\"file:///"
+            + StringEscapeUtils.escapeJava(path.getAbsolutePath())
+            + "\") } } }");
     Event e = new EventImpl("foo".getBytes());
     snk.open();
     snk.append(e); // should not bork.

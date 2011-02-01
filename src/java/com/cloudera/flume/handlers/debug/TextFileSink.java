@@ -60,7 +60,8 @@ public class TextFileSink extends EventSink.Base {
   }
 
   @Override
-  synchronized public void append(Event e) throws IOException {
+  synchronized public void append(Event e) throws IOException,
+      InterruptedException {
     fmt.format(out, e);
     out.flush();
     count++;
@@ -83,6 +84,14 @@ public class TextFileSink extends EventSink.Base {
   }
 
   @Override
+  synchronized public ReportEvent getMetrics() {
+    ReportEvent rpt = super.getMetrics();
+    rpt.setLongMetric(ReportEvent.A_COUNT, count);
+    return rpt;
+  }
+
+  @Deprecated
+  @Override
   synchronized public ReportEvent getReport() {
     ReportEvent rpt = super.getReport();
     rpt.setLongMetric(ReportEvent.A_COUNT, count);
@@ -96,18 +105,27 @@ public class TextFileSink extends EventSink.Base {
         Preconditions.checkArgument(args.length >= 1 && args.length <= 2,
             "usage: text(filename[,format])");
         OutputFormat fmt = DebugOutputFormat.builder().build();
+        String val = null;
         if (args.length >= 2) {
+          val = args[1];
+        } else {
+          val = context.getValue("format");
+        }
+
+        if (val != null) {
           try {
-            fmt = FormatFactory.get().getOutputFormat(args[1]);
+            fmt = FormatFactory.get().getOutputFormat(val);
           } catch (FlumeSpecException e) {
             LOG.error("Illegal output format " + args[1], e);
-            throw new IllegalArgumentException("Illegal output format"
-                + args[1]);
-
+            throw new IllegalArgumentException("Illegal output format" + val);
           }
         }
         return new TextFileSink(args[0], fmt);
       }
     };
+  }
+
+  public OutputFormat getFormat() {
+    return fmt;
   }
 }

@@ -23,8 +23,10 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Map.Entry;
+
+import javax.ws.rs.core.Application;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -53,8 +55,10 @@ import com.cloudera.flume.handlers.endtoend.CollectorAckListener;
 import com.cloudera.flume.handlers.text.FormatFactory;
 import com.cloudera.flume.handlers.text.FormatFactory.OutputFormatBuilder;
 import com.cloudera.flume.reporter.MasterReportPusher;
+import com.cloudera.flume.reporter.NodeReportResource;
 import com.cloudera.flume.reporter.ReportEvent;
 import com.cloudera.flume.reporter.ReportManager;
+import com.cloudera.flume.reporter.ReportUtil;
 import com.cloudera.flume.reporter.Reportable;
 import com.cloudera.flume.util.FlumeVMInfo;
 import com.cloudera.flume.util.SystemInfo;
@@ -64,6 +68,8 @@ import com.cloudera.util.NetUtils;
 import com.cloudera.util.Pair;
 import com.cloudera.util.StatusHttpServer;
 import com.google.common.base.Preconditions;
+import com.sun.jersey.api.core.DefaultResourceConfig;
+import com.sun.jersey.spi.container.servlet.ServletContainer;
 
 /**
  * This is a configurable flume node.
@@ -98,6 +104,7 @@ public class FlumeNode implements Reportable {
   private MasterRPC rpcMan;
   private LogicalNodeManager nodesMan;
 
+  private ReportManager simpleReportManager = new ReportManager("simple");
   private final MasterReportPusher reportPusher;
 
   /**
@@ -140,7 +147,7 @@ public class FlumeNode implements Reportable {
         + this.physicalNodeName + ".");
 
     this.reportPusher = new MasterReportPusher(FlumeConfiguration.get(),
-        ReportManager.get(), rpcMan);
+        simpleReportManager, rpcMan);
     this.sysInfo = new SystemInfo(PHYSICAL_NODE_REPORT_PREFIX
         + this.physicalNodeName + ".");
   }
@@ -164,7 +171,7 @@ public class FlumeNode implements Reportable {
     if (!oneshot) {
       this.liveMan = new LivenessManager(nodesMan, rpcMan,
           new FlumeNodeWALNotifier(this.walMans));
-      this.reportPusher = new MasterReportPusher(conf, ReportManager.get(),
+      this.reportPusher = new MasterReportPusher(conf, simpleReportManager,
           rpcMan);
 
     } else {
@@ -223,11 +230,40 @@ public class FlumeNode implements Reportable {
     return webPath;
   }
 
+  ServletContainer jerseyNodeServlet() {
+    Application app = new DefaultResourceConfig(NodeReportResource.class);
+    ServletContainer sc = new ServletContainer(app);
+    return sc;
+  }
+
   /**
    * This also implements the Apache Commons Daemon interface's start
    */
   synchronized public void start() {
     FlumeConfiguration conf = FlumeConfiguration.get();
+
+    // the simple report interface
+    simpleReportManager.add(vmInfo);
+    simpleReportManager.add(sysInfo);
+    simpleReportManager.add(new Reportable() {
+
+      @Override
+      public String getName() {
+        return FlumeNode.this.getName();
+      }
+
+      @Override
+      public ReportEvent getMetrics() {
+        return FlumeNode.this.getReport();
+      }
+
+      @Override
+      public Map<String, Reportable> getSubMetrics() {
+        return ReportUtil.noChildren();
+      }
+    });
+
+    // the full report interface
     ReportManager.get().add(vmInfo);
     ReportManager.get().add(sysInfo);
     ReportManager.get().add(this);
@@ -237,8 +273,9 @@ public class FlumeNode implements Reportable {
         String webPath = getWebPath(conf);
 
         boolean findport = FlumeConfiguration.get().getNodeAutofindHttpPort();
-        this.http = new StatusHttpServer("flumeagent", webPath, "0.0.0.0",
-            conf.getNodeStatusPort(), findport);
+        this.http = new StatusHttpServer("flumeagent", webPath, "0.0.0.0", conf
+            .getNodeStatusPort(), findport);
+        http.addServlet(jerseyNodeServlet(), "/node/*");
         http.start();
       } catch (IOException e) {
         LOG.error("Flume node failed: " + e.getMessage(), e);
@@ -349,8 +386,9 @@ public class FlumeNode implements Reportable {
   /**
    * This method is currently called by the JSP to display node information.
    */
+  @Deprecated
   public String report() {
-    return getReport().toHtml();
+    return ReportUtil.getFlattenedReport(this).toHtml();
   }
 
   public WALAckManager getAckChecker() {
@@ -420,7 +458,8 @@ public class FlumeNode implements Reportable {
     File cur = f;
     while (cur != null) {
       if (cur.equals(tmp)) {
-        LOG.warn("Log directory is writing inside of /tmp.  This data may not survive reboot!");
+        LOG
+            .warn("Log directory is writing inside of /tmp.  This data may not survive reboot!");
         break;
       }
       cur = cur.getParentFile();
@@ -430,7 +469,7 @@ public class FlumeNode implements Reportable {
   /**
    * Returns a Flume Node with settings from specified command line parameters.
    * (See usage for instructions)
-   *
+   * 
    * @param argv
    * @return
    * @throws IOException
@@ -440,7 +479,8 @@ public class FlumeNode implements Reportable {
     logEnvironment(LOG);
     // Make sure the Java version is not older than 1.6
     if (!CheckJavaVersion.isVersionOk()) {
-      LOG.error("Exiting because of an old Java version or Java version in bad format");
+      LOG
+          .error("Exiting because of an old Java version or Java version in bad format");
       System.exit(-1);
     }
     LOG.info("Starting flume agent on: " + NetUtils.localhost());
@@ -516,6 +556,7 @@ public class FlumeNode implements Reportable {
       LOG.info("Loading spec from command line: '" + spec + "'");
 
       try {
+        // TODO the first one should be physical node name
         Context ctx = new LogicalNodeContext(nodename, nodename);
         Map<String, Pair<String, String>> cfgs = FlumeBuilder.parseConf(ctx,
             spec);
@@ -670,8 +711,8 @@ public class FlumeNode implements Reportable {
     try {
       setup(argv);
     } catch (Exception e) {
-      LOG.error(
-          "Aborting: Unexpected problem with environment." + e.getMessage(), e);
+      LOG.error("Aborting: Unexpected problem with environment."
+          + e.getMessage(), e);
       System.exit(-1);
     }
   }
@@ -695,8 +736,8 @@ public class FlumeNode implements Reportable {
   public WALManager addWalManager(String walnode) {
     Preconditions.checkArgument(walnode != null);
     FlumeConfiguration conf = FlumeConfiguration.get();
-    WALManager wm = new NaiveFileWALManager(new File(new File(
-        conf.getAgentLogsDir()), walnode));
+    WALManager wm = new NaiveFileWALManager(new File(new File(conf
+        .getAgentLogsDir()), walnode));
     synchronized (walMans) {
       walMans.put(walnode, wm);
       return wm;
@@ -775,7 +816,7 @@ public class FlumeNode implements Reportable {
     return PHYSICAL_NODE_REPORT_PREFIX + this.getPhysicalNodeName();
   }
 
-  @Override
+  @Deprecated
   public ReportEvent getReport() {
     ReportEvent node = new ReportEvent(getName());
     node.setLongMetric(R_NUM_LOGICAL_NODES, this.getLogicalNodeManager()
@@ -783,15 +824,47 @@ public class FlumeNode implements Reportable {
     node.hierarchicalMerge(nodesMan.getName(), nodesMan.getReport());
     if (getAckChecker() != null) {
       node.hierarchicalMerge(getAckChecker().getName(), getAckChecker()
-          .getReport());
+          .getMetrics());
     }
+    return node;
+  }
+
+  @Override
+  public ReportEvent getMetrics() {
+    ReportEvent node = new ReportEvent(getName());
+    node.setLongMetric(R_NUM_LOGICAL_NODES, this.getLogicalNodeManager()
+        .getNodes().size());
+    return node;
+  }
+
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    Map<String, Reportable> map = new HashMap<String, Reportable>();
+    map.put(nodesMan.getName(), nodesMan);
+
+    WALAckManager ack = getAckChecker();
+    if (ack != null) {
+      map.put(ack.getName(), ack);
+    }
+
+    map.put("jvmInfo", vmInfo);
+    map.put("sysInfo",sysInfo);
+    
     // TODO (jon) LivenessMan
     // TODO (jon) rpcMan
 
-    return node;
+    return map;
   }
 
   public String getPhysicalNodeName() {
     return physicalNodeName;
+  }
+
+  public SystemInfo getSystemInfo() {
+    return sysInfo;
+  }
+
+  public FlumeVMInfo getVMInfo() {
+    return vmInfo;
   }
 }

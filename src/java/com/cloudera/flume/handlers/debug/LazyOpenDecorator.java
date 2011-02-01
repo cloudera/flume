@@ -27,6 +27,7 @@ import com.cloudera.flume.conf.SinkFactory.SinkDecoBuilder;
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventSink;
 import com.cloudera.flume.core.EventSinkDecorator;
+import com.cloudera.flume.reporter.ReportEvent;
 import com.google.common.base.Preconditions;
 
 /**
@@ -37,7 +38,11 @@ import com.google.common.base.Preconditions;
  */
 public class LazyOpenDecorator<S extends EventSink> extends
     EventSinkDecorator<S> {
-  public static final Logger LOG = LoggerFactory.getLogger(LazyOpenDecorator.class);
+  public static final Logger LOG = LoggerFactory
+      .getLogger(LazyOpenDecorator.class);
+
+  public static final String A_ACTUALLY_OPEN = "actuallyOpen";
+  public static final String A_LOGICALLY_OPEN = "logicallyOpen";
 
   /**
    * open has been called on this sink
@@ -61,7 +66,7 @@ public class LazyOpenDecorator<S extends EventSink> extends
   }
 
   @Override
-  public void append(Event e) throws IOException {
+  public void append(Event e) throws IOException, InterruptedException {
     if (logicallyOpen && !actuallyOpen) {
       super.open();
       actuallyOpen = true;
@@ -71,7 +76,7 @@ public class LazyOpenDecorator<S extends EventSink> extends
   }
 
   @Override
-  public void close() throws IOException {
+  public void close() throws IOException, InterruptedException {
     if (actuallyOpen) {
       super.close();
     }
@@ -82,6 +87,14 @@ public class LazyOpenDecorator<S extends EventSink> extends
 
     actuallyOpen = false;
     logicallyOpen = false;
+  }
+
+  @Override
+  public ReportEvent getMetrics() {
+    ReportEvent rpt = super.getMetrics();
+    rpt.setStringMetric(A_ACTUALLY_OPEN, "" + actuallyOpen);
+    rpt.setStringMetric(A_LOGICALLY_OPEN, "" + logicallyOpen);
+    return rpt;
   }
 
   public static SinkDecoBuilder builder() {

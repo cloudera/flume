@@ -27,9 +27,8 @@ tokens {
   BLANK;
   SINK;
   BACKUP;
-  LET;
   ROLL;
-  FAILCHAIN;
+  GEN;
   DECO;
   SOURCE;
   MULTI;
@@ -39,6 +38,7 @@ tokens {
   STRING;
   BOOL;
   FLOAT;
+  KWARG;
 }
 @header {
 /**
@@ -104,8 +104,7 @@ host: Identifier | IPLiteral ;
 connection
 	:	 source '|' sink -> ^(NODE BLANK source sink);
 
-source 		:	singleSource		-> singleSource
-		|	 '[' multiSource ']'	-> ^(MULTI multiSource) ;	
+source 		:	singleSource		-> singleSource ;
 sourceEof	: 	source EOF 		-> source;
 singleSource	:	Identifier args?	-> ^(SOURCE Identifier args?);
 multiSource	:	singleSource (',' singleSource)* -> singleSource+ ;
@@ -118,30 +117,36 @@ singleSink	:	Identifier args? 	-> ^(SINK Identifier args?);
 sinkEof		:	simpleSink EOF;
 
 simpleSink	:	'[' multiSink ']'  	-> ^(MULTI multiSink) 
+        |   singleSink simpleSink?  -> ^(DECO singleSink simpleSink?) 
 		|	'{' decoratedSink '}'	-> ^(DECO decoratedSink)
 		|	'<' failoverSink '>'	-> ^(BACKUP failoverSink)
-		|   letSink                 -> letSink
-		|	singleSink              -> singleSink 
         |   rollSink                -> rollSink
-        |   failoverChain           -> failoverChain 
+        |   genCollectorSink        -> genCollectorSink
 		; 
  			
+
 decoratedSink   :  singleSink '=>' sink	 		-> singleSink sink;
 multiSink       :  simpleSink (',' simpleSink)* 	-> simpleSink* ;
 failoverSink    :  simpleSink ('?' simpleSink)+	-> simpleSink+;	
-letSink         :  'let' Identifier ':=' simpleSink 'in' simpleSink 
-                                  -> ^(LET Identifier simpleSink+);
 rollSink        :  'roll' args '{' simpleSink '}'
                                   -> ^(ROLL simpleSink args);
-failoverChain   :  'failchain' args '{' simpleSink '}'
-                                  -> ^(FAILCHAIN simpleSink args);
+genCollectorSink       :  'collector' args '{' simpleSink '}'
+                                  -> ^(GEN 'collector' simpleSink args?);
+
+
+args    : '(' ( arglist (',' kwarglist)?  ) ')' -> arglist kwarglist?
+        | '(' kwarglist ')' -> kwarglist? 
+        | '(' ')' -> 
+        ;
 
 arglist	:	literal (',' literal)* -> literal+ ;
-args 	:	'(' arglist? ')' -> arglist?
-	;
+
+kwarglist : kwarg (',' kwarg)* -> kwarg+;
+
+kwarg   :   Identifier '=' literal -> ^(KWARG Identifier literal)  ;
 
 // Basic Java-style literals  (taken from Java grammar)
-literal 
+literal
     :   integerLiteral
     |   StringLiteral		-> ^(STRING StringLiteral)
     |   booleanLiteral

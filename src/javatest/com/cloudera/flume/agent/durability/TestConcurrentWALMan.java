@@ -135,8 +135,8 @@ public class TestConcurrentWALMan {
             AckChecksumChecker<EventSink> chk = new AckChecksumChecker<EventSink>(
                 cnt1);
             NaiveFileWALManager wman1 = new NaiveFileWALManager(f1);
-            EventSink snk = new NaiveFileWALDeco<EventSink>(new Context(), chk,
-                wman1, new TimeTrigger(1000000), new AckListener.Empty(), 100);
+            EventSink snk = new NaiveFileWALDeco(new Context(), chk, wman1,
+                new TimeTrigger(1000000), new AckListener.Empty(), 100);
 
             ReportManager.get().add(cnt1);
             // make each parallel instance send a slightly different number of
@@ -250,7 +250,7 @@ public class TestConcurrentWALMan {
    */
   boolean areWALsDone(FlumeNode node, Collection<LogicalNode> lns) {
     for (LogicalNode n : lns) {
-      if (0 >= n.getReport().getLongMetric(LogicalNode.A_RECONFIGURES)) {
+      if (0 >= n.getMetrics().getLongMetric(LogicalNode.A_RECONFIGURES)) {
         // reconfigure count still at 0
         LOG.warn("Logical node reconfigure count <= 0");
         return false;

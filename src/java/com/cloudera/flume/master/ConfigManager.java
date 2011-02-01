@@ -27,6 +27,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.Map.Entry;
 
 import org.apache.commons.lang.StringUtils;
@@ -35,11 +36,14 @@ import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.FlumeBuilder;
+import com.cloudera.flume.conf.FlumeConfigData;
 import com.cloudera.flume.conf.FlumeConfiguration;
 import com.cloudera.flume.conf.FlumeSpecException;
 import com.cloudera.flume.conf.FlumeSpecGen;
-import com.cloudera.flume.conf.FlumeConfigData;
+import com.cloudera.flume.conf.LogicalNodeContext;
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.ReportUtil;
+import com.cloudera.flume.reporter.Reportable;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
@@ -83,8 +87,11 @@ public class ConfigManager implements ConfigurationManager {
 
     try {
       // make sure the sink specified is parsable and instantiable.
-      FlumeBuilder.buildSink(new Context(), sink);
-      FlumeBuilder.buildSource(source);
+
+      // TODO the first arg should be physical node name
+      Context ctx = new LogicalNodeContext(logicalNode, logicalNode);
+      FlumeBuilder.buildSink(ctx, sink);
+      FlumeBuilder.buildSource(ctx, source);
     } catch (Exception e) {
       throw new IllegalArgumentException(
           "Attempted to write an invalid sink/source: " + e.getMessage(), e);
@@ -126,6 +133,7 @@ public class ConfigManager implements ConfigurationManager {
     html.append("<td>" + name + "</td>");
     FlumeConfigData cfg = fcd;
     html.append("<td>" + new Date(cfg.timestamp) + "</td>");
+    html.append("<td>" + cfg.flowID + "</td>");
     html.append("<td>" + cfg.sourceConfig + "</td>");
     html.append("<td>" + cfg.sinkConfig + "</td>");
     html.append("</tr>\n");
@@ -149,11 +157,13 @@ public class ConfigManager implements ConfigurationManager {
    * TODO convert to a generic report
    */
   @Override
-  synchronized public ReportEvent getReport() {
+  synchronized public ReportEvent getMetrics() {
     StringBuilder html = new StringBuilder();
     html.append("<h2>Node configuration</h2>\n<table border=\"1\"><tr>"
-        + "<th>Node</th><th>Version</th><th>Source</th><th>Sink</th></tr>");
-    Map<String, FlumeConfigData> cfgs = cfgStore.getConfigs();
+        + "<th>Node</th><th>Version</th><th>Flow ID</th><th>Source</th>"
+        + "<th>Sink</th></tr>");
+    Map<String, FlumeConfigData> cfgs = new TreeMap<String, FlumeConfigData>(
+        cfgStore.getConfigs());
     synchronized (cfgs) {
       for (Entry<String, FlumeConfigData> e : cfgs.entrySet()) {
         appendHtmlFlumeConfigData(html, e.getKey(), e.getValue());
@@ -173,6 +183,11 @@ public class ConfigManager implements ConfigurationManager {
     html.append("</table>\n\n");
 
     return ReportEvent.createLegacyHtmlReport("configs", html.toString());
+  }
+
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    return ReportUtil.noChildren();
   }
 
   /**
@@ -264,7 +279,7 @@ public class ConfigManager implements ConfigurationManager {
   }
 
   /**
-   *@inheritDoc
+   * @inheritDoc
    */
   @Override
   synchronized public Map<String, Integer> getChokeMap(String physNode) {
@@ -280,8 +295,8 @@ public class ConfigManager implements ConfigurationManager {
       return true;
     } else {
       LOG.warn("Logical node " + logicNode
-        + " is already assigned to physical node "
-        + logicalToPhysical.get(logicNode) + ". Unmap it first.");
+          + " is already assigned to physical node "
+          + logicalToPhysical.get(logicNode) + ". Unmap it first.");
       return false;
     }
   }

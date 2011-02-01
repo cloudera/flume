@@ -27,7 +27,7 @@ import org.junit.Test;
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventImpl;
 
-public class ThriftEventAdaptorTest {
+public class TestThriftEventAdaptor {
 
   private Event testEvent;
 
@@ -63,6 +63,13 @@ public class ThriftEventAdaptorTest {
     Assert.assertNotNull(thriftEvent);
     Assert
         .assertNull(new ThriftEventAdaptor(thriftEvent).get("i do not exist"));
+  }
+
+  @Test
+  public void testNullBody() {
+    ThriftFlumeEvent tEvt = new ThriftFlumeEvent(); // null body
+    Assert.assertEquals(null, tEvt.body);
+    Assert.assertEquals(0, new ThriftEventAdaptor(tEvt).getBody().length);
   }
 
 }

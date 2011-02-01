@@ -21,13 +21,18 @@ package com.cloudera.flume.master;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.Map.Entry;
+
+import javax.xml.bind.annotation.XmlRootElement;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.conf.FlumeConfiguration;
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.ReportUtil;
 import com.cloudera.flume.reporter.Reportable;
 import com.cloudera.util.Clock;
 
@@ -41,12 +46,17 @@ public class StatusManager implements Reportable {
 
   static final Logger LOG = LoggerFactory.getLogger(StatusManager.class);
 
+  @XmlRootElement
   public static class NodeStatus {
     public NodeState state;
     public long version;
     public long lastseen;
     public String host;
     public String physicalNode;
+
+    public NodeStatus() {
+
+    }
 
     public NodeStatus(NodeState state, long version, long lastseen,
         String host, String physicalNode) {
@@ -69,7 +79,7 @@ public class StatusManager implements Reportable {
   };
 
   // runtime state of the flume system
-  final Map<String, NodeStatus> statuses = new HashMap<String, NodeStatus>();  
+  final Map<String, NodeStatus> statuses = new HashMap<String, NodeStatus>();
 
   public boolean updateHeartbeatStatus(String host, String physicalNode,
       String logicalNode, NodeState stat, long version) {
@@ -142,7 +152,7 @@ public class StatusManager implements Reportable {
    * TODO (jon) convert to a report
    */
   @Override
-  public ReportEvent getReport() {
+  public ReportEvent getMetrics() {
     StringBuilder status = new StringBuilder();
     status.append("<div class=\"StatusManager\">");
     status.append("<h2>Node status</h2>\n<table border=\"1\">"
@@ -151,7 +161,9 @@ public class StatusManager implements Reportable {
         + "<th>last seen</th></tr>");
 
     long now = Clock.unixTime();
-    for (Entry<String, NodeStatus> e : getNodeStatuses().entrySet()) {
+    SortedMap<String, NodeStatus> sorted = new TreeMap<String, NodeStatus>(
+        getNodeStatuses());
+    for (Entry<String, NodeStatus> e : sorted.entrySet()) {
       status.append("\n<tr>");
       NodeStatus v = e.getValue();
       String version = (v.version == 0) ? "none" : new Date(v.version)
@@ -172,6 +184,11 @@ public class StatusManager implements Reportable {
     return ReportEvent.createLegacyHtmlReport("", status.toString());
   }
 
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    return ReportUtil.noChildren();
+  }
+
   /**
    * Returns a copy of the hashmap containing the mapping from node names to
    * their status object.
@@ -190,6 +207,26 @@ public class StatusManager implements Reportable {
   public NodeStatus getStatus(String node) {
     synchronized (statuses) {
       return statuses.get(node);
+    }
+  }
+
+  /**
+   * Purge a status entry for the specified logical node
+   */
+  public boolean purge(String node) {
+    NodeStatus val;
+    synchronized (statuses) {
+      val = statuses.remove(node);
+    }
+    return val != null;
+  }
+
+  /**
+   * Purge all status entries from the logical node status table.
+   */
+  public void purgeAll() {
+    synchronized (statuses) {
+      statuses.clear();
     }
   }
 }

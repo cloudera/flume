@@ -57,7 +57,7 @@ public class TestBenchmarkDeco implements ExampleData {
     connect.join(Long.MAX_VALUE);
     src.close();
     snk4.close();
-    snk2.getReport().toText(new OutputStreamWriter(System.err));
+    snk2.getMetrics().toText(new OutputStreamWriter(System.err));
   }
 
   @Test
@@ -74,7 +74,7 @@ public class TestBenchmarkDeco implements ExampleData {
     connect.join(Long.MAX_VALUE);
     src.close();
     snk3.close();
-    snk2.getReport().toText(new OutputStreamWriter(System.err));
+    snk2.getMetrics().toText(new OutputStreamWriter(System.err));
   }
 
   @Test
@@ -103,9 +103,11 @@ public class TestBenchmarkDeco implements ExampleData {
 
   /**
    * Tests to make sure the report sink receives data.
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testReportSink() throws FlumeSpecException, IOException {
+  public void testReportSink() throws FlumeSpecException, IOException, InterruptedException {
     String spec = "{benchinject(\"foo\") => {benchreport(\"report\", \"[ console , counter(\\\"test\\\") ]\")  => null } }";
     EventSink snk = FlumeBuilder.buildSink(new ReportTestingContext(), spec);
     snk.open();

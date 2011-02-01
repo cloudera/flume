@@ -20,6 +20,7 @@ package com.cloudera.flume.handlers.debug;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,12 +46,11 @@ import com.google.common.base.Preconditions;
  */
 public class InsistentOpenDecorator<S extends EventSink> extends
     EventSinkDecorator<S> implements Reportable {
-  static final Logger LOG = LoggerFactory.getLogger(InsistentOpenDecorator.class);
+  static final Logger LOG = LoggerFactory
+      .getLogger(InsistentOpenDecorator.class);
   final BackoffPolicy backoff;
 
   // attribute names
-  final public static String A_INITIALSLEEP = "intialSleep";
-  final public static String A_MAXSLEEP = "maxSleep";
   final public static String A_ATTEMPTS = "openAttempts";
   final public static String A_REQUESTS = "openRequests";
   final public static String A_SUCCESSES = "openSuccessses";
@@ -159,12 +159,13 @@ public class InsistentOpenDecorator<S extends EventSink> extends
   }
 
   @Override
-  synchronized public void append(Event e) throws IOException {
+  synchronized public void append(Event e) throws IOException,
+      InterruptedException {
     super.append(e);
   }
 
   @Override
-  synchronized public void close() throws IOException {
+  synchronized public void close() throws IOException, InterruptedException {
     opening = false;
     super.close();
   }
@@ -210,11 +211,34 @@ public class InsistentOpenDecorator<S extends EventSink> extends
   }
 
   @Override
+  public ReportEvent getMetrics() {
+    ReportEvent rpt = super.getMetrics();
+
+    // counters
+    rpt.setLongMetric(A_REQUESTS, openRequests);
+    rpt.setLongMetric(A_ATTEMPTS, openAttempts);
+    rpt.setLongMetric(A_SUCCESSES, openSuccesses);
+    rpt.setLongMetric(A_RETRIES, openRetries);
+    rpt.setLongMetric(A_GIVEUPS, openGiveups);
+
+    return rpt;
+  }
+
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    Map<String, Reportable> map = super.getSubMetrics();
+    map.put("backoffPolicy." + backoff.getName(), backoff);
+    return map;
+  }
+
+  @Deprecated
+  @Override
   public ReportEvent getReport() {
     ReportEvent rpt = super.getReport();
 
     // parameters
-    rpt.hierarchicalMerge(backoff.getName(), backoff.getReport());
+    rpt.hierarchicalMerge("backoffPolicy." + backoff.getName(), backoff
+        .getMetrics());
 
     // counters
     rpt.setLongMetric(A_REQUESTS, openRequests);

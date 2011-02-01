@@ -34,6 +34,7 @@ import com.cloudera.flume.core.CompositeSink;
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventSink;
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.Reportable;
 import com.cloudera.util.BackoffPolicy;
 import com.cloudera.util.CappedExponentialBackoff;
 import com.google.common.base.Preconditions;
@@ -47,17 +48,16 @@ public class FailoverChainSink extends EventSink.Base {
 
   final EventSink snk;
 
-  public FailoverChainSink(Context context, String specFormat, List<String> list,
-      BackoffPolicy backoff) throws FlumeSpecException {
+  public FailoverChainSink(Context context, String specFormat,
+      List<String> list, BackoffPolicy backoff) throws FlumeSpecException {
     snk = buildSpec(context, specFormat, list, backoff);
   }
 
   public FailoverChainSink(Context context, String specFormat,
       List<String> list, long initialBackoff, long maxBackoff)
       throws FlumeSpecException {
-    snk =
-        buildSpec(context, specFormat, list, new CappedExponentialBackoff(
-            initialBackoff, maxBackoff));
+    snk = buildSpec(context, specFormat, list, new CappedExponentialBackoff(
+        initialBackoff, maxBackoff));
   }
 
   /**
@@ -87,21 +87,32 @@ public class FailoverChainSink extends EventSink.Base {
   }
 
   @Override
-  public void append(Event e) throws IOException {
+  public void append(Event e) throws IOException, InterruptedException {
     snk.append(e);
     super.append(e);
   }
 
   @Override
-  public void close() throws IOException {
+  public void close() throws IOException, InterruptedException {
     snk.close();
   }
 
   @Override
-  public void open() throws IOException {
+  public void open() throws IOException, InterruptedException {
     snk.open();
   }
 
+  @Override
+  public ReportEvent getMetrics() {
+    return snk.getMetrics();
+  }
+
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    return snk.getSubMetrics();
+  }
+
+  @Deprecated
   @Override
   public void getReports(String namePrefix, Map<String, ReportEvent> reports) {
     super.getReports(namePrefix, reports);

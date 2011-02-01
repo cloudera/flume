@@ -52,7 +52,8 @@ import com.google.common.base.Preconditions;
  */
 public class BatchingDecorator<S extends EventSink> extends
     EventSinkDecorator<S> {
-  protected static final Logger LOG = LoggerFactory.getLogger(BatchingDecorator.class);
+  protected static final Logger LOG = LoggerFactory
+      .getLogger(BatchingDecorator.class);
 
   public static final String BATCH_SIZE = "batchSize";
   public static final String BATCH_DATA = "batchData";
@@ -101,11 +102,22 @@ public class BatchingDecorator<S extends EventSink> extends
     return e.get(BATCH_SIZE) != null && e.get(BATCH_DATA) != null;
   }
 
-  protected synchronized void endBatch() throws IOException {
+  /**
+   * This is a method setup seems trivial but is used in testing.
+   */
+  protected void endBatchTimeout() throws IOException, InterruptedException {
+    endBatch();
+    timeoutCount.incrementAndGet();
+
+  }
+
+  protected synchronized void endBatch() throws IOException,
+      InterruptedException {
     if (events.size() > 0) {
       Event be = batchevent(events);
       super.append(be);
       events.clear();
+    } else {
       emptyCount.incrementAndGet();
     }
     lastBatchTime = Clock.unixTime();
@@ -133,8 +145,7 @@ public class BatchingDecorator<S extends EventSink> extends
           LOG.warn("Batch timeout thread did not exit in a timely fashion");
         }
       } catch (InterruptedException e) {
-        LOG
-            .warn("Interrupted while waiting for batch timeout thread to finish");
+        LOG.warn("Interrupted while waiting for batch timeout thread to finish");
       }
     }
 
@@ -169,10 +180,13 @@ public class BatchingDecorator<S extends EventSink> extends
           continue;
         }
         try {
-          endBatch();
-          timeoutCount.incrementAndGet();
+          endBatchTimeout();
         } catch (IOException e) {
           LOG.error("IOException when ending batch!", e);
+          timeoutThreadDone = true;
+        } catch (InterruptedException e) {
+          // TODO verify this is correct
+          LOG.error("Interrupted exceptoin when ending batch", e);
           timeoutThreadDone = true;
         }
       }
@@ -183,7 +197,8 @@ public class BatchingDecorator<S extends EventSink> extends
   protected TimeoutThread timeoutThread = null;
 
   @Override
-  public void open() throws IOException {
+  public void open() throws IOException, InterruptedException {
+    // TODO handle interruptions
     super.open();
     if (maxLatency > 0) {
       timeoutThread = new TimeoutThread();
@@ -196,16 +211,20 @@ public class BatchingDecorator<S extends EventSink> extends
    * calling endBatch.
    */
   @Override
-  public synchronized void append(Event e) throws IOException {
+  public synchronized void append(Event e) throws IOException,
+      InterruptedException {
     events.add(e);
     if (events.size() >= maxSize) {
+      // TODO handle interruptions
       endBatch();
       filledCount.incrementAndGet();
     }
   }
 
   @Override
-  public void close() throws IOException {
+  public void close() throws IOException, InterruptedException {
+    // TODO handle interruptions
+
     // flush any left over events in queue.
     endBatch();
     if (timeoutThread != null) {
@@ -215,8 +234,8 @@ public class BatchingDecorator<S extends EventSink> extends
   }
 
   @Override
-  public ReportEvent getReport() {
-    ReportEvent rpt = super.getReport();
+  public ReportEvent getMetrics() {
+    ReportEvent rpt = super.getMetrics();
     rpt.setLongMetric(R_TIMEOUTS, timeoutCount.get());
     rpt.setLongMetric(R_FILLED, filledCount.get());
     rpt.setLongMetric(R_TRIGGERS, totalCount.get());

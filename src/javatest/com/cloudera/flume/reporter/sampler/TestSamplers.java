@@ -57,14 +57,14 @@ public class TestSamplers {
     System.out.println("Reservoir sampler");
 
     // rotations.
-    long historyLen= 300;
+    long historyLen = 300;
     ScheduledHistoryReporter<CounterSink> hist = new ScheduledHistoryReporter<CounterSink>(
-        "test", longwait,historyLen, new DumbTagger()) {
+        "test", longwait, historyLen, new DumbTagger()) {
 
       @Override
       public CounterSink newSink(Tagger format) throws IOException {
         CounterSink count = new CounterSink("count") {
-          public void append(Event e) throws IOException {
+          public void append(Event e) throws IOException, InterruptedException {
             super.append(e);
             System.out.println(e); // just add a printf to the counts.
           }
@@ -73,13 +73,13 @@ public class TestSamplers {
       }
 
       @Override
-      public ReportEvent getReport() {
+      public ReportEvent getMetrics() {
         return null;
       }
 
       @Override
       public void getReports(String namePrefix, Map<String, ReportEvent> reports) {
-        reports.put(namePrefix + getName(), getReport());
+        reports.put(namePrefix + getName(), getMetrics());
       }
 
     };
@@ -118,7 +118,8 @@ public class TestSamplers {
   }
 
   @Test
-  public void testSimpleIntervalSamplerSink() throws IOException {
+  public void testSimpleIntervalSamplerSink() throws IOException,
+      InterruptedException {
     System.out.println("Simple interval sampler sink");
     CounterSink count = new CounterSink("count");
     IntervalSampler<CounterSink> sink = new IntervalSampler<CounterSink>(count,
@@ -155,7 +156,7 @@ public class TestSamplers {
       @Override
       public CounterSink newSink(Tagger format) throws IOException {
         CounterSink count = new CounterSink("count") {
-          public void append(Event e) throws IOException {
+          public void append(Event e) throws IOException, InterruptedException {
             super.append(e);
 
             // just add a printf to the counts.
@@ -166,13 +167,13 @@ public class TestSamplers {
       }
 
       @Override
-      public ReportEvent getReport() {
+      public ReportEvent getMetrics() {
         return null;
       }
-      
+
       @Override
       public void getReports(String namePrefix, Map<String, ReportEvent> reports) {
-        reports.put(namePrefix + getName(), getReport());
+        reports.put(namePrefix + getName(), getMetrics());
       }
     };
     IntervalSampler<ScheduledHistoryReporter<CounterSink>> hist = new IntervalSampler<ScheduledHistoryReporter<CounterSink>>(
@@ -220,7 +221,7 @@ public class TestSamplers {
       @Override
       public CounterSink newSink(Tagger format) throws IOException {
         CounterSink count = new CounterSink("count") {
-          public void append(Event e) throws IOException {
+          public void append(Event e) throws IOException, InterruptedException {
             super.append(e);
             System.out.println(e); // just add a printf to the counts.
           }
@@ -229,13 +230,13 @@ public class TestSamplers {
       }
 
       @Override
-      public ReportEvent getReport() {
+      public ReportEvent getMetrics() {
         return null;
       }
 
       @Override
       public void getReports(String namePrefix, Map<String, ReportEvent> reports) {
-        reports.put(namePrefix + getName(), getReport());
+        reports.put(namePrefix + getName(), getMetrics());
       }
     };
     ProbabilitySampler<ScheduledHistoryReporter<CounterSink>> sample = new ProbabilitySampler<ScheduledHistoryReporter<CounterSink>>(

@@ -67,7 +67,7 @@ public class AvroEventSink extends EventSink.Base {
    * {@inheritDoc}
    */
   @Override
-  public void append(Event e) throws IOException {
+  public void append(Event e) throws IOException, InterruptedException {
     // convert the flumeEvent to AvroEevent
     AvroFlumeEvent afe = AvroEventAdaptor.convert(e);
     // Make sure client side is initialized.
@@ -123,8 +123,8 @@ public class AvroEventSink extends EventSink.Base {
    * {@inheritDoc}
    */
   @Override
-  public ReportEvent getReport() {
-    ReportEvent rpt = super.getReport();
+  public ReportEvent getMetrics() {
+    ReportEvent rpt = super.getMetrics();
     rpt.setStringMetric(A_SERVERHOST, host);
     rpt.setLongMetric(A_SERVERPORT, port);
     rpt.setLongMetric(A_SENTBYTES, sentBytes.get());

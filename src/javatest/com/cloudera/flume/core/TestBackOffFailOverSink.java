@@ -17,15 +17,25 @@
  */
 package com.cloudera.flume.core;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
 import java.io.IOException;
 
+import org.codehaus.jettison.json.JSONException;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.conf.ReportTestingContext;
 import com.cloudera.flume.conf.SinkFactory.SinkBuilder;
 import com.cloudera.flume.handlers.debug.ExceptionTwiddleDecorator;
+import com.cloudera.flume.reporter.ReportEvent;
 import com.cloudera.flume.reporter.ReportManager;
+import com.cloudera.flume.reporter.ReportTestUtils;
+import com.cloudera.flume.reporter.ReportUtil;
 import com.cloudera.flume.reporter.aggregator.CounterSink;
 import com.cloudera.flume.util.MockClock;
 import com.cloudera.util.Clock;
@@ -36,22 +46,26 @@ import com.cloudera.util.Clock;
  * exponentially growing period of time.
  **/
 public class TestBackOffFailOverSink {
+  public static final Logger LOG = LoggerFactory
+      .getLogger(TestBackOffFailOverSink.class);
 
   /**
    * tests a series of messages being sent when append of the primary will fail
    * succeed or fail based on its twiddle state.
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testFailOverSink() throws IOException {
+  public void testFailOverSink() throws IOException, InterruptedException {
     MockClock mock = new MockClock(0);
     Clock.setClock(mock);
 
     CounterSink primary = new CounterSink("primary");
     CounterSink secondary = new CounterSink("backup");
-    ExceptionTwiddleDecorator<CounterSink> twiddle =
-        new ExceptionTwiddleDecorator<CounterSink>(primary);
-    BackOffFailOverSink failsink =
-        new BackOffFailOverSink(twiddle, secondary, 100, 10000); // 100 ms
+    ExceptionTwiddleDecorator<CounterSink> twiddle = new ExceptionTwiddleDecorator<CounterSink>(
+        primary);
+    BackOffFailOverSink failsink = new BackOffFailOverSink(twiddle, secondary,
+        100, 10000); // 100 ms
     // initial
     // backoff,
     // 10000ms max
@@ -74,18 +88,22 @@ public class TestBackOffFailOverSink {
     System.out.println(mock);
     System.out.printf("pri: %4d sec: %4d fail: %4d\n", primary.getCount(),
         secondary.getCount(), failsink.getFails());
-    Assert.assertEquals(1, failsink.getFails()); // one attempt on primary failed.
+    Assert.assertEquals(1, failsink.getFails()); // one attempt on primary
+    // failed.
     Assert.assertEquals(2, primary.getCount()); // same as before,
-    Assert.assertEquals(1, secondary.getCount()); // message went to the secondary
+    Assert.assertEquals(1, secondary.getCount()); // message went to the
+    // secondary
 
     mock.forward(50);
     failsink.append(e); // skip primary and just go to 2ndary
     System.out.println(mock);
     System.out.printf("pri: %4d sec: %4d fail: %4d\n", primary.getCount(),
         secondary.getCount(), failsink.getFails());
-    Assert.assertEquals(1, failsink.getFails()); // still only one attempt on primary
+    Assert.assertEquals(1, failsink.getFails()); // still only one attempt on
+    // primary
     Assert.assertEquals(2, primary.getCount()); // same as before,
-    Assert.assertEquals(2, secondary.getCount()); // message went to the secondary
+    Assert.assertEquals(2, secondary.getCount()); // message went to the
+    // secondary
 
     mock.forward(50);
     failsink.append(e); // after this fails backoff is now 200
@@ -93,8 +111,8 @@ public class TestBackOffFailOverSink {
     System.out.printf("pri: %4d sec: %4d fail: %4d\n", primary.getCount(),
         secondary.getCount(), failsink.getFails());
     Assert.assertEquals(2, failsink.getFails()); // try primary
-    Assert.assertEquals(0, primary.getCount()); // resets because primary restarted
-    // (and still fails)
+    Assert.assertEquals(0, primary.getCount()); // resets because primary
+                                                // restarted (and still fails)
     Assert.assertEquals(3, secondary.getCount()); // but failover to secondary
 
     mock.forward(200);
@@ -133,19 +151,21 @@ public class TestBackOffFailOverSink {
 
   /**
    * Purposely tests backoff timeout.
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testFailTimeout() throws IOException {
+  public void testFailTimeout() throws IOException, InterruptedException {
     System.out.println("===========================");
     MockClock mock = new MockClock(0);
     Clock.setClock(mock);
 
     CounterSink primary = new CounterSink("primary");
     CounterSink secondary = new CounterSink("backup");
-    ExceptionTwiddleDecorator<CounterSink> twiddle =
-        new ExceptionTwiddleDecorator<CounterSink>(primary);
-    BackOffFailOverSink failsink =
-        new BackOffFailOverSink(twiddle, secondary, 100, 1000); // 100 ms
+    ExceptionTwiddleDecorator<CounterSink> twiddle = new ExceptionTwiddleDecorator<CounterSink>(
+        primary);
+    BackOffFailOverSink failsink = new BackOffFailOverSink(twiddle, secondary,
+        100, 1000); // 100 ms
     // initial
     // backoff,
     // 10000ms max
@@ -213,14 +233,14 @@ public class TestBackOffFailOverSink {
   /**
    * This tests the new failover builder that uses specs strings as arguments
    * and instantiates them!
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testFailoverBuilder() throws IOException {
+  public void testFailoverBuilder() throws IOException, InterruptedException {
     SinkBuilder bld = FailOverSink.builder();
-    EventSink snk =
-        bld.build(new ReportTestingContext(),
-            "{intervalFlakeyAppend(2) => counter(\"pri\") } ",
-            "counter(\"sec\")");
+    EventSink snk = bld.build(new ReportTestingContext(),
+        "{intervalFlakeyAppend(2) => counter(\"pri\") } ", "counter(\"sec\")");
     snk.open();
 
     Event e = new EventImpl("foo".getBytes());
@@ -241,14 +261,15 @@ public class TestBackOffFailOverSink {
   /**
    * This tests the new failover builder that uses specs strings as arguments
    * and instantiates them!
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testBackoffFailoverBuilder() throws IOException {
+  public void testBackoffFailoverBuilder() throws IOException,
+      InterruptedException {
     SinkBuilder bld = BackOffFailOverSink.builder();
-    EventSink snk =
-        bld.build(new ReportTestingContext(),
-            "{intervalFlakeyAppend(2) => counter(\"pri\") } ",
-            "counter(\"sec\")");
+    EventSink snk = bld.build(new ReportTestingContext(),
+        "{intervalFlakeyAppend(2) => counter(\"pri\") } ", "counter(\"sec\")");
     snk.open();
 
     Event e = new EventImpl("foo".getBytes());
@@ -266,4 +287,53 @@ public class TestBackOffFailOverSink {
     Assert.assertEquals(4, secCnt.getCount());
 
   }
+
+  /**
+   * Test metrics
+   */
+  @Test
+  public void testGetBackoffFailoverMetrics() throws JSONException {
+    ReportTestUtils.setupSinkFactory();
+    SinkBuilder bld = BackOffFailOverSink.builder();
+    EventSink snk = bld.build(new ReportTestingContext(), "one", "two");
+    ReportEvent rpt = snk.getMetrics();
+    LOG.info(ReportUtil.toJSONObject(rpt).toString());
+    assertNotNull(rpt.getLongMetric(BackOffFailOverSink.A_PRIMARY));
+    assertNotNull(rpt.getLongMetric(BackOffFailOverSink.A_FAILS));
+    assertNotNull(rpt.getLongMetric(BackOffFailOverSink.A_BACKUPS));
+    assertNull(rpt.getStringMetric("primary.one.name"));
+    assertNull(rpt.getStringMetric("backup.two.name"));
+
+    ReportEvent all = ReportUtil.getFlattenedReport(snk);
+    LOG.info(ReportUtil.toJSONObject(all).toString());
+    assertNotNull(all.getLongMetric(BackOffFailOverSink.A_PRIMARY));
+    assertNotNull(all.getLongMetric(BackOffFailOverSink.A_FAILS));
+    assertNotNull(all.getLongMetric(BackOffFailOverSink.A_BACKUPS));
+    assertEquals("One", all.getStringMetric("primary.One.name"));
+    assertEquals("Two", all.getStringMetric("backup.Two.name"));
+  }
+
+  /**
+   * Test metrics
+   */
+  @Test
+  public void testGetFailoverMetrics() throws JSONException {
+    ReportTestUtils.setupSinkFactory();
+    SinkBuilder bld = FailOverSink.builder();
+    EventSink snk = bld.build(new ReportTestingContext(), "one", "two");
+    ReportEvent rpt = snk.getMetrics();
+    LOG.info(ReportUtil.toJSONObject(rpt).toString());
+    assertNotNull(rpt.getLongMetric(FailOverSink.R_FAILS));
+    assertNotNull(rpt.getLongMetric(FailOverSink.R_BACKUPS));
+    assertNull(rpt.getStringMetric("primary.one.name"));
+    assertNull(rpt.getStringMetric("backup.two.name"));
+
+    ReportEvent all = ReportUtil.getFlattenedReport(snk);
+    LOG.info(ReportUtil.toJSONObject(all).toString());
+    assertNotNull(all.getLongMetric(FailOverSink.R_FAILS));
+    assertNotNull(all.getLongMetric(FailOverSink.R_BACKUPS));
+    assertEquals("One", all.getStringMetric("primary.One.name"));
+    assertEquals("Two", all.getStringMetric("backup.Two.name"));
+  }
+
 }

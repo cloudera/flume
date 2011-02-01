@@ -32,9 +32,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.cloudera.flume.agent.FlumeNode;
-import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.FlumeBuilder;
 import com.cloudera.flume.conf.FlumeSpecException;
+import com.cloudera.flume.conf.LogicalNodeContext;
 import com.cloudera.flume.conf.ReportTestingContext;
 import com.cloudera.flume.conf.SinkFactory.SinkDecoBuilder;
 import com.cloudera.flume.core.Event;
@@ -92,7 +92,8 @@ public class TestNaiveFileWALDeco {
         "writeahead.00000000.20100204-015814F430-0800.seq"));
 
     // EventSource src = FlumeBuilder.buildSource("");
-    EventSink snk = FlumeBuilder.buildSink(new ReportTestingContext(),
+    EventSink snk = FlumeBuilder.buildSink(new ReportTestingContext(
+        LogicalNodeContext.testingContext()),
         "{ ackedWriteAhead => { ackChecker => counter(\"count\") } }");
     EventSource src = MemorySinkSource.cannedData("foo foo foo ", 5);
     snk.open();
@@ -145,7 +146,8 @@ public class TestNaiveFileWALDeco {
     FileUtil.dumbfilecopy(acked, new File(writing, acked.getName()));
     // /////////////////////
 
-    EventSink snk = FlumeBuilder.buildSink(new ReportTestingContext(),
+    EventSink snk = FlumeBuilder.buildSink(new ReportTestingContext(
+        LogicalNodeContext.testingContext()),
         "{ ackedWriteAhead => { ackChecker => counter(\"count\") } }");
     EventSource src = MemorySinkSource.cannedData("foo foo foo ", 5);
     snk.open();
@@ -185,9 +187,11 @@ public class TestNaiveFileWALDeco {
    * 
    * @throws IOException
    * @throws FlumeSpecException
+   * @throws InterruptedException
    */
   @Test
-  public void testRecoveredMovesToErr() throws IOException, FlumeSpecException {
+  public void testRecoveredMovesToErr() throws IOException, FlumeSpecException,
+      InterruptedException {
     BenchmarkHarness.setupLocalWriteDir();
     File tmp = BenchmarkHarness.tmpdir;
 
@@ -201,7 +205,8 @@ public class TestNaiveFileWALDeco {
     writing.mkdirs();
     FileUtil.dumbfilecopy(truncated, new File(writing, truncated.getName()));
 
-    EventSink snk = FlumeBuilder.buildSink(new ReportTestingContext(),
+    EventSink snk = FlumeBuilder.buildSink(new ReportTestingContext(
+        LogicalNodeContext.testingContext()),
         "{ ackedWriteAhead => { ackChecker => counter(\"count\") } }");
     EventSource src = MemorySinkSource.cannedData("foo foo foo ", 5);
     snk.open();
@@ -246,10 +251,9 @@ public class TestNaiveFileWALDeco {
    */
   @Test
   public void testAppendBeforeOpen() throws InterruptedException {
-    final NaiveFileWALDeco<EventSink> d = new NaiveFileWALDeco<EventSink>(
-        new Context(), new NullSink(),
-        new NaiveFileWALManager(new File("/tmp")), new SizeTrigger(0, null),
-        new AckListener.Empty(), 1000000);
+    final NaiveFileWALDeco d = new NaiveFileWALDeco(LogicalNodeContext
+        .testingContext(), new NullSink(), new NaiveFileWALManager(new File(
+        "/tmp")), new SizeTrigger(0, null), new AckListener.Empty(), 1000000);
     final CountDownLatch cdl1 = new CountDownLatch(1);
     new Thread() {
       public void run() {
@@ -262,6 +266,9 @@ public class TestNaiveFileWALDeco {
         } catch (IllegalStateException e) {
           // Expected illegal state exception due to not being open
           cdl1.countDown();
+        } catch (InterruptedException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
         }
       }
     }.start();
@@ -274,10 +281,9 @@ public class TestNaiveFileWALDeco {
   @Test
   public void testBadRegistererAppend() throws InterruptedException {
 
-    final NaiveFileWALDeco<EventSink> d = new NaiveFileWALDeco<EventSink>(
-        new Context(), new NullSink(),
-        new NaiveFileWALManager(new File("/tmp")), new SizeTrigger(0, null),
-        new AckListener.Empty(), 1000000);
+    final NaiveFileWALDeco d = new NaiveFileWALDeco(LogicalNodeContext
+        .testingContext(), new NullSink(), new NaiveFileWALManager(new File(
+        "/tmp")), new SizeTrigger(0, null), new AckListener.Empty(), 1000000);
 
     final CountDownLatch cdl1 = new CountDownLatch(1);
     new Thread() {
@@ -291,6 +297,9 @@ public class TestNaiveFileWALDeco {
         } catch (IllegalStateException e) {
           // Expected illegal state exception due to not being open
           cdl1.countDown();
+        } catch (InterruptedException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
         }
       }
     }.start();
@@ -298,7 +307,8 @@ public class TestNaiveFileWALDeco {
   }
 
   @Test(expected = IOException.class)
-  public void testExceptionThreadHandoff() throws IOException {
+  public void testExceptionThreadHandoff() throws IOException,
+      InterruptedException {
     try {
       BenchmarkHarness.setupLocalWriteDir();
       Event e = new EventImpl(new byte[0]);
@@ -310,9 +320,9 @@ public class TestNaiveFileWALDeco {
       };
 
       FlumeNode node = FlumeNode.getInstance();
-      EventSinkDecorator<EventSink> deco = new NaiveFileWALDeco<EventSink>(
-          new Context(), snk, node.getWalManager(), new TimeTrigger(
-              new ProcessTagger(), 1000), node.getAckChecker()
+      EventSinkDecorator<EventSink> deco = new NaiveFileWALDeco(
+          LogicalNodeContext.testingContext(), snk, node.getWalManager(),
+          new TimeTrigger(new ProcessTagger(), 1000), node.getAckChecker()
               .getAgentAckQueuer(), 1000);
 
       deco.open();
@@ -328,7 +338,7 @@ public class TestNaiveFileWALDeco {
   @Test(expected = IllegalArgumentException.class)
   public void testBadE2eBuilderArgs() {
     SinkDecoBuilder b = NaiveFileWALDeco.builderEndToEndDir();
-    b.build(new Context(), "foo", "bar");
+    b.build(LogicalNodeContext.testingContext(), "foo", "bar");
   }
 
 }

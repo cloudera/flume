@@ -20,37 +20,49 @@ package com.cloudera.flume.collector;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.agent.FlumeNode;
 import com.cloudera.flume.agent.durability.NaiveFileWALDeco;
 import com.cloudera.flume.agent.durability.WALManager;
 import com.cloudera.flume.conf.Context;
+import com.cloudera.flume.conf.FlumeArgException;
 import com.cloudera.flume.conf.FlumeBuilder;
 import com.cloudera.flume.conf.FlumeSpecException;
+import com.cloudera.flume.conf.LogicalNodeContext;
+import com.cloudera.flume.conf.ReportTestingContext;
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventImpl;
 import com.cloudera.flume.core.EventSink;
-import com.cloudera.flume.core.EventSinkDecorator;
 import com.cloudera.flume.core.EventSource;
+import com.cloudera.flume.core.EventUtil;
 import com.cloudera.flume.handlers.debug.LazyOpenDecorator;
 import com.cloudera.flume.handlers.debug.MemorySinkSource;
+import com.cloudera.flume.handlers.debug.NoNlASCIISynthSource;
 import com.cloudera.flume.handlers.endtoend.AckChecksumChecker;
 import com.cloudera.flume.handlers.endtoend.AckChecksumInjector;
+import com.cloudera.flume.handlers.endtoend.AckListener;
+import com.cloudera.flume.handlers.hdfs.CustomDfsSink;
+import com.cloudera.flume.handlers.hdfs.EscapedCustomDfsSink;
+import com.cloudera.flume.handlers.rolling.ProcessTagger;
 import com.cloudera.flume.handlers.rolling.RollSink;
 import com.cloudera.flume.handlers.rolling.Tagger;
+import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.ReportManager;
 import com.cloudera.util.BenchmarkHarness;
 import com.cloudera.util.Clock;
 import com.cloudera.util.FileUtil;
@@ -66,11 +78,18 @@ import com.cloudera.util.Pair;
  * a HDFS connection is fails, the retry metchanisms are forced to exit.
  */
 public class TestCollectorSink {
-  final static Logger LOG = Logger.getLogger(TestCollectorSink.class);
+  final static Logger LOG = LoggerFactory.getLogger(TestCollectorSink.class);
 
   @Before
   public void setUp() {
-    Logger.getRootLogger().setLevel(Level.DEBUG);
+    // Log4j specific settings for debugging.
+    org.apache.log4j.Logger.getLogger(CollectorSink.class)
+        .setLevel(Level.DEBUG);
+    org.apache.log4j.Logger.getLogger(AckChecksumChecker.class).setLevel(
+        Level.DEBUG);
+    org.apache.log4j.Logger.getLogger(CustomDfsSink.class).setLevel(Level.WARN);
+    org.apache.log4j.Logger.getLogger(EscapedCustomDfsSink.class).setLevel(
+        Level.WARN);
   }
 
   @Test
@@ -91,19 +110,33 @@ public class TestCollectorSink {
     // millis
     String src3 = "collectorSink(\"file:///tmp/test\", \"testfilename\", 1000)";
     FlumeBuilder.buildSink(new Context(), src3);
+  }
 
-    try {
-      // too many arguments
-      String src4 = "collectorSink(\"file:///tmp/test\", \"bkjlasdf\", 1000, 1000)";
-      FlumeBuilder.buildSink(new Context(), src4);
-    } catch (Exception e) {
-      return;
-    }
-    fail("unexpected fall through");
+  @Test(expected = FlumeArgException.class)
+  public void testBuilderFail() throws FlumeSpecException {
+    // too many arguments
+    String src4 = "collectorSink(\"file:///tmp/test\", \"bkjlasdf\", 1000, 1000)";
+    FlumeBuilder.buildSink(new Context(), src4);
+  }
+
+  /**
+   * play evil games with escape characters, and check that that old syntax
+   * works with old semantics.
+   */
+  @Test
+  public void testBuilderHandleEvilSlashes() throws FlumeSpecException {
+
+    String src4 = "collectorSink(\"file://C:\\tmp\\test\", \"file\", 1000)";
+    CollectorSink snk = (CollectorSink) FlumeBuilder.buildSink(new Context(),
+        src4);
+    assertEquals(
+        "escapedCustomDfs(\"file://C:\\tmp\\test\",\"file%{rolltag}\" )",
+        snk.roller.getRollSpec());
   }
 
   @Test
-  public void testOpenClose() throws FlumeSpecException, IOException {
+  public void testOpenClose() throws FlumeSpecException, IOException,
+      InterruptedException {
     String src2 = "collectorSink(\"file:///tmp/test\",\"testfilename\")";
 
     for (int i = 0; i < 100; i++) {
@@ -115,10 +148,14 @@ public class TestCollectorSink {
 
   /**
    * Test that file paths are correctly constructed from dir + path + tag
+   * 
+   * @throws InterruptedException
+   * @throws FlumeSpecException
    */
   @Test
-  public void testCorrectFilename() throws IOException {
-    CollectorSink sink = new CollectorSink(
+  public void testCorrectFilename() throws IOException, InterruptedException,
+      FlumeSpecException {
+    CollectorSink sink = new CollectorSink(new Context(),
         "file:///tmp/flume-test-correct-filename", "actual-file-", 10000,
         new Tagger() {
           public String getTag() {
@@ -136,7 +173,7 @@ public class TestCollectorSink {
           public void annotate(Event e) {
 
           }
-        }, 250);
+        }, 250, FlumeNode.getInstance().getCollectorAckListener());
 
     sink.open();
     sink.append(new EventImpl(new byte[0]));
@@ -150,8 +187,10 @@ public class TestCollectorSink {
   /**
    * Setup a data set with acks in the stream. This simulates data coming from
    * an agent expecting end-to-end acks.
+   * 
+   * @throws InterruptedException
    */
-  MemorySinkSource setupAckRoll() throws IOException {
+  MemorySinkSource setupAckRoll() throws IOException, InterruptedException {
 
     // we can roll now.
     MemorySinkSource ackedmem = new MemorySinkSource();
@@ -190,20 +229,7 @@ public class TestCollectorSink {
         + "\",\"\")";
     CollectorSink coll = (CollectorSink) FlumeBuilder.buildSink(new Context(),
         snkspec);
-    AckChecksumChecker<EventSink> chk = (AckChecksumChecker<EventSink>) coll
-        .getSink();
-    // insistent append
-    EventSinkDecorator deco = (EventSinkDecorator<EventSink>) chk.getSink();
-    // -> stubborn append
-    deco = (EventSinkDecorator<EventSink>) deco.getSink();
-
-    // stubborn append -> insistent
-    deco = (EventSinkDecorator<EventSink>) deco.getSink();
-
-    // insistent append -> mask
-    deco = (EventSinkDecorator<EventSink>) deco.getSink();
-
-    RollSink roll = (RollSink) deco.getSink();
+    RollSink roll = coll.roller;
 
     // normally inside wal
     NaiveFileWALDeco.AckChecksumRegisterer<EventSink> snk = new NaiveFileWALDeco.AckChecksumRegisterer(
@@ -423,6 +449,9 @@ public class TestCollectorSink {
         } catch (IOException e1) {
           // could be exception but we don't care
           LOG.info("don't care about this exception: ", e1);
+        } catch (InterruptedException e1) {
+          // TODO Auto-generated catch block
+          e1.printStackTrace();
         }
         done.countDown();
       }
@@ -457,6 +486,9 @@ public class TestCollectorSink {
         } catch (IOException e1) {
           // could be an exception but we don't care.
           LOG.info("don't care about this exception: ", e1);
+        } catch (InterruptedException e1) {
+          // TODO Auto-generated catch block
+          e1.printStackTrace();
         }
         done.countDown();
       }
@@ -495,6 +527,9 @@ public class TestCollectorSink {
         } catch (IOException e1) {
           // could throw exception but we don't care
           LOG.info("don't care about this exception: ", e1);
+        } catch (InterruptedException e1) {
+          // TODO Auto-generated catch block
+          e1.printStackTrace();
         }
         done.countDown();
       }
@@ -508,5 +543,140 @@ public class TestCollectorSink {
     t.interrupt();
     boolean completed = done.await(60, TimeUnit.SECONDS);
     assertTrue("Timed out when attempting to shutdown", completed);
+  }
+
+  /**
+   * Unless the internal ack map is guarded by locks, a collector sink could
+   * cause ConcurrentModificationExceptions.
+   * 
+   * The collection gets modified by the stream writing acks into the map, and
+   * then by the periodic close call from another thread that flushes it.
+   * 
+   * @throws IOException
+   * @throws FlumeSpecException
+   * @throws InterruptedException
+   */
+  @Test
+  public void testNoConcurrentModificationOfAckMapException()
+      throws IOException, FlumeSpecException, InterruptedException {
+    File dir = FileUtil.mktempdir();
+    try {
+      // set to 1 and 10 when debugging
+      final int COUNT = 100;
+      final int ROLLS = 1000;
+
+      // setup a source of data that will shove a lot of ack laden data into the
+      // stream.
+      MemorySinkSource mem = new MemorySinkSource();
+      EventSource src = new NoNlASCIISynthSource(COUNT, 10);
+      src.open();
+      Event e;
+      while ((e = src.next()) != null) {
+        AckChecksumInjector<EventSink> acks = new AckChecksumInjector<EventSink>(
+            mem);
+        acks.open(); // memory in sink never resets, and just keeps appending
+        acks.append(e);
+        acks.close();
+      }
+
+      class TestAckListener implements AckListener {
+        long endCount, errCount, expireCount, startCount;
+        Set<String> ends = new HashSet<String>();
+
+        @Override
+        synchronized public void end(String group) throws IOException {
+          endCount++;
+          ends.add(group);
+          LOG.info("End count incremented to " + endCount);
+        }
+
+        @Override
+        synchronized public void err(String group) throws IOException {
+          errCount++;
+        }
+
+        @Override
+        synchronized public void expired(String key) throws IOException {
+          expireCount++;
+        }
+
+        @Override
+        synchronized public void start(String group) throws IOException {
+          startCount++;
+        }
+
+      }
+      ;
+
+      TestAckListener fakeMasterRpc = new TestAckListener();
+
+      // massive roll millis because the test will force fast and frequent rolls
+      CollectorSink cs = new CollectorSink(LogicalNodeContext.testingContext(),
+          "file:///" + dir.getAbsolutePath(), "test", 1000000,
+          new ProcessTagger(), 250, fakeMasterRpc) {
+        @Override
+        public void append(Event e) throws IOException, InterruptedException {
+          LOG.info("Pre  append: "
+              + e.getAttrs().get(AckChecksumInjector.ATTR_ACK_HASH));
+          super.append(e);
+          LOG.info("Post append: "
+              + e.getAttrs().get(AckChecksumInjector.ATTR_ACK_HASH));
+        }
+      };
+
+      // setup a roller that will roll like crazy from a separate thread
+      final RollSink roll = cs.roller;
+      Thread t = new Thread("roller") {
+        @Override
+        public void run() {
+          try {
+            for (int i = 0; i < ROLLS; i++) {
+              roll.rotate();
+            }
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+        }
+      };
+      t.start();
+
+      // pump it through and wait for exception.
+      cs.open();
+
+      EventUtil.dumpAll(mem, cs);
+      t.join();
+
+      cs.close();
+      long rolls = roll.getMetrics().getLongMetric(RollSink.A_ROLLS);
+      LOG.info("rolls {} ", rolls);
+      LOG.info("start={} end={}", fakeMasterRpc.startCount,
+          fakeMasterRpc.endCount);
+      LOG.info("endset size={}", fakeMasterRpc.ends.size());
+      LOG.info("expire={} err={}", fakeMasterRpc.expireCount,
+          fakeMasterRpc.errCount);
+      assertEquals(ROLLS, rolls);
+      assertEquals(0, fakeMasterRpc.startCount);
+      assertEquals(COUNT, fakeMasterRpc.ends.size());
+      assertEquals(0, fakeMasterRpc.expireCount);
+      assertEquals(0, fakeMasterRpc.errCount);
+
+    } finally {
+      FileUtil.rmr(dir);
+    }
+  }
+
+  @Test
+  public void testMultipleSinks() throws FlumeSpecException, IOException,
+      InterruptedException {
+    String spec = "collector(5000) { [ counter(\"foo\"), counter(\"bar\") ] }";
+    EventSink snk = FlumeBuilder.buildSink(new ReportTestingContext(
+        LogicalNodeContext.testingContext()), spec);
+    snk.open();
+    snk.append(new EventImpl("this is a test".getBytes()));
+    snk.close();
+    ReportEvent rpta = ReportManager.get().getReportable("foo").getMetrics();
+    assertEquals(1, (long) rpta.getLongMetric("foo"));
+    ReportEvent rptb = ReportManager.get().getReportable("bar").getMetrics();
+    assertEquals(1, (long) rptb.getLongMetric("bar"));
   }
 }

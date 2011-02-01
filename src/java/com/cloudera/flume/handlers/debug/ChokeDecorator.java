@@ -51,21 +51,16 @@ public class ChokeDecorator<S extends EventSink> extends EventSinkDecorator<S> {
    * accross this Choke has reached its limit. But it does not block forever.
    */
   @Override
-  public void append(Event e) throws IOException {
-
-    try {
-      chokeMan.spendTokens(chokeId, e.getBody().length);
-      super.append(e);
-    } catch (Exception e1) {
-      throw new IOException(e1.getMessage(), e1);
-    }
+  public void append(Event e) throws IOException, InterruptedException {
+    chokeMan.spendTokens(chokeId, e.getBody().length);
+    super.append(e);
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public void open() throws IOException {
+  public void open() throws IOException, InterruptedException {
     this.chokeMan = FlumeNode.getInstance().getChokeManager();
     super.open();
   }
@@ -88,7 +83,7 @@ public class ChokeDecorator<S extends EventSink> extends EventSinkDecorator<S> {
       @Override
       public EventSinkDecorator<EventSink> build(Context context,
           String... argv) {
-        Preconditions.checkArgument(argv.length ==1,
+        Preconditions.checkArgument(argv.length == 1,
             "usage: choke(\"chokeId\")");
         String chokeID = argv[0];
         return new ChokeDecorator<EventSink>(null, chokeID);

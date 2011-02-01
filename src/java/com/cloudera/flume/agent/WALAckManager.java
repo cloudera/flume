@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import com.cloudera.flume.core.Attributes;
 import com.cloudera.flume.handlers.endtoend.AckListener;
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.ReportUtil;
 import com.cloudera.flume.reporter.Reportable;
 import com.cloudera.util.Clock;
 import com.google.common.base.Preconditions;
@@ -140,11 +141,13 @@ public class WALAckManager implements Reportable {
     long now = Clock.unixTime();
     List<String> retried = new ArrayList<String>();
     for (Entry<String, Long> ack : pending.entrySet()) {
-      if (now - ack.getValue() > retransmitTime) {
+      long delta = now - ack.getValue();
+      if (delta > retransmitTime) {
         // retransmit.. enqueue to retransimt.... move it back to agent dir..
         // (lame but good enough for now)
         try {
-          LOG.info("Retransmitting " + ack.getKey());
+          LOG.info("Retransmitting " + ack.getKey() + " after being stale for "
+              + delta + "ms");
           listener.expired(ack.getKey());
           retried.add(ack.getKey());
         } catch (IOException e) {
@@ -185,7 +188,7 @@ public class WALAckManager implements Reportable {
   }
 
   @Override
-  synchronized public ReportEvent getReport() {
+  synchronized public ReportEvent getMetrics() {
     ReportEvent rpt = new ReportEvent(getName());
     Attributes.setLong(rpt, A_RETRANSMIT_TIMEOUT, retransmitTime);
     StringBuilder pendingAcks = new StringBuilder();
@@ -197,6 +200,11 @@ public class WALAckManager implements Reportable {
     }
     Attributes.setString(rpt, A_PENDING_ACK_INFO, pendingAcks.toString());
     return rpt;
+  }
+
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    return ReportUtil.noChildren();
   }
 
   public Set<String> getPendingAckTags() {

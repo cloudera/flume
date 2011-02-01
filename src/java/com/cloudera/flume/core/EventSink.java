@@ -23,6 +23,7 @@ import java.util.Map;
 import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.SinkFactory.SinkBuilder;
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.ReportUtil;
 import com.cloudera.flume.reporter.Reportable;
 
 /**
@@ -38,7 +39,7 @@ public interface EventSink extends Reportable {
    * exceptions IOExceptions and RuntimeExceptions (failed preconditions,
    * illegal state, etc)).
    */
-  public void append(Event e) throws IOException;
+  public void append(Event e) throws IOException, InterruptedException;
 
   /**
    * This initializes a sink so that events can be appended. Events should only
@@ -47,7 +48,7 @@ public interface EventSink extends Reportable {
    * 
    * Open is assumed to block until the sink is ready for append calls.
    */
-  public void open() throws IOException;
+  public void open() throws IOException, InterruptedException;
 
   /**
    * This gracefully shuts down a sink. close will flush remaining events in the
@@ -56,16 +57,25 @@ public interface EventSink extends Reportable {
    * If the data durable, close is allowed to exit if it will be recovered when
    * opened again.
    * 
-   * Close will block until 1) all events appended to this sink have been flushed
-   * and until 2) a subsequent open call should succeed (shared resource
+   * Close will block until 1) all events appended to this sink have been
+   * flushed and until 2) a subsequent open call should succeed (shared resource
    * situation).
    */
-  public void close() throws IOException;
+  public void close() throws IOException, InterruptedException;
 
   /**
-   * Generates one or more reports in some sort of readable format using the
-   * supplied naming prefix.
+   * Generate a simplified report. This only gathers a limited number of metrics
+   * about the particular sink, and does not hierarchically gather information
+   * from subsinks.
    */
+  @Deprecated
+  public ReportEvent getReport();
+
+  /**
+   * Generates one or more simplified reports in some sort of readable format
+   * using the supplied naming prefix.
+   */
+  @Deprecated
   public void getReports(String namePrefix, Map<String, ReportEvent> reports);
 
   /**
@@ -84,8 +94,12 @@ public interface EventSink extends Reportable {
     /** total number bytes appended to this sink */
     private long numBytes = 0;
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    synchronized public void append(Event e) throws IOException {
+    synchronized public void append(Event e) throws IOException,
+        InterruptedException {
       updateAppendStats(e);
     }
 
@@ -96,19 +110,48 @@ public interface EventSink extends Reportable {
       numEvents++;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public void close() throws IOException {
+    public void close() throws IOException, InterruptedException {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public void open() throws IOException {
+    public void open() throws IOException, InterruptedException {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getName() {
       return this.getClass().getSimpleName();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    synchronized public ReportEvent getMetrics() {
+      return new ReportEvent(getName());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map<String, Reportable> getSubMetrics() {
+      return ReportUtil.noChildren();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Deprecated
     @Override
     public ReportEvent getReport() {
       ReportEvent rpt = new ReportEvent(getName());
@@ -120,6 +163,10 @@ public interface EventSink extends Reportable {
       return rpt;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Deprecated
     @Override
     public void getReports(String namePrefix, Map<String, ReportEvent> reports) {
       reports.put(namePrefix + getName(), getReport());
@@ -141,23 +188,35 @@ public interface EventSink extends Reportable {
       this.name = name;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getName() {
       return name;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public void append(Event e) throws IOException {
+    public void append(Event e) throws IOException, InterruptedException {
       throw new IOException("Attemping to append to a Stub Sink!");
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public void close() throws IOException {
+    public void close() throws IOException, InterruptedException {
       // this does not throw exception because close always succeeds.
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public void open() throws IOException {
+    public void open() throws IOException, InterruptedException {
       throw new IOException("Attempting to open a stub sink '" + getName()
           + "'!");
     }

@@ -32,6 +32,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.FlumeConfiguration;
 import com.cloudera.flume.conf.SourceFactory.SourceBuilder;
 import com.cloudera.flume.core.Event;
@@ -84,8 +85,8 @@ public class ThriftEventSource extends EventSource.Base {
    * 
    * @Override
    */
-  synchronized public ReportEvent getReport() {
-    ReportEvent rpt = super.getReport();
+  synchronized public ReportEvent getMetrics() {
+    ReportEvent rpt = super.getMetrics();
     rpt.setLongMetric(A_QUEUE_CAPACITY, q.size());
     rpt.setLongMetric(A_QUEUE_FREE, q.remainingCapacity());
     rpt.setLongMetric(A_ENQUEUED, enqueued.get());
@@ -129,7 +130,8 @@ public class ThriftEventSource extends EventSource.Base {
       ThriftFlumeEventServer.Processor processor = new ThriftFlumeEventServer.Processor(
           new ThriftFlumeEventServerImpl(new EventSink.Base() {
             @Override
-            public void append(Event e) throws IOException {
+            public void append(Event e) throws IOException,
+                InterruptedException {
               enqueue(e);
               super.append(e);
             }
@@ -152,7 +154,7 @@ public class ThriftEventSource extends EventSource.Base {
   }
 
   @Override
-  synchronized public void close() throws IOException {
+  synchronized public void close() throws IOException, InterruptedException {
     if (server == null) {
       LOG.info(String.format("Server on port %d was already closed!", port));
       return;
@@ -185,9 +187,8 @@ public class ThriftEventSource extends EventSource.Base {
         Thread.sleep(100);
       } catch (InterruptedException e) {
         LOG.error("Unexpected interrupt of close " + e.getMessage(), e);
-        Thread.currentThread().interrupt();
         closed = true;
-        throw new IOException(e);
+        throw e;
       }
     }
 
@@ -226,7 +227,7 @@ public class ThriftEventSource extends EventSource.Base {
   public static SourceBuilder builder() {
     return new SourceBuilder() {
       @Override
-      public EventSource build(String... argv) {
+      public EventSource build(Context ctx, String... argv) {
         Preconditions.checkArgument(argv.length == 1,
             "usage: thriftSource(port)");
 

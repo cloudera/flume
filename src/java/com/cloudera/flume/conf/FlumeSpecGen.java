@@ -45,6 +45,8 @@ public class FlumeSpecGen {
     case STRING:
     case FLOAT:
       return t.getChild(0).getText();
+    case KWARG:
+      return t.getChild(0).getText() + "=" + genArg((CommonTree) t.getChild(1));
     default:
       throw new FlumeSpecException("Not a node of literal type: "
           + t.toStringTree());
@@ -129,7 +131,12 @@ public class FlumeSpecGen {
 
     case DECO: {
       List<CommonTree> decoNodes = (List<CommonTree>) t.getChildren();
-      Preconditions.checkArgument(decoNodes.size() == 2);
+      Preconditions.checkArgument(decoNodes.size() == 2
+          || decoNodes.size() == 1);
+      if (decoNodes.size() == 1) {
+        CommonTree snk = decoNodes.get(0);
+        return genEventSink(snk);
+      }
       CommonTree deco = decoNodes.get(0);
       CommonTree decoSnk = decoNodes.get(1);
       String decoSink = genEventSinkDecorator(deco);
@@ -188,6 +195,24 @@ public class FlumeSpecGen {
       String argSink = genArgs(rargs, "(", ",", ")");
 
       return "failchain" + argSink + " { " + bodySink + " }";
+
+    }
+
+    case GEN: {
+      List<CommonTree> genNodes = (List<CommonTree>) t.getChildren();
+      Preconditions.checkArgument(genNodes.size() >= 2);
+      String genType = genNodes.get(0).getText();
+      CommonTree body = genNodes.get(1);
+      String bodySink = genEventSink(body);
+
+      List<String> rargs = new ArrayList<String>();
+      for (int i = 2; i < genNodes.size(); i++) {
+        CommonTree arg = genNodes.get(i);
+        rargs.add(genArg(arg));
+      }
+      String argSink = genArgs(rargs, "(", ",", ")");
+
+      return genType + argSink + " { " + bodySink + " }";
 
     }
       // TODO (jon) handle pattern match splitter

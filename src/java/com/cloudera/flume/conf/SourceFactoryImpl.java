@@ -42,7 +42,6 @@ import com.cloudera.flume.handlers.debug.StdinSource;
 import com.cloudera.flume.handlers.debug.SynthSource;
 import com.cloudera.flume.handlers.debug.SynthSourceRndSize;
 import com.cloudera.flume.handlers.debug.TextFileSource;
-import com.cloudera.flume.handlers.exec.ExecEventSource;
 import com.cloudera.flume.handlers.exec.ExecNioSource;
 import com.cloudera.flume.handlers.hdfs.SeqfileEventSource;
 import com.cloudera.flume.handlers.irc.IrcSource;
@@ -93,9 +92,6 @@ public class SourceFactoryImpl extends SourceFactory {
       { "execStream", ExecNioSource.buildStream() },
       { "exec", ExecNioSource.builder() },
 
-      { "execPeriodicOld", ExecEventSource.buildPeriodic() },
-      { "execStreamOld", ExecEventSource.buildStream() },
-      { "execOld", ExecEventSource.builder() },
       { "synth", SynthSource.builder() },
       { "nonlsynth", NoNlSynthSource.builder() },
       { "asciisynth", NoNlASCIISynthSource.builder() },
@@ -133,14 +129,14 @@ public class SourceFactoryImpl extends SourceFactory {
   }
 
   @Override
-  public EventSource getSource(String name, String... args)
+  public EventSource getSource(Context ctx, String name, String... args)
       throws FlumeSpecException {
     try {
       SourceBuilder builder = sources.get(name);
       if (builder == null) {
         return null;
       }
-      return builder.build(args);
+      return builder.build(ctx, args);
     } catch (NumberFormatException nfe) {
       throw new FlumeArgException("Illegal number format: " + nfe.getMessage());
     } catch (IllegalArgumentException iae) {

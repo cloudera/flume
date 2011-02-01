@@ -21,6 +21,7 @@ package com.cloudera.flume.agent;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -97,6 +98,13 @@ public class LogicalNode implements Reportable {
   public static final String A_RECONFIGURES = "reconfigures";
 
   /**
+   * For JAXB
+   */
+  public LogicalNode() {
+
+  }
+
+  /**
    * Creates a logical node that will accept any configuration
    */
   public LogicalNode(Context ctx, String name) {
@@ -113,7 +121,7 @@ public class LogicalNode implements Reportable {
   }
 
   private void openSourceSink(EventSource newSrc, EventSink newSnk)
-      throws IOException {
+      throws IOException, InterruptedException {
     if (newSnk != null) {
       if (snk != null) {
         try {
@@ -149,7 +157,7 @@ public class LogicalNode implements Reportable {
    * source values into the sink.
    */
   synchronized void openLoadNode(EventSource newSrc, EventSink newSnk)
-      throws IOException {
+      throws IOException, InterruptedException {
     // TODO HACK! This is to prevent heartbeat from hanging if one fo the
     // configs is unable to start due to open exception. It has the effect of
     // defering any exceptions open would have triggered into the Driver thread.
@@ -166,8 +174,7 @@ public class LogicalNode implements Reportable {
    * This stops any existing connection (source=>sink pumper), and then creates
    * a new one with the specified *already opened* source and sink arguments.
    */
-  private void loadNode()
-      throws IOException {
+  private void loadNode() throws IOException {
 
     if (driver != null) {
       // stop the existing connector.
@@ -196,12 +203,18 @@ public class LogicalNode implements Reportable {
           conn.getSource().close();
         } catch (IOException e) {
           LOG.error("Error closing " + nodeName + " source: " + e.getMessage());
+        } catch (InterruptedException e) {
+          // TODO reconsider this.
+          LOG.error("fire error interrupted", e);
         }
 
         try {
           conn.getSink().close();
         } catch (IOException e) {
           LOG.error("Error closing " + nodeName + " sink: " + e.getMessage());
+        } catch (InterruptedException e) {
+          // TODO reconsider this.
+          LOG.error("fire error interrupted", e);
         }
 
         nodeMsg = "Error: Connector on " + nodeName + " closed " + conn;
@@ -227,12 +240,19 @@ public class LogicalNode implements Reportable {
         } catch (IOException e) {
           LOG.error(nodeName + ": error closing: " + e.getMessage());
           next = NodeState.ERROR;
+        } catch (InterruptedException e) {
+          // TODO reconsider this.
+          LOG.error("fire error interrupted", e);
         }
 
         try {
           c.getSink().close();
         } catch (IOException e) {
-          LOG.error(nodeName + ": error closing: " + e.getMessage());
+          LOG.error(nodeName + ": error closing: " + e.getMessage(), e);
+          next = NodeState.ERROR;
+        } catch (InterruptedException e) {
+          // TODO reconsider this.
+          LOG.error("stopping was interrupted", e);
           next = NodeState.ERROR;
         }
 
@@ -252,8 +272,8 @@ public class LogicalNode implements Reportable {
 
     // got a newer configuration
     LOG.debug("Attempt to load config " + cfg);
-    EventSink newSnk;
-    EventSource newSrc;
+    EventSink newSnk = null;
+    EventSource newSrc = null;
     try {
       String errMsg = null;
       if (cfg.sinkConfig == null || cfg.sinkConfig.length() == 0) {
@@ -280,7 +300,7 @@ public class LogicalNode implements Reportable {
         return;
       }
 
-      newSrc = FlumeBuilder.buildSource(cfg.sourceConfig);
+      newSrc = FlumeBuilder.buildSource(ctx, cfg.sourceConfig);
       if (newSrc == null) {
         newSnk.close(); // close the open sink.
         LOG.error("failed to create sink config: " + cfg.sourceConfig);
@@ -299,19 +319,27 @@ public class LogicalNode implements Reportable {
           "FlumeSpecExn : " + new File(".").getAbsolutePath() + " " + cfg, e);
       state.state = NodeState.ERROR;
       throw e;
+    } catch (InterruptedException e) {
+      // TODO figure out what to do on interruption
+      LOG.error("Load Config interrupted", e);
     }
 
-    openLoadNode(newSrc, newSnk);
+    try {
+      openLoadNode(newSrc, newSnk);
 
-    // Since sources/sinks are lazy, we don't know if the config is good until
-    // the first append succeeds.
+      // Since sources/sinks are lazy, we don't know if the config is good until
+      // the first append succeeds.
 
-    // We have successfully opened the source and sinks for the config. We can
-    // mark this as the last good / successful config. It does not mean that
-    // this configuration will open without errors!
-    this.lastGoodCfg = cfg;
+      // We have successfully opened the source and sinks for the config. We can
+      // mark this as the last good / successful config. It does not mean that
+      // this configuration will open without errors!
+      this.lastGoodCfg = cfg;
 
-    LOG.info("Node config sucessfully set to " + cfg);
+      LOG.info("Node config sucessfully set to " + cfg);
+    } catch (InterruptedException e) {
+      // TODO figure out what to do on interruption
+      LOG.error("Load Config interrupted", e);
+    }
   }
 
   /**
@@ -349,7 +377,8 @@ public class LogicalNode implements Reportable {
     return true;
   }
 
-  public void getReports(Map<String, ReportEvent> reports) {
+  @Deprecated
+  synchronized public void getReports(Map<String, ReportEvent> reports) {
     String phyName = FlumeNode.getInstance().getPhysicalNodeName();
     String rprefix = phyName + "." + getName() + ".";
 
@@ -361,7 +390,8 @@ public class LogicalNode implements Reportable {
     }
   }
 
-  public ReportEvent getReport() {
+  @Deprecated
+  public synchronized ReportEvent getReport() {
     ReportEvent rpt = new ReportEvent(nodeName);
     rpt.setStringMetric("nodename", nodeName);
     rpt.setStringMetric("version", new Date(lastGoodCfg.timestamp).toString());
@@ -376,10 +406,39 @@ public class LogicalNode implements Reportable {
     rpt.setStringMetric("physicalnode", state.physicalNode);
 
     if (snk != null) {
-      rpt.hierarchicalMerge("LogicalNode", snk.getReport());
+      rpt.hierarchicalMerge("sink", snk.getReport());
     }
 
     return rpt;
+  }
+
+  public ReportEvent getMetrics() {
+    ReportEvent rpt = new ReportEvent(nodeName);
+    rpt.setStringMetric("nodename", nodeName);
+    rpt.setStringMetric("version", new Date(lastGoodCfg.timestamp).toString());
+    rpt.setStringMetric("state", state.state.toString());
+    rpt.setStringMetric("hostname", state.host);
+    rpt.setStringMetric("sourceConfig", (lastGoodCfg.sourceConfig == null) ? ""
+        : lastGoodCfg.sourceConfig);
+    rpt.setStringMetric("sinkConfig", (lastGoodCfg.sinkConfig == null) ? ""
+        : lastGoodCfg.sinkConfig);
+    rpt.setStringMetric("message", nodeMsg);
+    rpt.setLongMetric(A_RECONFIGURES, reconfigures.get());
+    rpt.setStringMetric("physicalnode", state.physicalNode);
+
+    return rpt;
+  }
+
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    Map<String, Reportable> map = new HashMap<String, Reportable>();
+    if (src != null) {
+      map.put("source." + src.getName(), src);
+    }
+    if (snk != null) {
+      map.put("sink." + snk.getName(), snk);
+    }
+    return map;
   }
 
   public String getName() {
@@ -399,7 +458,7 @@ public class LogicalNode implements Reportable {
   /**
    * This is a synchronous close operation for the logical node.
    */
-  public void close() throws IOException {
+  public void close() throws IOException, InterruptedException {
     if (driver != null) {
       // stop the existing connector.
       nodeMsg = nodeName + "closing";

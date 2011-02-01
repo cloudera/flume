@@ -123,13 +123,6 @@ public class FlumeConfiguration extends Configuration {
   protected FlumeConfiguration(boolean loadDefaults) {
     super();
     if (loadDefaults) {
-      Path home = null;
-      String flumeHome = getFlumeHome();
-      if (flumeHome == null) {
-        home = new Path(".");
-      } else {
-        home = new Path(flumeHome);
-      }
       Path conf = new Path(getFlumeConfDir());
       LOG.info("Loading configurations from " + conf);
       super.addResource(new Path(conf, "flume-conf.xml"));
@@ -236,6 +229,7 @@ public class FlumeConfiguration extends Configuration {
   // where necessary
   public static final String MASTER_GOSSIP_SERVERS = "flume.master.gossip.servers";
   public static final String MASTER_GOSSIP_PERIOD_MS = "flume.master.gossip.period";
+  public static final String MASTER_GOSSIP_MAXAGE_MS = "flume.master.gossip.maxage";
   public static final String MASTER_GOSSIP_PORT = "flume.master.gossip.port";
 
   // ZooKeeper bits and pieces
@@ -453,7 +447,7 @@ public class FlumeConfiguration extends Configuration {
    * Where should ZK server store its persistent logs? (Shouldn't be in tmp!)
    */
   public String getMasterZKLogDir() {
-    return get(MASTER_ZK_LOGDIR, "/tmp/flume/master/zk");
+    return get(MASTER_ZK_LOGDIR, "/tmp/flume-${user.name}/master/zk");
   }
 
   /**
@@ -489,7 +483,7 @@ public class FlumeConfiguration extends Configuration {
   }
 
   public String getAgentLogsDir() {
-    return get(AGENT_LOG_DIR_NEW, "/tmp/flume/agent");
+    return get(AGENT_LOG_DIR_NEW, "/tmp/flume-${user.name}/agent");
   }
 
   public long getAgentLogMaxAge() {
@@ -623,7 +617,7 @@ public class FlumeConfiguration extends Configuration {
   }
 
   public String getCollectorDfsDir() {
-    return get(COLLECTOR_DFS_DIR, "file://tmp/flume/collected");
+    return get(COLLECTOR_DFS_DIR, "file://tmp/flume-${user.name}/collected");
   }
 
   @Deprecated
@@ -775,6 +769,13 @@ public class FlumeConfiguration extends Configuration {
 
   public int getMasterGossipPeriodMs() {
     return getInt(MASTER_GOSSIP_PERIOD_MS, 1000);
+  }
+
+  /**
+   * Max age for gossiped acks to stick around.
+   */
+  public long getMasterGossipMaxAgeMs() {
+    return getLong(MASTER_GOSSIP_MAXAGE_MS, 300 * 1000);
   }
 
   public int getMasterGossipPort() {
@@ -1040,4 +1041,5 @@ public class FlumeConfiguration extends Configuration {
   public long getNodeCloseTimeout() {
     return getLong(NODE_CLOSE_TIMEOUT, 30000);
   }
+
 }

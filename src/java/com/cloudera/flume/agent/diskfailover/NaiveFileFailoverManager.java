@@ -43,6 +43,7 @@ import com.cloudera.flume.handlers.rolling.RollSink;
 import com.cloudera.flume.handlers.rolling.RollTrigger;
 import com.cloudera.flume.handlers.rolling.Tagger;
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.ReportUtil;
 import com.cloudera.flume.reporter.Reportable;
 import com.cloudera.util.FileUtil;
 import com.google.common.base.Preconditions;
@@ -55,7 +56,8 @@ import com.google.common.base.Preconditions;
  */
 public class NaiveFileFailoverManager implements DiskFailoverManager,
     Reportable {
-  static final Logger LOG = LoggerFactory.getLogger(NaiveFileFailoverManager.class);
+  static final Logger LOG = LoggerFactory
+      .getLogger(NaiveFileFailoverManager.class);
 
   // This is the state of the node.
   final private ConcurrentHashMap<String, DFOData> table = new ConcurrentHashMap<String, DFOData>();
@@ -247,7 +249,8 @@ public class NaiveFileFailoverManager implements DiskFailoverManager,
 
     return new EventSinkDecorator<EventSink>(curSink) {
       @Override
-      synchronized public void append(Event e) throws IOException {
+      synchronized public void append(Event e) throws IOException,
+          InterruptedException {
         synchronized (NaiveFileFailoverManager.this) {
           getSink().append(e);
           writingEvtCount.incrementAndGet();
@@ -255,7 +258,7 @@ public class NaiveFileFailoverManager implements DiskFailoverManager,
       }
 
       @Override
-      synchronized public void close() throws IOException {
+      synchronized public void close() throws IOException, InterruptedException {
         synchronized (NaiveFileFailoverManager.this) {
           super.close();
           if (!writingQ.contains(tag)) {
@@ -275,9 +278,10 @@ public class NaiveFileFailoverManager implements DiskFailoverManager,
    * This instantiates a roller where all input is sent to.
    */
   @Override
-  public RollSink getEventSink(final RollTrigger t) throws IOException {
+  public RollSink getEventSink(Context ctx, final RollTrigger t)
+      throws IOException {
     // NaiveFileFailover is just a place holder
-    return new RollSink(new Context(), "NaiveFileFailover", t, 250) {
+    return new RollSink(ctx, "NaiveFileFailover", t, 250) {
 
       @Override
       public EventSink newSink(Context ctx) throws IOException {
@@ -426,7 +430,7 @@ public class NaiveFileFailoverManager implements DiskFailoverManager,
     }
 
     @Override
-    public void open() throws IOException {
+    public void open() throws IOException, InterruptedException {
       try {
         src.open();
       } catch (IOException ioe) {
@@ -439,7 +443,7 @@ public class NaiveFileFailoverManager implements DiskFailoverManager,
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() throws IOException, InterruptedException {
       try {
         src.close();
         changeState(tag, State.SENDING, State.SENT);
@@ -452,7 +456,7 @@ public class NaiveFileFailoverManager implements DiskFailoverManager,
     }
 
     @Override
-    public Event next() throws IOException {
+    public Event next() throws IOException, InterruptedException {
       try {
         Event e = src.next();
         if (e != null) {
@@ -472,7 +476,8 @@ public class NaiveFileFailoverManager implements DiskFailoverManager,
     }
 
     @Override
-    public void getReports(String namePrefix, Map<String, ReportEvent> reports) {
+    public void getReports(String namePrefix,
+        Map<String, ReportEvent> reports) {
       super.getReports(namePrefix, reports);
       src.getReports(namePrefix + getName() + ".", reports);
     }
@@ -580,7 +585,7 @@ public class NaiveFileFailoverManager implements DiskFailoverManager,
   }
 
   @Override
-  synchronized public ReportEvent getReport() {
+  synchronized public ReportEvent getMetrics() {
     ReportEvent rpt = new ReportEvent(getName());
 
     // historical counts
@@ -598,6 +603,11 @@ public class NaiveFileFailoverManager implements DiskFailoverManager,
     rpt.setLongMetric(A_MSG_WRITING, writingEvtCount.get());
     rpt.setLongMetric(A_MSG_READ, readEvtCount.get());
     return rpt;
+  }
+
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    return ReportUtil.noChildren();
   }
 
 }
