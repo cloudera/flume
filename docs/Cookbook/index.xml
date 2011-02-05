@@ -6,12 +6,12 @@
 <article lang="en">
 <articleinfo>
     <title>Flume Cookbook</title>
-    <date>November 16 2010</date>
+    <date>February 4 2011</date>
     <author>
         <firstname>flume-dev@cloudera.org</firstname>
     </author>
     <authorinitials>F</authorinitials>
-<revhistory><revision><revnumber>0.9.3-SNAPSHOT</revnumber><date>November 16 2010</date><authorinitials>F</authorinitials></revision></revhistory>
+<revhistory><revision><revnumber>0.9.3</revnumber><date>February 4 2011</date><authorinitials>F</authorinitials></revision></revhistory>
 </articleinfo>
 <section id="_introduction">
 <title>Introduction</title>
@@ -258,7 +258,7 @@ directives are in <literal>/etc/httpd/conf/httpd.conf</literal>.</simpara></tip>
 <literal>/var/log/apache2/foo_access_log.xxxxx</literal> every hour (3600 seconds)
 using the "common" log format.</simpara>
 <simpara>You can use Flume&#8217;s <literal>tailDir</literal> source to read all files without
-modifing the Apache settings:</simpara>
+modifying the Apache settings:</simpara>
 <screen>tailDir("/var/log/apache2/", "foo_access_log.*")</screen>
 <simpara>The first argument is the directory, and then the second is a regex
 that should match against the file name.  <literal>tailDir</literal> will watch the dir
@@ -277,7 +277,7 @@ Flume node in user <literal>root</literal>'s path.  You can use <literal>alterna
 create a managed symlink in <literal>/usr/bin/</literal> for the java executable.</simpara></warning>
 <simpara>Using piped logs can be more efficient, but is riskier because Flume
 can deliver messages without saving on disk.  Doing this, however,
-increases the probabiltiy of event loss.  From a security point of
+increases the probability of event loss.  From a security point of
 view, this Flume node instance runs as Apache&#8217;s user which is often
 <literal>root</literal> according to the Apache manual.</simpara>
 <note><simpara>You could configure the one-shot mode node to deliver data
@@ -286,7 +286,7 @@ disk-failover level.</simpara></note>
 <simpara>The prior examples use Flume nodes in one-shot mode which runs without
 contacting a master.  Unfortunately, it means that one-shot mode
 cannot directly use the automatic chains or the end-to-end (E2E)
-reliablity mode.  This is because the automatic chains are generated
+reliability mode.  This is because the automatic chains are generated
 by the master and because E2E mode currently delivers acknowledgements
 through the master.</simpara>
 <simpara>However, you can have a one-shot Flume node deliver data to a Flume

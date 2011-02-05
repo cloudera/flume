@@ -1,0 +1,91 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Flume Windows Guide</title><link rel="stylesheet" href="docbook.css" type="text/css"><meta name="generator" content="DocBook XSL Stylesheets V1.75.2"></head><body><div style="clear:both; margin-bottom: 4px"></div><div align="center"><a href="index.html"><img src="images/home.png" alt="Documentation Home"></a></div><span class="breadcrumbs"><div class="breadcrumbs"><span class="breadcrumb-node">Flume Windows Guide</span></div></span><div lang="en" class="article" title="Flume Windows Guide"><div class="titlepage"><div><div><h2 class="title"><a name="id303694"></a>Flume Windows Guide</h2></div><div><div class="author"><h3 class="author"><span class="firstname">flume-dev@cloudera.org</span></h3></div></div><div><div class="revhistory"><table border="1" width="100%" summary="Revision history"><tr><th align="left" valign="top" colspan="3"><b>Revision History</b></th></tr><tr><td align="left">Revision 0.9.3</td><td align="left">February 4 2011</td><td align="left">F</td></tr></table></div></div></div><hr></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="section"><a href="#_flume_on_microsoft_windows_based_machines">1. Flume on Microsoft Windows-based Machines</a></span></dt><dd><dl><dt><span class="section"><a href="#_installation">1.1. Installation</a></span></dt><dt><span class="section"><a href="#_administering_windows_flume_nodes">1.2. Administering Windows Flume Nodes</a></span></dt><dt><span class="section"><a href="#_default_directories">1.3. Default Directories.</a></span></dt><dt><span class="section"><a href="#_building_flume_for_windows">1.4. Building Flume for Windows</a></span></dt></dl></dd></dl></div><div class="section" title="1. Flume on Microsoft Windows-based Machines"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="_flume_on_microsoft_windows_based_machines"></a>1. Flume on Microsoft Windows-based Machines</h2></div></div></div><div class="toc"><dl><dt><span class="section"><a href="#_installation">1.1. Installation</a></span></dt><dt><span class="section"><a href="#_administering_windows_flume_nodes">1.2. Administering Windows Flume Nodes</a></span></dt><dt><span class="section"><a href="#_default_directories">1.3. Default Directories.</a></span></dt><dt><span class="section"><a href="#_building_flume_for_windows">1.4. Building Flume for Windows</a></span></dt></dl></div><p><span class="inlinemediaobject"><img src="flume-logo.png" alt="flume-logo.png"></span></p><p>Flume v0.9.3 is the first version of Flume to support Windows-based
+Flume nodes.  It has been tested on Window Server 2003 SP2 and Windows
+XP SP3 machines and can be used to collect logs generated from Windows
+applications such as Microsoft IIS.</p><p>Requirements:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem">
+Sun/Oracle 32-bit Windows JRE v1.6+
+</li></ul></div><div class="note" title="Note" style="margin-left: 0.5in; margin-right: 0.5in;"><table border="0" summary="Note"><tr><td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="images/note.png"></td><th align="left">Note</th></tr><tr><td align="left" valign="top"><p>We require using the 32-bit JVM even on 64 bit machines because
+of lower memory footprint.</p></td></tr></table></div><div class="section" title="1.1. Installation"><div class="titlepage"><div><div><h3 class="title"><a name="_installation"></a>1.1. Installation</h3></div></div></div><p>Flume for Windows is installed using an executable installer generated
+by Nullsoft Scriptable Install System (NSIS).  It provides a simple
+wizard which presents basic options for a node&#8217;s configuration
+settings.  It will install the software and optionally start a Flume
+node as a Windows service (daemon).</p><div class="note" title="Note" style="margin-left: 0.5in; margin-right: 0.5in;"><table border="0" summary="Note"><tr><td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="images/note.png"></td><th align="left">Note</th></tr><tr><td align="left" valign="top"><p>Before reinstalling the Flume on Windows service, use the
+Windows Services Management Console to stop the <code class="literal">flumenode.exe</code>
+service.</p></td></tr></table></div><p>When you start the Flume for Windows installer, the following dialog
+box appears.  Click "Next".</p><p><span class="inlinemediaobject"><img src="flume-setup.png" alt="flume-setup.png"></span></p><p>Read the license agreement and then click "I Agree".</p><p><span class="inlinemediaobject"><img src="flume-setup-2-license.png" alt="flume-setup-2-license.png"></span></p><p>In the drop-down menu in the following dialog box, specify whether you
+want to install the Flume node core software, or install the Flume
+node core software and install it as a Windows service.  Installing as
+a service will add the Flume node service that is started when the
+machine is rebooted.</p><p>Select the components you want to install and then click "Next" to
+continue.</p><p><span class="inlinemediaobject"><img src="flume-setup-3-components.png" alt="flume-setup-3-components.png"></span></p><p>Specify the Flume node&#8217;s master location. The default is "localhost"
+which specifies the current machine.  To specify a different machine,
+enter either its IP address or machine name.  Also, specify the TCP
+port for node-to-master communications.  The default port is
+35862. Click "Next" to continue.</p><p><span class="inlinemediaobject"><img src="flume-setup-4-master.png" alt="flume-setup-4-master.png"></span></p><p>Next the installer attempts to automatically detect the location of an
+installed Java Runtime Environment (JRE).  If the JRE is not found,
+manually specify the path.  Click "Next".</p><div class="warning" title="Warning" style="margin-left: 0.5in; margin-right: 0.5in;"><table border="0" summary="Warning"><tr><td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="images/warning.png"></td><th align="left">Warning</th></tr><tr><td align="left" valign="top"><p>Currently the installer requires a 32-bit JVM.  Using a
+64-bit JVM is not supported yet.</p></td></tr></table></div><p><span class="inlinemediaobject"><img src="flume-setup-5-jre.png" alt="flume-setup-5-jre.png"></span></p><p>Specify the directory where you want to install the Flume for Windows
+components, and then click "Install".</p><p><span class="inlinemediaobject"><img src="flume-setup-6-installdir.png" alt="flume-setup-6-installdir.png"></span></p><p>After installation is complete, the following dialog box appears.
+Click "Finish".</p><p><span class="inlinemediaobject"><img src="flume-setup-7-complete.png" alt="flume-setup-7-complete.png"></span></p><p>You can confirm that the Flume node is up by:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem">
+Opening a browser to <a class="ulink" href="http://localhost:35862" target="_top">http://localhost:35862</a>
+</li><li class="listitem">
+Checking that the <code class="literal">flumenode.exe</code> service is started in the Windows
+  Task Manager or in the Windows Services Management Console
+</li><li class="listitem">
+Seeing the following tray icon:
+</li></ul></div><p><span class="inlinemediaobject"><img src="flume-tray-icon.png" alt="flume-tray-icon.png"></span></p></div><div class="section" title="1.2. Administering Windows Flume Nodes"><div class="titlepage"><div><div><h3 class="title"><a name="_administering_windows_flume_nodes"></a>1.2. Administering Windows Flume Nodes</h3></div></div></div><p>Installation by default will set up the Flume node to automatically
+start when the Windows machine is booted.  You can manually start and
+stop the Flume node service by using:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem">
+The tray icon applet
+</li><li class="listitem">
+The <code class="literal">sc</code> (service controller) windows command line program
+</li><li class="listitem">
+The Windows Service Management Console
+</li></ul></div><p>You can use the tray icon applet to start, stop, or restart the Flume
+node service. You can access the commands by right clicking on the
+tray icon and displaying the following menu:</p><p><span class="inlinemediaobject"><img src="flume-tray-menu.png" alt="flume-tray-menu.png"></span></p><p>Click "Configure&#8230;" to change the Flume node service configuration
+settings, such as JVM parameters and the Restart-on-reboot mode.</p><div class="note" title="Note" style="margin-left: 0.5in; margin-right: 0.5in;"><table border="0" summary="Note"><tr><td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="images/note.png"></td><th align="left">Note</th></tr><tr><td align="left" valign="top"><p>Flume relies on Apache Common Daemon&#8217;s <code class="literal">prunmgr.exe</code> and
+<code class="literal">prunsvr.exe</code> programs.  These have been renamed to <code class="literal">flumenode.exe</code>
+and <code class="literal">flumenodew.exe</code>.  The first runs the Flume node as a Windows
+Service, and the second provides the tray icon configuration
+interface.</p></td></tr></table></div><p>Alternately, you can start and stop the Flume node service by typing
+the following commands (as the Administrator) at the Windows command
+prompt:</p><pre class="screen">C:\&gt; sc FlumeNode start
+C:\&gt; sc FlumeNode stop</pre><p>Run <code class="literal">sc</code> for more details and options.</p><p>Unfortunately, the <code class="literal">install</code>, <code class="literal">delete</code>, and <code class="literal">create</code> methods do not
+always work.  To manually install and uninstall the Flume node
+service, run the following scripts from the command prompt (as
+Administrator) at the Windows command prompt:</p><pre class="screen">%FLUME_HOME%\bin\&gt; flumenode-service.bat install
+
+$FLUME_HOME%\bin\&gt; flumenode-service.bat remove</pre><div class="warning" title="Warning" style="margin-left: 0.5in; margin-right: 0.5in;"><table border="0" summary="Warning"><tr><td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="images/warning.png"></td><th align="left">Warning</th></tr><tr><td align="left" valign="top"><p>Uninstalling Flume node may not be completed cleanly.  You
+may need to stop <code class="literal">flumenode.exe</code> and <code class="literal">flumenodew.exe</code> using the Task
+Manager.</p></td></tr></table></div></div><div class="section" title="1.3. Default Directories."><div class="titlepage"><div><div><h3 class="title"><a name="_default_directories"></a>1.3. Default Directories.</h3></div></div></div><p>The installation directory where the Flume node programs are installed
+is called <code class="literal">%FLUME_HOME%</code>.  By default this is <code class="literal">C:\Program
+Files\Cloudera\Flume 0.9.3\</code>.</p><div class="informaltable"><table style="border-collapse: collapse;border-top: 0.5pt solid ; border-bottom: 0.5pt solid ; border-left: 0.5pt solid ; border-right: 0.5pt solid ; " width="50%"><colgroup><col><col></colgroup><thead><tr><th style="border-right: 0.5pt solid ; border-bottom: 0.5pt solid ; " align="left" valign="top">Directory          </th><th style="border-bottom: 0.5pt solid ; " align="left" valign="top">Purpose</th></tr></thead><tbody><tr><td style="border-right: 0.5pt solid ; border-bottom: 0.5pt solid ; " align="left" valign="top"><p>%FLUME_HOME%\logs</p></td><td style="border-bottom: 0.5pt solid ; " align="left" valign="top"><p>Directory where Flume node logs are saved.</p></td></tr><tr><td style="border-right: 0.5pt solid ; " align="left" valign="top"><p>%FLUME_HOME%\conf</p></td><td style="" align="left" valign="top"><p>Directory where flume-site.xml and flume-conf.xml are located</p></td></tr></tbody></table></div><p>The <code class="literal">FLUME_CONF_DIR</code> environment variable is respected&#8201;&#8212;&#8201;you can keep
+xml configs in a separate directory pointed to by this variable for
+customized configurations.</p></div><div class="section" title="1.4. Building Flume for Windows"><div class="titlepage"><div><div><h3 class="title"><a name="_building_flume_for_windows"></a>1.4. Building Flume for Windows</h3></div></div></div><p>To build Flume for Windows, you need:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem">
+Sun/Oracle JDK v1.6.x+
+</li><li class="listitem">
+cygwin (<a class="ulink" href="http://www.cygwin.com/" target="_top">http://www.cygwin.com/</a>)
+</li><li class="listitem">
+ant (<a class="ulink" href="http://ant.apache.org/bindownload.cgi" target="_top">http://ant.apache.org/bindownload.cgi</a>, .zip version)
+</li><li class="listitem">
+NSIS (we are using v2.46, <a class="ulink" href="http://nsis.sourceforge.net/Main_Page" target="_top">http://nsis.sourceforge.net/Main_Page</a>)
+</li></ul></div><p>With cygwin the normal Unix build process can be used.  For example,
+assuming you are in the Flume project directory, type this command:</p><pre class="screen">~/flume$ ant</pre><p>To generate the Flume installer executable, run the following special
+ant filter to inject the proper build-specific versions information:</p><pre class="screen">~/flume$ ant winstall-filter</pre><p>You can build the Flume for Windows installer manually. Start NSIS,
+and then click "Compile NSI script". In the dialog box that opens,
+select "File | Load script&#8230;" from the menu. Select flume/flume.nsi,
+and then click "Open". This will compile the script and generate the
+installer, <code class="literal">flume-installer.exe</code>. This file should be located in the
+main Flume project directory.</p></div></div></div><script type="text/javascript">
+     var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+     document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+  </script><script type="text/javascript">
+     try{
+        var pageTracker = _gat._getTracker("UA-2275969-4");
+        pageTracker._setDomainName(".cloudera.com");
+        pageTracker._trackPageview();
+     } catch(err) {}
+  </script><div class="footer-text"><span align="center"><a href="index.html"><img src="images/home.png" alt="Documentation Home"></a></span><br>
+  This document was built from Flume source available at
+  <a href="http://github.com/cloudera/flume">http://github.com/cloudera/flume</a>.
+  </div></body></html>
