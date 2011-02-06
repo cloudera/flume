@@ -17,19 +17,33 @@
  */
 package com.cloudera.flume.handlers.debug;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+
 import org.antlr.runtime.RecognitionException;
+import org.codehaus.jettison.json.JSONException;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.FlumeBuilder;
 import com.cloudera.flume.conf.FlumeSpecException;
+import com.cloudera.flume.conf.ReportTestingContext;
+import com.cloudera.flume.core.EventSink;
 import com.cloudera.flume.handlers.avro.AvroDataFileOutputFormat;
 import com.cloudera.flume.handlers.avro.AvroJsonOutputFormat;
 import com.cloudera.flume.handlers.text.output.RawOutputFormat;
+import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.ReportUtil;
 
 public class TestTextFileSink {
+
+  public static final Logger LOG = LoggerFactory
+      .getLogger(TestTextFileSink.class);
+
   @Test
   public void testTextKWArg() throws RecognitionException, FlumeSpecException {
     String s = "text(\"filename\", format=\"raw\")";
@@ -43,6 +57,19 @@ public class TestTextFileSink {
     s = "text(\"filename\", format=\"avrojson\")";
     snk = (TextFileSink) FlumeBuilder.buildSink(new Context(), s);
     assertTrue(snk.getFormat() instanceof AvroJsonOutputFormat);
-
   }
+
+  /**
+   * Test insistent append metrics
+   */
+  @Test
+  public void testTextFileMetrics() throws JSONException, FlumeSpecException,
+      IOException, InterruptedException {
+    EventSink snk = FlumeBuilder.buildSink(new ReportTestingContext(),
+        "text(\"filename\")");
+    ReportEvent rpt = ReportUtil.getFlattenedReport(snk);
+    LOG.info(ReportUtil.toJSONObject(rpt).toString());
+    assertNotNull(rpt.getLongMetric(ReportEvent.A_COUNT));
+  }
+
 }

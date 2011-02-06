@@ -42,6 +42,8 @@ import com.cloudera.flume.conf.FlumeSpecException;
 import com.cloudera.flume.conf.FlumeSpecGen;
 import com.cloudera.flume.conf.LogicalNodeContext;
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.ReportUtil;
+import com.cloudera.flume.reporter.Reportable;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
@@ -131,6 +133,7 @@ public class ConfigManager implements ConfigurationManager {
     html.append("<td>" + name + "</td>");
     FlumeConfigData cfg = fcd;
     html.append("<td>" + new Date(cfg.timestamp) + "</td>");
+    html.append("<td>" + cfg.flowID + "</td>");
     html.append("<td>" + cfg.sourceConfig + "</td>");
     html.append("<td>" + cfg.sinkConfig + "</td>");
     html.append("</tr>\n");
@@ -154,10 +157,11 @@ public class ConfigManager implements ConfigurationManager {
    * TODO convert to a generic report
    */
   @Override
-  synchronized public ReportEvent getReport() {
+  synchronized public ReportEvent getMetrics() {
     StringBuilder html = new StringBuilder();
     html.append("<h2>Node configuration</h2>\n<table border=\"1\"><tr>"
-        + "<th>Node</th><th>Version</th><th>Source</th><th>Sink</th></tr>");
+        + "<th>Node</th><th>Version</th><th>Flow ID</th><th>Source</th>"
+        + "<th>Sink</th></tr>");
     Map<String, FlumeConfigData> cfgs = new TreeMap<String, FlumeConfigData>(
         cfgStore.getConfigs());
     synchronized (cfgs) {
@@ -179,6 +183,11 @@ public class ConfigManager implements ConfigurationManager {
     html.append("</table>\n\n");
 
     return ReportEvent.createLegacyHtmlReport("configs", html.toString());
+  }
+
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    return ReportUtil.noChildren();
   }
 
   /**
@@ -323,8 +332,8 @@ public class ConfigManager implements ConfigurationManager {
           + ".  It doesn't exist!");
     }
 
-    cfgStore.setConfig(logicalNode, fcd.getFlowID(), fcd.getSourceConfig(),
-        fcd.getSinkConfig());
+    cfgStore.setConfig(logicalNode, fcd.getFlowID(), fcd.getSourceConfig(), fcd
+        .getSinkConfig());
   }
 
   /**

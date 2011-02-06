@@ -18,6 +18,8 @@
 package com.cloudera.flume.agent.diskfailover;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 import org.slf4j.Logger;
@@ -41,6 +43,7 @@ import com.cloudera.flume.handlers.rolling.RollSink;
 import com.cloudera.flume.handlers.rolling.RollTrigger;
 import com.cloudera.flume.handlers.rolling.TimeTrigger;
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.Reportable;
 import com.google.common.base.Preconditions;
 
 /**
@@ -55,12 +58,13 @@ public class DiskFailoverDeco extends EventSinkDecorator<EventSink> {
   final RollTrigger trigger;
 
   RollSink input;
-  EventSource drainSource;
+  EventSource drainSource = null;
   Driver drainDriver;
 
   CountDownLatch drainCompleted = null; // block close until subthread is
   // completed
-  CountDownLatch drainStarted = null; // blocks open until subthread is started
+  CountDownLatch drainStarted = null; // blocks open until subthread is
+  // started
   volatile IOException lastExn = null;
 
   final long checkmillis;
@@ -109,7 +113,7 @@ public class DiskFailoverDeco extends EventSinkDecorator<EventSink> {
       LOG.debug("Waiting for subthread to complete .. ");
       int maxNoProgressTime = 10;
 
-      ReportEvent rpt = sink.getReport();
+      ReportEvent rpt = sink.getMetrics();
 
       Long levts = rpt.getLongMetric(EventSink.Base.R_NUM_EVENTS);
       long evts = (levts == null) ? 0 : levts;
@@ -122,7 +126,7 @@ public class DiskFailoverDeco extends EventSinkDecorator<EventSink> {
         }
 
         // driver still running, did we make progress?
-        ReportEvent rpt2 = sink.getReport();
+        ReportEvent rpt2 = sink.getMetrics();
         Long levts2 = rpt2.getLongMetric(EventSink.Base.R_NUM_EVENTS);
         long evts2 = (levts2 == null) ? 0 : levts;
         if (evts2 > evts) {
@@ -149,7 +153,9 @@ public class DiskFailoverDeco extends EventSinkDecorator<EventSink> {
           + "making progress forcing close", e);
     }
 
-    drainSource.close();
+    if (drainSource != null) {
+      drainSource.close();
+    }
     super.close();
 
     try {
@@ -246,10 +252,12 @@ public class DiskFailoverDeco extends EventSinkDecorator<EventSink> {
           checkmillis = Long.parseLong(argv[1]);
         }
 
-        // TODO (jon) this will cause problems with multiple nodes in same JVM
+        // TODO (jon) this will cause problems with multiple nodes in
+        // same JVM
         FlumeNode node = FlumeNode.getInstance();
 
-        // this makes the dfo present to the when reporting on the FlumeNode
+        // this makes the dfo present to the when reporting on the
+        // FlumeNode
         String dfonode = context.getValue(LogicalNodeContext.C_LOGICAL);
         Preconditions.checkArgument(dfonode != null,
             "Context does not have a logical node name");
@@ -267,13 +275,29 @@ public class DiskFailoverDeco extends EventSinkDecorator<EventSink> {
   }
 
   @Override
-  public ReportEvent getReport() {
-    ReportEvent rpt = super.getReport();
-    ReportEvent walRpt = dfoMan.getReport();
-    rpt.merge(walRpt);
-    ReportEvent sinkReport = sink.getReport();
-    rpt.hierarchicalMerge(getName(), sinkReport);
-
+  public ReportEvent getMetrics() {
+    ReportEvent rpt = super.getMetrics();
     return rpt;
+  }
+
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    Map<String, Reportable> map = new HashMap<String, Reportable>();
+    map.put(sink.getName(), sink);
+    map.put(dfoMan.getName(), dfoMan);
+    if (drainSource != null) {
+      // careful, drainSource can be null if deco not opened yet
+      map.put("drainSource." + drainSource.getName(), drainSource);
+    }
+
+    return map;
+  }
+
+  public DiskFailoverManager getFailoverManager() {
+    return dfoMan;
+  }
+
+  public RollSink getDFOWriter() {
+    return input;
   }
 }

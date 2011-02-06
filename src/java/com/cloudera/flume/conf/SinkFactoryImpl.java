@@ -32,6 +32,7 @@ import com.cloudera.flume.agent.AgentSink;
 import com.cloudera.flume.agent.diskfailover.DiskFailoverDeco;
 import com.cloudera.flume.agent.durability.NaiveFileWALDeco;
 import com.cloudera.flume.collector.CollectorSink;
+import com.cloudera.flume.core.DigestDecorator;
 import com.cloudera.flume.core.EventSink;
 import com.cloudera.flume.core.EventSinkDecorator;
 import com.cloudera.flume.core.FormatterDecorator;
@@ -97,7 +98,7 @@ public class SinkFactoryImpl extends SinkFactory {
   // The actual types are <String, SinkBuilder>
   static Object[][] sinkList = {
       // high level sinks.
-      { "collectorSink", CollectorSink.builder() },
+      { "collectorSink", CollectorSink.hdfsBuilder() },
 
       { "agentSink", AgentSink.e2eBuilder() },
       { "agentE2ESink", AgentSink.e2eBuilder() }, // now with acks
@@ -129,7 +130,8 @@ public class SinkFactoryImpl extends SinkFactory {
       { "dfs", DFSEventSink.builder() }, // escapes
       { "customdfs", CustomDfsSink.builder() }, // does not escape
       { "escapedCustomDfs", EscapedCustomDfsSink.builder() }, // escapes
-      { "rpcSink", RpcSink.builder() }, //creates AvroEventSink or ThriftEventSink
+      { "rpcSink", RpcSink.builder() }, // creates AvroEventSink or
+      // ThriftEventSink
       { "syslogTcp", SyslogTcpSink.builder() },
       { "irc", IrcSink.builder() },
       { "thriftSink", ThriftEventSink.builder() },
@@ -176,6 +178,9 @@ public class SinkFactoryImpl extends SinkFactory {
       // format the output
       { "format", FormatterDecorator.builder() },
 
+      // message digest of body
+      { "digest", DigestDecorator.builder() },
+
       // extractors
       { "regex", RegexExtractor.builder() },
       { "split", SplitExtractor.builder() },
@@ -202,9 +207,9 @@ public class SinkFactoryImpl extends SinkFactory {
       { "bloomGen", BloomGeneratorDeco.builder() },
       { "bloomCheck", BloomCheckDecorator.builder() },
       { "mult", MultiplierDecorator.builder() },
-      { "delay", DelayDecorator.builder() }, 
+      { "delay", DelayDecorator.builder() },
       { "choke", ChokeDecorator.builder() },
-  
+
   };
 
   Map<String, SinkBuilder> sinks = new HashMap<String, SinkBuilder>();

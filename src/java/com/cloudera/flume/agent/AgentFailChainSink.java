@@ -35,6 +35,7 @@ import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventSink;
 import com.cloudera.flume.master.availability.FailoverChainManager;
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.Reportable;
 import com.cloudera.util.NetUtils;
 import com.cloudera.util.Pair;
 import com.google.common.base.Preconditions;
@@ -74,6 +75,7 @@ public class AgentFailChainSink extends EventSink.Base {
       break;
     }
     case BE: {
+      thriftlist.add("null");
       String chains = AgentFailChainSink.genBestEffortChain(thriftlist
           .toArray(new String[0]));
       LOG.info("Setting failover chain to  " + chains);
@@ -102,6 +104,17 @@ public class AgentFailChainSink extends EventSink.Base {
     super.append(e);
   }
 
+  @Override
+  public ReportEvent getMetrics() {
+    return snk.getMetrics();
+  }
+
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    return snk.getSubMetrics();
+  }
+
+  @Deprecated
   @Override
   public void getReports(String namePrefix, Map<String, ReportEvent> reports) {
     super.getReports(namePrefix, reports);
@@ -144,8 +157,9 @@ public class AgentFailChainSink extends EventSink.Base {
    */
   public static String genDfoChain(String... chain) {
     String primaries = genBestEffortChain(chain);
-    String body = "< " + primaries + " ? {diskFailover => { insistentOpen =>  "
-        + primaries + " } } >";
+    String body = "< " + primaries
+        + " ? diskFailover insistentAppend stubbornAppend insistentOpen "
+        + primaries + " >";
 
     LOG.info("Setting dfo failover chain to  " + body);
     return body;

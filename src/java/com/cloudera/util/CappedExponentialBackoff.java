@@ -17,7 +17,11 @@
  */
 package com.cloudera.util;
 
+import java.util.Map;
+
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.ReportUtil;
+import com.cloudera.flume.reporter.Reportable;
 
 /**
  * This provides a simple reusable exponential backoff state object. Note that
@@ -63,7 +67,8 @@ public class CappedExponentialBackoff implements BackoffPolicy {
    * Has time progressed enough to do a retry attempt?
    */
   public boolean isRetryOk() {
-    return retryTime <= Clock.unixTime();
+    long now = Clock.unixTime();
+    return retryTime <= now;
   }
 
   /**
@@ -79,7 +84,7 @@ public class CappedExponentialBackoff implements BackoffPolicy {
   public void reset() {
     sleepIncrement = initialSleep;
     long cur = Clock.unixTime();
-    retryTime = cur;
+    retryTime = cur + initialSleep;
   }
 
   @Override
@@ -93,7 +98,7 @@ public class CappedExponentialBackoff implements BackoffPolicy {
   }
 
   @Override
-  public ReportEvent getReport() {
+  public ReportEvent getMetrics() {
     ReportEvent rpt = new ReportEvent(getName());
     rpt.setLongMetric(A_SLEEPCAP, sleepCap);
     rpt.setLongMetric(A_INITIAL, initialSleep);
@@ -101,6 +106,11 @@ public class CappedExponentialBackoff implements BackoffPolicy {
     rpt.setLongMetric(A_CURRENTBACKOFF, sleepIncrement);
     rpt.setLongMetric(A_RETRYTIME, retryTime);
     return rpt;
+  }
+
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    return ReportUtil.noChildren();
   }
 
   /**
