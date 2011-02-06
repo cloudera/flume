@@ -35,6 +35,8 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.AbstractMap;
@@ -44,6 +46,7 @@ import java.util.AbstractMap;
  */
 public class TestAttr2HBaseSink {
   private static HBaseTestEnv hbaseEnv;
+   private static final Logger LOG=LoggerFactory.getLogger(TestAttr2HBaseSink.class);
 
   @BeforeClass
   public static void setup() throws Exception {
@@ -85,7 +88,7 @@ public class TestAttr2HBaseSink {
     try {
 		snk.open();
 	} catch (InterruptedException e) {
-		System.out.println("Exception Raised: " + e.getMessage());
+		 LOG.error("Exception Raised: " + e.getMessage());
 	}
     try {
       Event e1 = new EventImpl("message0".getBytes(), Clock.unixTime(),
@@ -111,15 +114,14 @@ public class TestAttr2HBaseSink {
         snk.append(e2);
         snk.append(e3);
   	} catch (InterruptedException e) {
-  		System.out.println("Exception Raised: " + e.getMessage());
+  		 LOG.error("Exception Raised: " + e.getMessage());
   	}
-      
+
     } finally {
       try {
 		snk.close();
 	} catch (InterruptedException e) {
-		// TODO Auto-generated catch block
-		System.out.println("Exception Raised: " + e.getMessage());
+		 LOG.error("Exception Raised: " + e.getMessage());
 	}
     }
 
@@ -128,7 +130,7 @@ public class TestAttr2HBaseSink {
     try {
       for(long i = 0; i <=2; i++) {
         Result r = table.get(new Get(Bytes.toBytes("row-key" + i)));
-        System.out.println("result " + r);
+         LOG.info("result " + r);
 
         byte [] host = r.getValue(Bytes.toBytes(tableSysFamily), Bytes.toBytes("host"));
         Assert.assertEquals("Matching host", "localhost", Bytes.toString(host));
