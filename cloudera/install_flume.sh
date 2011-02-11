@@ -1,5 +1,20 @@
 #!/bin/sh
-# Copyright 2009 Cloudera, inc.
+# Licensed to Cloudera, Inc. under one5~
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  Cloudera, Inc. licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 set -ex
 
 usage() {
@@ -38,7 +53,7 @@ if [ $? != 0 ] ; then
 fi
 
 eval set -- "$OPTS"
-set -ex
+
 while true ; do
     case "$1" in
         --cloudera-source-dir)
@@ -105,7 +120,7 @@ cp flume*.jar ${PREFIX}/${LIB_DIR}/lib
 cp -a webapps ${PREFIX}/${LIB_DIR}
 
 install -d -m 0755 $PREFIX/$BIN_DIR
-cp bin/* $PREFIX/${BIN_DIR}
+cp bin/flume bin/flume-daemon.sh bin/flume-env.sh.template $PREFIX/${BIN_DIR}
 
 wrapper=$PREFIX/usr/bin/flume
 mkdir -p `dirname $wrapper`
@@ -130,7 +145,10 @@ cp -r docs/* $PREFIX/${DOC_DIR}
 
 # man pages
 install -d -m 0755 $PREFIX/$MAN_DIR
-gzip -c $CLOUDERA_SOURCE_DIR/../docs/man/flume.1 > $PREFIX/$MAN_DIR/flume.1.gz
-gzip -c $CLOUDERA_SOURCE_DIR/../docs/man/flume-master.1 > $PREFIX/$MAN_DIR/flume-master.1.gz
-gzip -c $CLOUDERA_SOURCE_DIR/../docs/man/flume-node.1 > $PREFIX/$MAN_DIR/flume-node.1.gz
-gzip -c $CLOUDERA_SOURCE_DIR/../docs/man/flume-shell.1 > $PREFIX/$MAN_DIR/flume-shell.1.gz
+
+MANPAGES="flume.1 flume-master.1 flume-node.1 flume-shell.1"
+for f in ${MANPAGES}
+do 
+  gzip -c  $CLOUDERA_SOURCE_DIR/../docs/man/$f > $PREFIX/$MAN_DIR/$f.gz
+done 
+
