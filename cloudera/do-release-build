@@ -32,6 +32,12 @@ fi
 BIN_DIR=$(readlink -f $(dirname $0))
 RELEASE_DIR=$BIN_DIR/..
 
-cd $RELEASE_DIR
+cd $BIN_DIR/maven-packaging
+mvn -N install
 
+cd $RELEASE_DIR
+mvn -f cloudera-pom.xml process-resources
 JAVA_HOME=$JAVA32_HOME  ant clean tar -Dversion=${FULL_VERSION} -propertyfile cloudera/build.properties 
+
+cd $BIN_DIR/maven-packaging
+mvn install $DO_MAVEN_DEPLOY
