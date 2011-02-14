@@ -66,8 +66,18 @@
         <enabled>true</enabled>
       </snapshots>
     </repository>
+    <!-- JBoss repo needed for netty -->
+    <repository>
+      <id>jboss-public-repository</id>
+      <name>JBoss Public Maven Repository</name>
+      <url>http://repository.jboss.org/nexus/content/groups/public/</url>
+      <layout>default</layout>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
   </repositories>
-
+  
   <modules>
     <module>../../cloudera-pom.xml</module>
     <module>flume</module>
