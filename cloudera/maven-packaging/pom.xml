@@ -21,17 +21,17 @@
   <parent>
     <groupId>com.cloudera.cdh</groupId>
     <artifactId>cdh-root</artifactId>
-    <version>3.0-beta-4</version>
+    <version>3.0-SNAPSHOT</version>
     <relativePath>../../../../../pom.xml</relativePath>
   </parent>
   
   <groupId>com.cloudera.cdh</groupId>
   <artifactId>flume-root</artifactId>
-  <version>3.0-beta-4</version>
+  <version>3.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   
   <name>CDH flume root</name>
-  <properties><cdh.flume.version>0.9.3-CDH3B4</cdh.flume.version></properties>
+  <properties><cdh.flume.version>0.9.3-cdh3u0-SNAPSHOT</cdh.flume.version></properties>
 
   <scm>
     <connection>scm:git:git@git.sf.cloudera.com:flume.git</connection>
