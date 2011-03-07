@@ -33,6 +33,25 @@
   <name>CDH flume root</name>
   <properties><cdh.flume.version>0.9.3-cdh3u0-SNAPSHOT</cdh.flume.version></properties>
 
+  <repositories>
+    <repository>
+      <id>cdh.releases.repo</id>
+      <url>https://repository.cloudera.com/content/repositories/releases</url>
+      <name>CDH Releases Repository</name>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>cdh.snapshots.repo</id>
+      <url>https://repository.cloudera.com/content/repositories/snapshots</url>
+      <name>CDH Snapshots Repository</name>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
+  
   <scm>
     <connection>scm:git:git@git.sf.cloudera.com:flume.git</connection>
     <url>git@git.sf.cloudera.com:flume.git</url>
