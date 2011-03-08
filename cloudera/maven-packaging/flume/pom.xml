@@ -28,7 +28,8 @@
   <groupId>com.cloudera.flume</groupId>
   <artifactId>flume</artifactId>
   <version>${cdh.flume.version}</version>
-
+  <packaging>pom</packaging>
+  
   <dependencies>
     <!-- Dependencies: compile -->
     
