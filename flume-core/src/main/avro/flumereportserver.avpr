@@ -1,0 +1,43 @@
+{
+  "protocol" : "AvroFlumeReportServer",
+  "namespace" : "com.cloudera.flume.reporter.server.avro",
+  "types" : [ {
+    "type" : "record",
+    "name" : "AvroFlumeReport",
+    "fields" : [ {
+      "name" : "stringMetrics",
+      "type" : {
+        "type" : "map",
+        "values" : "string"
+      }
+    }, {
+      "name" : "longMetrics",
+      "type" : {
+        "type" : "map",
+        "values" : "long"
+      }
+    }, {
+      "name" : "doubleMetrics",
+      "type" : {
+        "type" : "map",
+        "values" : "double"
+      }
+    } ]
+  } ],
+  "messages" : {
+    "getAllReports" : {
+      "request" : [ ],
+      "response" : {
+        "type" : "map",
+        "values" : "AvroFlumeReport"
+      }
+    },
+    "getReportByName" : {
+      "request" : [ {
+        "name" : "reportName",
+        "type" : "string"
+      } ],
+      "response" : "AvroFlumeReport"
+    }
+  }
+}
