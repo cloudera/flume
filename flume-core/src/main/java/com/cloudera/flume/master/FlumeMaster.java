@@ -53,8 +53,8 @@ import com.cloudera.flume.reporter.server.ThriftReportServer;
 import com.cloudera.flume.util.FlumeVMInfo;
 import com.cloudera.flume.util.SystemInfo;
 import com.cloudera.util.CheckJavaVersion;
+import com.cloudera.util.InternalHttpServer;
 import com.cloudera.util.NetUtils;
-import com.cloudera.util.StatusHttpServer;
 import com.sun.jersey.api.core.DefaultResourceConfig;
 import com.sun.jersey.spi.container.servlet.ServletContainer;
 
@@ -86,7 +86,7 @@ public class FlumeMaster implements Reportable {
    */
   ThriftReportServer thriftReportServer = null;
   AvroReportServer avroReportServer = null;
-  StatusHttpServer http = null;
+  InternalHttpServer http = null;
 
   final boolean doHttp;
 
@@ -260,9 +260,17 @@ public class FlumeMaster implements Reportable {
 
     if (doHttp) {
       String webPath = FlumeNode.getWebPath(cfg);
+
+      http = new InternalHttpServer();
+
+      /*
       this.http = new StatusHttpServer("flumeconfig", webPath, "0.0.0.0", cfg
           .getMasterHttpPort(), false);
       http.addServlet(jerseyMasterServlet(), "/master/*");
+      */
+      http.setBindAddress("0.0.0.0");
+      http.setPort(cfg.getMasterHttpPort());
+      http.setWebappDir(new File(webPath));
       http.start();
     }
 
