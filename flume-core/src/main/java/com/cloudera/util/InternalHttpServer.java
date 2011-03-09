@@ -19,38 +19,60 @@ public class InternalHttpServer {
 
   private Server server;
   private File webappDir;
+  private int port;
+  private String bindAddress;
 
   public InternalHttpServer() {
-    Connector connector;
+    port = 0;
+    bindAddress = "0.0.0.0";
+  }
 
-    connector = new SelectChannelConnector();
+  public void initialize() {
+    if (server == null) {
 
-    connector.setPort(12345);
+      server = new Server();
+      Connector connector = new SelectChannelConnector();
 
-    server = new Server();
+      connector.setPort(port);
+      connector.setHost(bindAddress);
 
-    server.addConnector(connector);
+      server.addConnector(connector);
+    }
   }
 
   protected void registerApplications() {
     logger.debug("Registering webapps in {}", webappDir);
 
     for (File entry : webappDir.listFiles()) {
-      Handler handler;
+      String name;
 
       logger.debug("checking {}", entry);
 
-      handler = new WebAppContext(entry.getPath(), "/" + entry.getName());
+      if (entry.isFile()) {
+        int idx = entry.getName().indexOf(".war");
+
+        if (idx > -1) {
+          name = entry.getName().substring(0, idx);
+        } else {
+          continue;
+        }
+      } else {
+        name = entry.getName();
+      }
+
+      logger.debug("creating context {} -> {}", name, entry);
+
+      Handler handler = new WebAppContext(entry.getPath(), "/" + name);
 
       server.addHandler(handler);
     }
   }
 
   public void start() {
-    Preconditions.checkState(server != null, "Server can not be null");
     Preconditions.checkState(webappDir != null && webappDir.isDirectory(),
         "Webapp dir can not be null and must be a directory - " + webappDir);
 
+    initialize();
     registerApplications();
 
     logger.info("Starting internal HTTP server");
@@ -78,6 +100,12 @@ public class InternalHttpServer {
     }
   }
 
+  @Override
+  public String toString() {
+    return "{ bindAddress:" + bindAddress + " webappDir:" + webappDir
+        + " port:" + port + " server:" + server + " }";
+  }
+
   public Server getServer() {
     return server;
   }
@@ -92,6 +120,22 @@ public class InternalHttpServer {
 
   public void setWebappDir(File webappDir) {
     this.webappDir = webappDir;
+  }
+
+  public int getPort() {
+    return port;
+  }
+
+  public void setPort(int port) {
+    this.port = port;
+  }
+
+  public String getBindAddress() {
+    return bindAddress;
+  }
+
+  public void setBindAddress(String bindAddress) {
+    this.bindAddress = bindAddress;
   }
 
 }
