@@ -38,7 +38,8 @@ public class InternalHttpServerTest {
   public void testStart() {
     boolean success = false;
 
-    httpServer.setWebappDir(new File("webapps"));
+    httpServer.setWebappDir(new File(getClass().getClassLoader()
+        .getResource("test-webroot").getFile()));
 
     try {
       httpServer.start();
