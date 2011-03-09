@@ -19,6 +19,7 @@
 
   <modules>
     <module>flume-core</module>
+    <module>flume-config-web</module>
   </modules>
 
   <inceptionYear>2009</inceptionYear>
