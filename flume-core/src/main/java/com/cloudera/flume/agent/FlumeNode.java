@@ -23,8 +23,8 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Map.Entry;
+import java.util.Properties;
 
 import javax.ws.rs.core.Application;
 
@@ -64,9 +64,9 @@ import com.cloudera.flume.util.FlumeVMInfo;
 import com.cloudera.flume.util.SystemInfo;
 import com.cloudera.util.CheckJavaVersion;
 import com.cloudera.util.FileUtil;
+import com.cloudera.util.InternalHttpServer;
 import com.cloudera.util.NetUtils;
 import com.cloudera.util.Pair;
-import com.cloudera.util.StatusHttpServer;
 import com.google.common.base.Preconditions;
 import com.sun.jersey.api.core.DefaultResourceConfig;
 import com.sun.jersey.spi.container.servlet.ServletContainer;
@@ -96,7 +96,7 @@ public class FlumeNode implements Reportable {
 
   // run mode for this node.
   final boolean startHttp; // should this node start its own http status server
-  private StatusHttpServer http = null;
+  private InternalHttpServer http = null;
 
   private FlumeVMInfo vmInfo;
   private SystemInfo sysInfo;
@@ -272,13 +272,17 @@ public class FlumeNode implements Reportable {
       try {
         String webPath = getWebPath(conf);
 
+        /*
         boolean findport = FlumeConfiguration.get().getNodeAutofindHttpPort();
         this.http = new StatusHttpServer("flumeagent", webPath, "0.0.0.0", conf
             .getNodeStatusPort(), findport);
         http.addServlet(jerseyNodeServlet(), "/node/*");
+            */
+        http.setBindAddress("0.0.0.0");
+        http.setPort(conf.getNodeStatusPort());
+        http.setWebappDir(new File(webPath));
+
         http.start();
-      } catch (IOException e) {
-        LOG.error("Flume node failed: " + e.getMessage(), e);
       } catch (Throwable t) {
         LOG.error("Unexcepted exception/error thrown! " + t.getMessage(), t);
       }
