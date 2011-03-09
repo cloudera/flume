@@ -1,0 +1,29 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <artifactId>flume</artifactId>
+    <groupId>com.cloudera</groupId>
+    <version>0.9.10-SNAPSHOT</version>
+  </parent>
+
+  <groupId>com.cloudera</groupId>
+  <artifactId>flume-config-web</artifactId>
+  <version>0.9.10-SNAPSHOT</version>
+  <name>Flume Master Config Web Application</name>
+  <packaging>war</packaging>
+
+  <dependencies>
+
+    <dependency>
+      <groupId>com.cloudera</groupId>
+      <artifactId>flume-core</artifactId>
+      <version>0.9.10-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+
+  </dependencies>
+
+</project>
