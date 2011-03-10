@@ -32,7 +32,9 @@
             </goals>
             <inherited>false</inherited>
             <configuration>
-              <descriptor>src/main/assembly/dist.xml</descriptor>
+              <descriptors>
+                <descriptor>src/main/assembly/dist.xml</descriptor>
+              </descriptors>
             </configuration>
           </execution>
         </executions>
