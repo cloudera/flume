@@ -51,8 +51,8 @@ public class InternalHttpServerTest {
     Assert.assertTrue(success);
 
     try {
-      Thread.sleep(60000);
-    } catch (InterruptedException e1) {
+      Thread.sleep(5000);
+    } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }
 
