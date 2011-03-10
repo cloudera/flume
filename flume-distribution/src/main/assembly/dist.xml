@@ -13,6 +13,8 @@
   </formats>
 
   <moduleSets>
+
+    <!-- Copy flume core jar to lib -->
     <moduleSet>
       <useAllReactorProjects>true</useAllReactorProjects>
 
@@ -34,17 +36,34 @@
       </includes>
     </moduleSet>
 
+    <!-- Copy flume master web app -->
     <moduleSet>
       <useAllReactorProjects>true</useAllReactorProjects>
 
       <binaries>
         <outputDirectory>webapps</outputDirectory>
+        <outputFileNameMapping>flumemaster.${module.extension}</outputFileNameMapping>
         <unpack>false</unpack>
         <includes />
       </binaries>
 
       <includes>
         <include>com.cloudera:flume-config-web</include>
+      </includes>
+    </moduleSet>
+
+    <!-- Copy flume agent web app -->
+    <moduleSet>
+      <useAllReactorProjects>true</useAllReactorProjects>
+
+      <binaries>
+        <outputDirectory>webapps</outputDirectory>
+        <outputFileNameMapping>flumeagent.${module.extension}</outputFileNameMapping>
+        <unpack>false</unpack>
+        <includes />
+      </binaries>
+
+      <includes>
         <include>com.cloudera:flume-node-web</include>
       </includes>
     </moduleSet>
@@ -53,30 +72,35 @@
 
   <fileSets>
 
+    <!-- Copy bin directory -->
     <fileSet>
       <outputDirectory>bin</outputDirectory>
       <directory>../bin</directory>
       <includes />
     </fileSet>
 
+    <!-- Copy conf directory -->
     <fileSet>
       <outputDirectory>conf</outputDirectory>
       <directory>../conf</directory>
       <includes />
     </fileSet>
 
+    <!-- Copy contrib directory -->
     <fileSet>
       <outputDirectory>contrib</outputDirectory>
       <directory>../contrib</directory>
       <includes />
     </fileSet>
 
+    <!-- Copy docs directory -->
     <fileSet>
       <outputDirectory>docs</outputDirectory>
       <directory>../docs</directory>
       <includes />
     </fileSet>
 
+    <!-- Copy miscellaneous top level files -->
     <fileSet>
       <directory>../</directory>
       <includes>
