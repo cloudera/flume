@@ -261,14 +261,6 @@ public class FlumeNode implements Reportable {
       try {
         String webPath = getWebPath(conf);
 
-        /*
-         * boolean findport =
-         * FlumeConfiguration.get().getNodeAutofindHttpPort(); this.http = new
-         * StatusHttpServer("flumeagent", webPath, "0.0.0.0", conf
-         * .getNodeStatusPort(), findport); http.addServlet(jerseyNodeServlet(),
-         * "/node/*");
-         */
-
         http = new InternalHttpServer();
 
         http.setBindAddress("0.0.0.0");
