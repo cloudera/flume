@@ -501,6 +501,8 @@ public class FlumeMaster implements Reportable {
       fmt.printHelp("FlumeNode", options, true);
       System.exit(1);
     }
+    
+    FlumeNode.loadOutputFormatPlugins();
 
     String nodeconfig = FlumeConfiguration.get().getMasterSavefile();
 
@@ -509,7 +511,7 @@ public class FlumeMaster implements Reportable {
     }
 
     if (cmd != null && cmd.hasOption("i")) {
-      // if manually overriden by command line, accept it, live with
+      // if manually overridden by command line, accept it, live with
       // consequences.
       String sid = cmd.getOptionValue("i");
       LOG.info("Setting serverid from command line to be " + sid);

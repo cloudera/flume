@@ -20,6 +20,8 @@ package com.cloudera.flume.core.extractors;
 import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.SinkFactory.SinkDecoBuilder;
@@ -30,79 +32,90 @@ import com.cloudera.flume.core.EventSinkDecorator;
 import com.google.common.base.Preconditions;
 
 /**
- * This takes a regex and a group index and attaches an attribute with the
- * extracted value given attribute. This searches for the first instance of the
- * regex -- the entire body does not have to match. If the index is out of
- * bounds, or there is no match we return an empty string, "". 0 is the full
- * expression, and any number n>0 refers to the group enclosed by the nth left
- * paren.
- * 
- * For example: the group index and regex combo of: 3, (\d+):(\d+):(\d+)
- * 
- * "123:456:789" -> "798"
- * 
- * abc:def:xyz -> "" (no match)
- * 
- * 11:22 -> "" (out of range)
- * 
- * 55:66:33:22 -> "33" (ignores extras)
- * 
- * NOTE: the NFA-based regex algorithm used by java.util.regex.* (and in this
- * class) is slow and does not scale. It is fully featured but has an
- * exponential worst case running time.
+ * This takes a regex and any number of attribute names to assign to each
+ * sub pattern in pattern order
+ *
+ * Example 1:
+ *   regexAll("(\d+):(\d+):(\d+)", s1, s2, s3)
+ *
+ *   "123:456:789" -> {s1:123, s2:456, s3:789}
+ *
+ * Example 2:
+ *   regexAll("(\d+):(\d+):(\d+)", s1, s2)
+ *
+ *   "123:456:789" -> {s1:123, s2:456}
+ *
+ * Example 3:
+ *   regexAll("(\d+):(\d+):(\d+)", s1, "", s2)
+ *
+ *   "123:456:789" -> {s1:123, s2:789}
  */
-public class RegexExtractor extends EventSinkDecorator<EventSink> {
-  final String attr;
+public class RegexAllExtractor extends EventSinkDecorator<EventSink> {
+  
   final Pattern pat;
-  final int grp;
+  final List<String> names;
 
   /**
    * This will not thrown an exception
    */
-  public RegexExtractor(EventSink snk, Pattern pat, int grp, String attr) {
+  public RegexAllExtractor(EventSink snk, Pattern pat, List<String> names) {
     super(snk);
-    this.attr = attr;
     this.pat = pat;
-    this.grp = grp;
+    this.names = names;
   }
 
   /**
    * Convenience constructor that may throw a PatternSyntaxException (runtime
    * exn).
    */
-  public RegexExtractor(EventSink snk, String regex, int grp, String attr) {
-    this(snk, Pattern.compile(regex), grp, attr);
+  public RegexAllExtractor(EventSink snk, String regex, List<String> names) {
+    this(snk, Pattern.compile(regex), names);
   }
 
   @Override
   public void append(Event e) throws IOException, InterruptedException {
     String s = new String(e.getBody());
     Matcher m = pat.matcher(s);
-    String val = ""; // default
-    try {
-      val = m.find() ? m.group(grp) : "";
-    } catch (IndexOutOfBoundsException ioobe) {
-      val = "";
+    String val = "";
+    Integer grpCnt = m.groupCount();
+
+    if(m.find()){
+      for(int grp = 1; grp <= grpCnt; grp++){
+        val = "";
+        try {
+          val = m.group(grp);
+        } catch (IndexOutOfBoundsException ioobe) {
+          val = "";
+        }
+
+        //Try/Catch so that we don't require there be the same number of names as patterns.
+        try {
+          //Ignore blank names. These are most likely sub patterns we don't care about keeping.
+          if(names.get(grp-1) != ""){
+            Attributes.setString(e, names.get(grp-1), val);
+          }
+        } catch (IndexOutOfBoundsException ioobe) {
+          break;
+        }
+      }
     }
-    Attributes.setString(e, attr, val);
     super.append(e);
   }
 
   public static SinkDecoBuilder builder() {
     return new SinkDecoBuilder() {
       @Override
-      public EventSinkDecorator<EventSink> build(Context context,
-          String... argv) {
-        Preconditions.checkArgument(argv.length == 3,
-            "usage: regex(regex, idx, dstAttr)");
+      public EventSinkDecorator<EventSink> build(Context context, String... argv) {
+        Preconditions.checkArgument(argv.length >= 2, "usage: regexAll(regex, attr[, attr])");
 
         String regex = argv[0];
-        Integer idx = Integer.parseInt(argv[1]);
         Pattern pat = Pattern.compile(regex);
-        String attr = argv[2];
+        ArrayList<String> names = new ArrayList<String>();
+        for(int i=1; i<argv.length; ++i){
+          names.add(argv[i]);
+        }
 
-        EventSinkDecorator<EventSink> snk = new RegexExtractor(null, pat, idx,
-            attr);
+        EventSinkDecorator<EventSink> snk = new RegexAllExtractor(null, pat, names);
         return snk;
 
       }
