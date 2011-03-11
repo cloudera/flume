@@ -277,6 +277,10 @@ public class CommandManager implements Reportable {
     return "command manager";
   }
 
+  public SortedMap<Long,CommandStatus> getStatuses() {
+    return statuses;
+  }
+
   /*
    * Return the Command status for the given submission id. If the id is not
    * present, it returns null.

@@ -53,10 +53,10 @@ public class CommandManagerResource {
 
   JSONObject toJSONObject(CommandStatus c) throws JSONException {
     JSONObject o = new JSONObject();
-    o.put("cmd", c.cmd);
-    o.put("cmdId", c.cmdId);
-    o.put("curState", c.curState);
-    o.put("message", c.message);
+    o.put("cmd", c.getCommand());
+    o.put("cmdId", c.getCmdID());
+    o.put("curState", c.getState());
+    o.put("message", c.getMessage());
     return o;
   }
 
@@ -65,7 +65,7 @@ public class CommandManagerResource {
   public JSONObject getLogs() {
     JSONObject o = new JSONObject();
     try {
-      for (Entry<Long, CommandStatus> e : commands.statuses.entrySet()) {
+      for (Entry<Long, CommandStatus> e : commands.getStatuses().entrySet()) {
         o.put(e.getKey().toString(), toJSONObject(e.getValue()));
       }
     } catch (JSONException e) {
