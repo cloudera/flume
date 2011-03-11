@@ -3,7 +3,6 @@ package com.cloudera.util;
 import java.io.File;
 
 import org.mortbay.jetty.Connector;
-import org.mortbay.jetty.Handler;
 import org.mortbay.jetty.Server;
 import org.mortbay.jetty.nio.SelectChannelConnector;
 import org.mortbay.jetty.webapp.WebAppContext;
@@ -129,7 +128,9 @@ public class InternalHttpServer {
 
       logger.debug("creating context {} -> {}", name, entry);
 
-      Handler handler = new WebAppContext(entry.getPath(), "/" + name);
+      WebAppContext handler = new WebAppContext(entry.getPath(), "/" + name);
+
+      handler.setParentLoaderPriority(true);
 
       server.addHandler(handler);
     }

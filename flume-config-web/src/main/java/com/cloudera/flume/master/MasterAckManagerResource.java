@@ -1,3 +1,4 @@
+package com.cloudera.flume.master;
 /**
  * Licensed to Cloudera, Inc. under one
  * or more contributor license agreements.  See the NOTICE file
@@ -15,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cloudera.flume.master;
+
 
 import java.util.Set;
 
@@ -23,6 +24,9 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.xml.bind.annotation.XmlRootElement;
+
+import com.cloudera.flume.master.FlumeMaster;
+import com.cloudera.flume.master.MasterAckManager;
 
 @Path("/acks")
 public class MasterAckManagerResource {

@@ -1,3 +1,4 @@
+package com.cloudera.flume.master;
 /**
  * Licensed to Cloudera, Inc. under one
  * or more contributor license agreements.  See the NOTICE file
@@ -15,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cloudera.flume.master;
+
 
 import java.util.HashSet;
 import java.util.Set;
@@ -30,6 +31,7 @@ import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.mortbay.log.Log;
 
+import com.cloudera.flume.master.FlumeMaster;
 import com.cloudera.flume.reporter.ReportUtil;
 
 @Path("/master")

@@ -28,8 +28,6 @@ import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.Set;
 
-import javax.ws.rs.core.Application;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -55,8 +53,6 @@ import com.cloudera.flume.util.SystemInfo;
 import com.cloudera.util.CheckJavaVersion;
 import com.cloudera.util.InternalHttpServer;
 import com.cloudera.util.NetUtils;
-import com.sun.jersey.api.core.DefaultResourceConfig;
-import com.sun.jersey.spi.container.servlet.ServletContainer;
 
 /**
  * This is a first cut at a server for distributing configurations to different
@@ -237,14 +233,6 @@ public class FlumeMaster implements Reportable {
    */
   public long submit(Command cmd) {
     return cmdman.submit(cmd);
-  }
-
-  ServletContainer jerseyMasterServlet() {
-    Application app = new DefaultResourceConfig(FlumeMasterResource
-        .getResources());
-    ServletContainer sc = new ServletContainer(app);
-
-    return sc;
   }
 
   public void serve() throws IOException {
