@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.cloudera.flume.handlers.text;
 
 import static org.junit.Assert.assertEquals;
@@ -23,14 +22,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -40,18 +37,70 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mortbay.log.Log;
+import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.core.Event;
+import com.cloudera.flume.handlers.text.CustomDelimCursor.ByteBufferAsCharSequence;
+import com.cloudera.flume.handlers.text.CustomDelimCursor.DelimMode;
 import com.cloudera.util.Clock;
 import com.cloudera.util.OSUtils;
 
-/**
- * Test the new and improved TailSource cursor. It also shows some test code
- * that tests the java api, showing why the inability to get an inode limits a
- * java tail implementation unless it goes to jni or exec calls.
- */
-public class TestTailSourceCursor {
+public class TestMultiLineCursor {
+  public static final org.slf4j.Logger LOG = LoggerFactory
+      .getLogger(TestMultiLineCursor.class);
+
+  @Test
+  public void testByteBufferCharSequence() {
+    ByteBuffer buf = ByteBuffer.wrap("This is a test".getBytes());
+    ByteBufferAsCharSequence bbcs = new ByteBufferAsCharSequence(buf);
+
+    assertEquals('T', bbcs.charAt(0));
+    assertEquals('h', bbcs.charAt(1));
+    assertEquals('i', bbcs.charAt(2));
+    assertEquals('s', bbcs.charAt(3));
+    assertEquals('s', bbcs.charAt(12));
+    assertEquals('t', bbcs.charAt(13));
+
+  }
+
+  @Test(expected = IndexOutOfBoundsException.class)
+  public void testByteBufferCharSequenceIOOBE() {
+    ByteBuffer buf = ByteBuffer.wrap("This is a test".getBytes());
+    ByteBufferAsCharSequence bbcs = new ByteBufferAsCharSequence(buf);
+    bbcs.charAt(14);
+  }
+
+  @Test(expected = IndexOutOfBoundsException.class)
+  public void testByteBufferCharSequenceIOOBE2() {
+    ByteBuffer buf = ByteBuffer.wrap("This is a test".getBytes());
+    ByteBufferAsCharSequence bbcs = new ByteBufferAsCharSequence(buf);
+    bbcs.charAt(-1);
+  }
+
+  @Test
+  public void testBBCSSubsequence() {
+    ByteBuffer buf = ByteBuffer.wrap("This is a test".getBytes());
+    ByteBufferAsCharSequence bbcs = new ByteBufferAsCharSequence(buf);
+
+    CharSequence cs = bbcs.subSequence(5, 13);
+    assertEquals('i', cs.charAt(0));
+    assertEquals('s', cs.charAt(1));
+    assertEquals('s', cs.charAt(7));
+
+    // original still sane?
+    assertEquals('T', bbcs.charAt(0));
+    assertEquals('t', bbcs.charAt(13));
+
+  }
+
+  @Test(expected = IndexOutOfBoundsException.class)
+  public void testBBCSSubsequenceIOOBE() {
+    ByteBuffer buf = ByteBuffer.wrap("This is a test".getBytes());
+    ByteBufferAsCharSequence bbcs = new ByteBufferAsCharSequence(buf);
+
+    CharSequence cs = bbcs.subSequence(5, 13);
+    cs.charAt(8);
+  }
 
   @Before
   public void setDebug() {
@@ -63,7 +112,7 @@ public class TestTailSourceCursor {
     f.deleteOnExit();
     FileWriter fw = new FileWriter(f);
     for (int i = 0; i < count; i++) {
-      fw.write("test " + i + "\n");
+      fw.write("test " + i + "blah");
       fw.flush();
     }
     fw.close();
@@ -73,7 +122,7 @@ public class TestTailSourceCursor {
   void appendData(File f, int start, int count) throws IOException {
     FileWriter fw = new FileWriter(f, true);
     for (int i = start; i < start + count; i++) {
-      fw.write("test " + i + "\n");
+      fw.write("test " + i + "blah");
       fw.flush();
     }
     fw.close();
@@ -83,12 +132,12 @@ public class TestTailSourceCursor {
    * Pre-existing file, start cursor, and check we get # of events we expected
    */
   @Test
-  public void testCursorPrexisting() throws IOException, InterruptedException {
+  public void testCursorPreexisting() throws IOException, InterruptedException {
     // normal implementation uses synchronous queue, but we use array blocking
     // queue for single threaded testing
     BlockingQueue<Event> q = new ArrayBlockingQueue<Event>(100);
     File f = createDataFile(5);
-    Cursor c = new Cursor(q, f);
+    Cursor c = new CustomDelimCursor(q, f, "blah", DelimMode.EXCLUDE);
 
     assertTrue(c.tailBody()); // open the file
     assertTrue(c.tailBody()); // read the file
@@ -100,7 +149,7 @@ public class TestTailSourceCursor {
    * Have a pre-existing file, rename th efile, make sure still follow handle.
    **/
   @Test
-  public void testCursorMovedPrexisting() throws IOException,
+  public void testCursorMovedPreexisting() throws IOException,
       InterruptedException {
     // normal implementation uses synchronous queue, but we use array blocking
     // queue for single threaded testing
@@ -109,7 +158,7 @@ public class TestTailSourceCursor {
     f2.deleteOnExit();
     BlockingQueue<Event> q = new ArrayBlockingQueue<Event>(100);
     File f = createDataFile(5);
-    Cursor c = new Cursor(q, f);
+    Cursor c = new CustomDelimCursor(q, f, "blah", DelimMode.EXCLUDE);
 
     assertTrue(c.tailBody()); // open the file
 
@@ -137,7 +186,7 @@ public class TestTailSourceCursor {
    */
   @Test
   @Ignore("When a file rotates in with the same size, we cannot tell!")
-  public void testCursorRotatePrexistingFailure() throws IOException,
+  public void testCursorRotatePreexistingFailure() throws IOException,
       InterruptedException {
     // normal implementation uses synchronous queue, but we use array blocking
     // queue for single threaded testing
@@ -146,7 +195,7 @@ public class TestTailSourceCursor {
     f2.deleteOnExit();
     BlockingQueue<Event> q = new ArrayBlockingQueue<Event>(100);
     File f = createDataFile(5);
-    Cursor c = new Cursor(q, f);
+    Cursor c = new CustomDelimCursor(q, f, "blah", DelimMode.EXCLUDE);
 
     assertTrue(c.tailBody()); // open the file
 
@@ -172,7 +221,7 @@ public class TestTailSourceCursor {
    * rotate with a new file that is longer than the original.
    **/
   @Test
-  public void testCursorRotatePrexistingNewLonger() throws IOException,
+  public void testCursorRotatePreexistingNewLonger() throws IOException,
       InterruptedException {
 
     // Windows rename semantics different than unix
@@ -185,7 +234,7 @@ public class TestTailSourceCursor {
     f2.deleteOnExit();
     BlockingQueue<Event> q = new ArrayBlockingQueue<Event>(100);
     File f = createDataFile(5);
-    Cursor c = new Cursor(q, f);
+    Cursor c = new CustomDelimCursor(q, f, "blah", DelimMode.EXCLUDE);
 
     assertTrue(c.tailBody()); // open the file
 
@@ -212,7 +261,7 @@ public class TestTailSourceCursor {
    * rotate with a new file that is shorter. This works
    */
   @Test
-  public void testCursorRotatePrexistingNewShorter() throws IOException,
+  public void testCursorRotatePreexistingNewShorter() throws IOException,
       InterruptedException {
 
     // Windows rename semantics different than unix
@@ -225,7 +274,7 @@ public class TestTailSourceCursor {
     f2.deleteOnExit();
     BlockingQueue<Event> q = new ArrayBlockingQueue<Event>(100);
     File f = createDataFile(5);
-    Cursor c = new Cursor(q, f);
+    Cursor c = new CustomDelimCursor(q, f, "blah", DelimMode.EXCLUDE);
 
     assertTrue(c.tailBody()); // open the file
 
@@ -251,7 +300,7 @@ public class TestTailSourceCursor {
    * size.
    */
   @Test
-  public void testCursorRotatePrexistingSameSizeWithDelete()
+  public void testCursorRotatePreexistingSameSizeWithDelete()
       throws IOException, InterruptedException {
 
     // Windows rename semantics different than unix
@@ -264,7 +313,7 @@ public class TestTailSourceCursor {
     f2.deleteOnExit();
     BlockingQueue<Event> q = new ArrayBlockingQueue<Event>(100);
     File f = createDataFile(5);
-    Cursor c = new Cursor(q, f);
+    Cursor c = new CustomDelimCursor(q, f, "blah", DelimMode.EXCLUDE);
 
     assertTrue(c.tailBody()); // open the file
 
@@ -292,7 +341,7 @@ public class TestTailSourceCursor {
    * has a different modification time.
    */
   @Test
-  public void testCursorRotatePrexistingSameSizeWithNewModtime()
+  public void testCursorRotatePreexistingSameSizeWithNewModtime()
       throws IOException, InterruptedException {
 
     // Windows rename semantics different than unix
@@ -305,7 +354,7 @@ public class TestTailSourceCursor {
     f2.deleteOnExit();
     BlockingQueue<Event> q = new ArrayBlockingQueue<Event>(100);
     File f = createDataFile(5);
-    Cursor c = new Cursor(q, f);
+    Cursor c = new CustomDelimCursor(q, f, "blah", DelimMode.EXCLUDE);
 
     assertTrue(c.tailBody()); // open the file
     assertTrue(c.tailBody()); // finish reading the first file
@@ -319,7 +368,8 @@ public class TestTailSourceCursor {
     Clock.sleep(1000);
     appendData(f, 5, 5);
 
-    assertTrue(c.tailBody()); // notice new mod time and reset, file has data to read
+    assertTrue(c.tailBody()); // notice new mod time and reset, file has data to
+                              // read
     assertTrue(c.tailBody()); // open the new file
     assertTrue(c.tailBody()); // read new file
     assertFalse(c.tailBody()); // no more to read
@@ -330,14 +380,14 @@ public class TestTailSourceCursor {
    * read, write to file, read more
    */
   @Test
-  public void testCursorNewAppendPrexisting() throws IOException,
+  public void testCursorNewAppendPreexisting() throws IOException,
       InterruptedException {
     // normal implementation uses synchronous queue, but we use array blocking
     // queue for single threaded testing
     BlockingQueue<Event> q = new ArrayBlockingQueue<Event>(10);
     File f = createDataFile(5);
     f.deleteOnExit();
-    Cursor c = new Cursor(q, f);
+    Cursor c = new CustomDelimCursor(q, f, "blah", DelimMode.EXCLUDE);
 
     assertTrue(c.tailBody()); // open the file
 
@@ -360,7 +410,7 @@ public class TestTailSourceCursor {
     File f = File.createTempFile("appear", ".tmp");
     f.delete();
     f.deleteOnExit();
-    Cursor c = new Cursor(q, f);
+    Cursor c = new CustomDelimCursor(q, f, "blah", DelimMode.EXCLUDE);
 
     assertFalse(c.tailBody()); // attempt to open, nothing there.
     assertFalse(c.tailBody()); // attempt to open, nothing there.
@@ -391,7 +441,7 @@ public class TestTailSourceCursor {
     File f = File.createTempFile("appear", ".tmp");
     f.delete();
     f.deleteOnExit();
-    Cursor c = new Cursor(q, f);
+    Cursor c = new CustomDelimCursor(q, f, "blah", DelimMode.EXCLUDE);
 
     assertFalse(c.tailBody()); // attempt to open, nothing there.
     assertFalse(c.tailBody()); // attempt to open, nothing there.
@@ -441,7 +491,7 @@ public class TestTailSourceCursor {
     // queue for single threaded testing
     BlockingQueue<Event> q = new ArrayBlockingQueue<Event>(10);
     File f = createDataFile(5);
-    Cursor c = new Cursor(q, f);
+    Cursor c = new CustomDelimCursor(q, f, "blah", DelimMode.EXCLUDE);
 
     assertTrue(c.tailBody()); // open file the file
     assertEquals(0, c.lastChannelPos);
@@ -487,10 +537,10 @@ public class TestTailSourceCursor {
     // queue for single threaded testing
     BlockingQueue<Event> q = new ArrayBlockingQueue<Event>(100);
     File f1 = createDataFile(5);
-    Cursor c1 = new Cursor(q, f1);
+    Cursor c1 = new CustomDelimCursor(q, f1, "blah", DelimMode.EXCLUDE);
 
     File f2 = createDataFile(5);
-    Cursor c2 = new Cursor(q, f2);
+    Cursor c2 = new CustomDelimCursor(q, f2, "blah", DelimMode.EXCLUDE);
 
     assertTrue(c1.tailBody()); // open the file
     assertTrue(c2.tailBody()); // open the file
@@ -515,229 +565,117 @@ public class TestTailSourceCursor {
 
   }
 
-  // /////////////////////////////////////////////////////////////////////////
+  // ///////////////////////////////////////////////////////////////////
 
-  /**
-   * This an experiment playing with FileDescriptors.
-   * 
-   * This doesn't test flume per se but is a jvm operating system consistency
-   * check.
-   */
   @Test
-  public void testFileDescriptor() throws IOException {
-    File f = File.createTempFile("fdes", ".tmp");
+  public void testDelimIncludeNext() throws IOException, InterruptedException {
+    File f = File.createTempFile("tail", ".tmp");
     f.deleteOnExit();
-    File f2 = File.createTempFile("fdes", ".tmp");
-    f2.delete();
-    f2.deleteOnExit();
-
-    FileInputStream fis = new FileInputStream(f);
-
-    FileDescriptor fd = fis.getFD();
-    f.renameTo(f2);
-    FileDescriptor fd2 = fis.getFD();
-
-    assertEquals(fd, fd2);
-
-    new File(f.getAbsolutePath()).createNewFile();
-    FileInputStream fis2 = new FileInputStream(f);
-    FileDescriptor fd3 = fis2.getFD();
-    assertTrue(fd3 != fd);
-
-  }
-
-  /**
-   * This shows that the FD semantics seem sane.
-   * 
-   * This is the way to do it and should be enough to make tail just about work.
-   */
-  @Test
-  public void testFISFollowsFD() throws IOException {
-    File f = File.createTempFile("fdes", ".tmp");
-    f.deleteOnExit();
-    File f2 = File.createTempFile("fdes", ".tmp");
-    f2.delete();
-    f2.deleteOnExit();
-
-    FileOutputStream fos = new FileOutputStream(f);
-
-    FileInputStream fis = new FileInputStream(f);
-    FileChannel fc = fis.getChannel();
-    ByteBuffer bb = ByteBuffer.allocate(1 * 1024 * 1024); // read a meg
-    int read = fc.read(bb);
-    assertEquals(-1, read); // reached EOF
-
-    fos.write("test\n".getBytes());
-    fos.flush();
-
-    long sz = (long) fc.size();
-    assertEquals(5, sz);
-    read = fc.read(bb);
-    assertEquals(5, read);
-
-    byte b[] = new byte[(int) sz];
-    bb.flip();
-
-    // scan for new line, if none, copy and get more.
-    bb.get(b);
-    bb.flip();
-
-    f.renameTo(f2);
-
-    // Write more to same descriptor
-    fos.write("test\n".getBytes());
-    fos.flush();
-
-    sz = (long) fc.size();
-    assertEquals(10, sz);
-    read = fc.read(bb);
-    assertEquals(5, read);
-
-    // Must get all read
-    b = new byte[(int) read];
-    bb.flip();
-
-    bb.get(b);
-    bb.flip();
-
-    fos.write("test\n".getBytes());
-    fos.flush();
-
-    sz = (long) fc.size();
-    assertEquals(15, sz);
-    read = fc.read(bb);
-    assertEquals(5, read);
-
-  }
-
-  /**
-   * This test shows that open file channels follow file descriptor
-   */
-  @Test
-  public void testChannelFollowsHandle() throws IOException {
-    File f = File.createTempFile("first", ".tmp");
-    f.deleteOnExit();
-    File f2 = File.createTempFile("second", ".tmp");
-    f2.delete();
-    f2.deleteOnExit();
-
-    RandomAccessFile raf = new RandomAccessFile(f, "r");
-    FileChannel ch = raf.getChannel();
-
-    ByteBuffer buf = ByteBuffer.allocate(4);
     FileWriter fw = new FileWriter(f);
-    fw.write("this test is 20bytes");
-    fw.flush();
-    assertEquals(4, ch.read(buf));
-    buf.flip();
-    assertEquals(4, ch.read(buf));
-    buf.flip();
-    f.renameTo(f2);
-
-    assertEquals(4, ch.read(buf));
-    buf.flip();
-    assertEquals(4, ch.read(buf));
-    buf.flip();
-    assertEquals(4, ch.read(buf));
-    assertEquals("ytes", new String(buf.array()));
-    buf.flip();
-  }
-
-  /**
-   * This shows that file descriptors from the same RAF are the same, however,
-   * two RAFs have different fileDescriptors. This is unfortunate because it
-   * means we cannot use FileDescriptors to differentiate by inode, and limits
-   * our tail implemenetation
-   */
-  @Test
-  public void testFileDescriptorEquals() throws IOException {
-    File f = File.createTempFile("first", ".tmp");
-    f.deleteOnExit();
-    File f2 = File.createTempFile("second", ".tmp");
-    f2.delete();
-    f2.deleteOnExit();
-
-    RandomAccessFile raf = new RandomAccessFile(f, "r");
-    FileDescriptor fd = raf.getFD();
-
-    // same file
-    RandomAccessFile raf2 = new RandomAccessFile(f, "r");
-    FileDescriptor fd2 = raf2.getFD();
-
-    // NOTE: This is unfortunate -- I cannot tell if both are the same file.
-    assertFalse(fd.equals(fd2));
-  }
-
-  /**
-   * Handle truncation. Here we write a file, read it, truncated it, and then
-   * read again.
-   */
-  @Test
-  public void testTruncate() throws IOException {
-    File f = File.createTempFile("first", ".tmp");
-    f.deleteOnExit();
-
-    FileWriter fw = new FileWriter(f);
-    fw.append("this is a test");
+    fw.append("2011-03-07 00:26:53,918 [exec-thread] WARN commands.SetChokeLimitForm: PhysicalNode: physNode not present yet!\n"
+        + "2011-03-07 00:26:54,920 [Thrift server:class org.apache.thrift.TProcessorFactory on class org.apache.thrift.transport.TSaneServerSocket]"
+        + " WARN server.TSaneThreadPoolServer: Transport error occurred during acceptance of message.\n"
+        + "org.apache.thrift.transport.TTransportException: java.net.SocketException: Socket closed\n"
+        + "      at org.apache.thrift.transport.TSaneServerSocket.acceptImpl(TSaneServerSocket.java:137)\n"
+        + "      at org.apache.thrift.transport.TServerTransport.accept(TServerTransport.java:31)\n"
+        + "      at org.apache.thrift.server.TSaneThreadPoolServer$1.run(TSaneThreadPoolServer.java:175)\n"
+        + "Caused by: java.net.SocketException: Socket closed\n"
+        + "      at java.net.PlainSocketImpl.socketAccept(Native Method)\n"
+        + "      at java.net.PlainSocketImpl.accept(PlainSocketImpl.java:408)\n"
+        + "      at java.net.ServerSocket.implAccept(ServerSocket.java:462)\n"
+        + "      at java.net.ServerSocket.accept(ServerSocket.java:430)\n"
+        + "      at org.apache.thrift.transport.TSaneServerSocket.acceptImpl(TSaneServerSocket.java:132)\n"
+        + "      ... 2 more\n"
+        + "2011-03-07 00:26:55,924 [main] INFO server.ThriftReportServer: Stopping ReportServer...");
     fw.close();
 
-    RandomAccessFile raf = new RandomAccessFile(f, "r");
-    String line = raf.readLine();
-    assertEquals("this is a test", line);
+    BlockingQueue<Event> q = new ArrayBlockingQueue<Event>(100);
+    Cursor c1 = new CustomDelimCursor(q, f, "\\n\\d\\d\\d\\d",
+        DelimMode.INCLUDE_NEXT);
+    assertTrue(c1.tailBody());
+    assertTrue(c1.tailBody());
+    assertFalse(c1.tailBody());
+    c1.flush();
 
-    RandomAccessFile raf2 = new RandomAccessFile(f, "rw");
-    raf2.setLength(4);
-    raf2.close();
+    // output for debugging.
+    List<byte[]> l = new ArrayList<byte[]>(3);
+    while (!q.isEmpty()) {
+      System.out.println("====");
+      byte bs[] = q.poll().getBody();
+      l.add(bs);
+      System.out.println(new String(bs));
+    }
 
-    // read original
-    String line2 = raf.readLine();
-    assertEquals(null, line2);
-
-    // NOTE: this is unfortunate. This basically shows that that if a file gets
-    // truncated, the current open file handle dones't know what is going on.
-
-    // A sane behavior here is to just assume it is a different file and reload
-    // it from the beginning.
-    assertEquals(14, raf.getFilePointer()); // file pointer is past end of file.
-    assertEquals(4, f.length());
+    // should be three events
+    assertEquals(3, l.size());
+    assertEquals(110, l.get(0).length);
+    assertEquals(1008, l.get(1).length);
+    assertEquals(88, l.get(2).length);
   }
 
-  /**
-   * Test tail file handle exhaustion. If there is a leak, this should fail.
-   * 
-   * @throws IOException
-   * @throws InterruptedException
-   */
   @Test
-  public void testHandleExhaust() throws IOException, InterruptedException {
-
-    // Windows rename semantics different than unix
-    Assume.assumeTrue(!OSUtils.isWindowsOS());
-
-    File f = File.createTempFile("tailexhaust", ".txt");
+  public void testDelimIncludePrev() throws IOException, InterruptedException {
+    File f = File.createTempFile("tail", ".tmp");
     f.deleteOnExit();
-    File f2 = File.createTempFile("tailexhaust", ".txt");
-    f2.deleteOnExit();
+    FileWriter fw = new FileWriter(f);
+    fw.append("<?xml version=\"1.0\"?><?xml-stylesheet type=\"text/xsl\"  href=\"logs.xsl\"?>"
+        + "<a><b><c/></b><b><c/></b></a>");
+    fw.close();
+
     BlockingQueue<Event> q = new ArrayBlockingQueue<Event>(100);
-    Cursor c = new Cursor(q, f);
+    Cursor c1 = new CustomDelimCursor(q, f, "</b>", DelimMode.INCLUDE_PREV);
+    assertTrue(c1.tailBody());
+    assertTrue(c1.tailBody());
+    assertFalse(c1.tailBody());
+    c1.flush();
 
-    for (int i = 0; i < 3000; i++) {
-      f2.delete();
-
-      appendData(f, i * 5, 5);
-
-      assertTrue(c.tailBody()); // open the file
-
-      f.renameTo(f2); // move the file (should be no problem).
-
-      assertTrue(c.tailBody()); // finish reading the file
-      assertEquals(5, q.size()); // should be 5 in queue.
-
-      assertFalse(c.tailBody()); // No more to read
-      assertEquals(5, q.size()); // should be 5 in queue.
-
-      q.clear();
+    // output for debugging.
+    List<byte[]> l = new ArrayList<byte[]>(3);
+    while (!q.isEmpty()) {
+      System.out.println("====");
+      byte bs[] = q.poll().getBody();
+      l.add(bs);
+      System.out.println(new String(bs));
     }
-    Log.info("file handles didn't leak!");
+
+    // should be three events
+    assertEquals(3, l.size());
+    assertEquals(86, l.get(0).length);
+    assertEquals(11, l.get(1).length);
+    assertEquals(4, l.get(2).length);
+  }
+
+  @Test
+  public void testDelimExclude() throws IOException, InterruptedException {
+    File f = File.createTempFile("tail", ".tmp");
+    f.deleteOnExit();
+    FileWriter fw = new FileWriter(f);
+    fw.append("a\nb\n\n" + "c\nd\ne\n\n\n" + "f\ng\n\n\n\n" + "h");
+    fw.close();
+
+    BlockingQueue<Event> q = new ArrayBlockingQueue<Event>(100);
+    // must have more than 1 \n, + is greedy (consumes longest possible match)
+    Cursor c1 = new CustomDelimCursor(q, f, "\n\n+", DelimMode.EXCLUDE);
+    assertTrue(c1.tailBody());
+    assertTrue(c1.tailBody());
+    assertFalse(c1.tailBody());
+    c1.flush();
+
+    // output for debugging.
+    List<byte[]> l = new ArrayList<byte[]>(3);
+    while (!q.isEmpty()) {
+      System.out.println("====");
+      byte bs[] = q.poll().getBody();
+      l.add(bs);
+      System.out.println(new String(bs));
+    }
+
+    // should be three events
+    assertEquals(4, l.size());
+    assertEquals(3, l.get(0).length);
+    assertEquals(5, l.get(1).length);
+    assertEquals(3, l.get(2).length);
+    assertEquals(1, l.get(3).length);
+
   }
 }
