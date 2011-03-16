@@ -184,8 +184,8 @@
     </pluginRepository>
 
     <pluginRepository>
-      <id>com.cloudera.repository.thirdparty</id>
-      <url>https://repository.cloudera.com/content/repositories/third-party/
+      <id>com.cloudera.repository.public</id>
+      <url>https://repository.cloudera.com/content/groups/public/
       </url>
       <releases>
         <enabled>true</enabled>
