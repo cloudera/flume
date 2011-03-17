@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.agent.FlumeNode;
 import com.cloudera.flume.conf.FlumeConfiguration;
+import com.cloudera.flume.handlers.text.FormatFactory;
 import com.cloudera.flume.master.flows.FlowConfigManager;
 import com.cloudera.flume.master.logical.LogicalConfigurationManager;
 import com.cloudera.flume.reporter.ReportEvent;
@@ -502,7 +503,7 @@ public class FlumeMaster implements Reportable {
       System.exit(1);
     }
     
-    FlumeNode.loadOutputFormatPlugins();
+    FormatFactory.loadOutputFormatPlugins();
 
     String nodeconfig = FlumeConfiguration.get().getMasterSavefile();
 
