@@ -173,6 +173,17 @@
   <pluginRepositories>
 
     <pluginRepository>
+      <id>repo1.maven.org</id>
+      <url>http://repo1.maven.org/maven2</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </pluginRepository>
+
+    <pluginRepository>
       <id>dtrott</id>
       <url>http://maven.davidtrott.com/repository</url>
       <releases>
@@ -207,6 +218,17 @@
   </pluginRepositories>
 
   <repositories>
+
+    <repository>
+      <id>repo1.maven.org</id>
+      <url>http://repo1.maven.org/maven2</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
 
     <repository>
       <id>com.cloudera.repository.releases</id>
@@ -246,17 +268,6 @@
       <id>repository.jboss.org</id>
       <url>http://repository.jboss.org/nexus/content/groups/public/
       </url>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
-
-    <repository>
-      <id>repository.apache.org</id>
-      <url>https://repository.apache.org/content/repositories/releases/</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
       <snapshots>
         <enabled>false</enabled>
       </snapshots>
