@@ -351,28 +351,11 @@ public class Cursor {
       madeProgress = true;
 
       // need char encoder to find line breaks in buf.
-      lastChannelPos += (rd < 0 ? 0 : rd); // rd == -1 if at end of
+      lastChannelPos += rd;
       // stream.
-
-      int lastRd = 0;
-      boolean progress = false;
-      do {
-
-        if (lastRd == -1 && rd == -1) {
-          return true;
-        }
-
-        buf.flip();
-
-        // extract lines
-        extractLines(buf);
-
-        lastRd = rd;
-      } while (progress); // / potential race
-
-      // if the amount read catches up to the size of the file, we can fall
-      // out and let another fileChannel be read. If the last buffer isn't
-      // read, then it remain in the byte buffer.
+      buf.flip();
+      // extract lines
+      extractLines(buf);
 
     }
 
