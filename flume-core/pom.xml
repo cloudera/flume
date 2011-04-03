@@ -6,12 +6,13 @@
   <parent>
     <artifactId>flume</artifactId>
     <groupId>com.cloudera</groupId>
-    <version>0.9.10-SNAPSHOT</version>
+    <version>0.9.4-SNAPSHOT</version>
   </parent>
 
   <name>Flume Core</name>
   <groupId>com.cloudera</groupId>
   <artifactId>flume-core</artifactId>
+  <version>0.9.4-SNAPSHOT</version>
 
   <build>
     <plugins>

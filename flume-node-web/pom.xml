@@ -6,13 +6,13 @@
   <parent>
     <artifactId>flume</artifactId>
     <groupId>com.cloudera</groupId>
-    <version>0.9.10-SNAPSHOT</version>
+    <version>0.9.4-SNAPSHOT</version>
   </parent>
 
   <name>Flume Node Web</name>
   <groupId>com.cloudera</groupId>
   <artifactId>flume-node-web</artifactId>
-  <version>0.9.10-SNAPSHOT</version>
+  <version>0.9.4-SNAPSHOT</version>
   <packaging>war</packaging>
 
   <dependencies>
@@ -20,7 +20,7 @@
     <dependency>
       <groupId>com.cloudera</groupId>
       <artifactId>flume-core</artifactId>
-      <version>0.9.10-SNAPSHOT</version>
+      <version>0.9.4-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
 
