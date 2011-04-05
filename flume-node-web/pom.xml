@@ -15,6 +15,49 @@
   <version>0.9.4-SNAPSHOT</version>
   <packaging>war</packaging>
 
+  <build>
+    <plugins>
+
+      <plugin>
+        <groupId>org.codehaus.mojo.jspc</groupId>
+        <artifactId>jspc-maven-plugin</artifactId>
+        <version>2.0-alpha-3</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <source>1.5</source>
+              <target>1.5</target>
+              <packageName>com.cloudera.flume.agent.jsp</packageName>
+              <outputWebXml>${pom.basedir}/target/web.xml</outputWebXml>
+            </configuration>
+          </execution>
+        </executions>
+
+        <!-- Use the Tomcat 6 JSP compiler -->
+        <dependencies>
+          <dependency>
+            <groupId>org.codehaus.mojo.jspc</groupId>
+            <artifactId>jspc-compiler-tomcat6</artifactId>
+            <version>2.0-alpha-3</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-war-plugin</artifactId>
+        <version>2.1.1</version>
+        <configuration>
+          <webXml>${pom.basedir}/target/web.xml</webXml>
+        </configuration>
+      </plugin>
+
+    </plugins>
+  </build>
+
   <dependencies>
 
     <dependency>
