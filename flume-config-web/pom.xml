@@ -15,6 +15,42 @@
   <name>Flume Master Config Web Application</name>
   <packaging>war</packaging>
 
+  <build>
+    <plugins>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>jspc-maven-plugin</artifactId>
+        <version>1.4.6</version>
+        <executions>
+          <execution>
+            <id>jspc</id>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <packageName>com.cloudera.flume.master.jsp</packageName>
+              <outputWebXml>${pom.basedir}/target/web.xml</outputWebXml>
+              <source>1.5</source>
+              <target>1.5</target>
+              <showSuccess>true</showSuccess>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-war-plugin</artifactId>
+        <version>2.1.1</version>
+        <configuration>
+          <webXml>${pom.basedir}/target/web.xml</webXml>
+        </configuration>
+      </plugin>
+
+    </plugins>
+  </build>
+
   <dependencies>
 
     <dependency>
