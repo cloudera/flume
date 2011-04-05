@@ -20,13 +20,14 @@ import com.google.common.base.Preconditions;
  * </p>
  * <p>
  * Resources internally are allocated upon the first call to {@link #start()}.
- * This includes scanning of the configured webapp directory for applications.
- * Mostly this class is a thin wrapper around Jetty's {@link Server} class and
- * behaves as Jetty does. Both traditional and exploded war formats are
- * supported in the webapp directory. In the case of exploded directories, the
- * directory name is used as the context. For war files, everything from the
- * first instance of ".war" to the end of the file name (inclusive) is stripped
- * and the remainder is used for the context name.
+ * This includes scanning of the configured webapp directory for applications if
+ * {@link #getScanForApps()} is true (the default). Mostly this class is a thin
+ * wrapper around Jetty's {@link Server} class and behaves as Jetty does. Both
+ * traditional and exploded war formats are supported in the webapp directory.
+ * In the case of exploded directories, the directory name is used as the
+ * context. For war files, everything from the first instance of ".war" to the
+ * end of the file name (inclusive) is stripped and the remainder is used for
+ * the context name.
  * </p>
  * <p>
  * Name examples:
@@ -87,10 +88,12 @@ public class InternalHttpServer {
   private File webappDir;
   private int port;
   private String bindAddress;
+  private boolean scanForApps;
 
   public InternalHttpServer() {
     port = 0;
     bindAddress = "0.0.0.0";
+    scanForApps = true;
   }
 
   public void initialize() {
@@ -109,31 +112,41 @@ public class InternalHttpServer {
   protected void registerApplications() {
     logger.debug("Registering webapps in {}", webappDir);
 
-    for (File entry : webappDir.listFiles()) {
-      String name;
-
-      logger.debug("checking {}", entry);
-
-      if (entry.isFile()) {
-        int idx = entry.getName().indexOf(".war");
-
-        if (idx > -1) {
-          name = entry.getName().substring(0, idx);
-        } else {
-          continue;
-        }
-      } else {
-        name = entry.getName();
+    if (webappDir.isDirectory()) {
+      for (File entry : webappDir.listFiles()) {
+        tryRegisterApplication(server, entry);
       }
-
-      logger.debug("creating context {} -> {}", name, entry);
-
-      WebAppContext handler = new WebAppContext(entry.getPath(), "/" + name);
-
-      handler.setParentLoaderPriority(true);
-
-      server.addHandler(handler);
+    } else {
+      tryRegisterApplication(server, webappDir);
     }
+  }
+
+  private boolean tryRegisterApplication(Server server, File path) {
+    String name;
+
+    logger.debug("checking {}", path);
+
+    if (path.isFile()) {
+      int idx = path.getName().indexOf(".war");
+
+      if (idx > -1) {
+        name = path.getName().substring(0, idx);
+      } else {
+        return false;
+      }
+    } else {
+      name = path.getName();
+    }
+
+    logger.debug("creating context {} -> {}", name, path);
+
+    WebAppContext handler = new WebAppContext(path.getPath(), "/" + name);
+
+    handler.setParentLoaderPriority(true);
+
+    server.addHandler(handler);
+
+    return true;
   }
 
   /**
@@ -150,11 +163,15 @@ public class InternalHttpServer {
    * @throws InternalHttpServerException
    */
   public void start() {
-    Preconditions.checkState(webappDir != null && webappDir.isDirectory(),
-        "Webapp dir can not be null and must be a directory - " + webappDir);
+    Preconditions.checkState(webappDir != null, "Webapp dir can not be null");
 
     initialize();
-    registerApplications();
+
+    if (scanForApps) {
+      registerApplications();
+    } else {
+      logger.info("Not scanning for webapps");
+    }
 
     logger.info("Starting internal HTTP server");
 
@@ -195,7 +212,8 @@ public class InternalHttpServer {
   @Override
   public String toString() {
     return "{ bindAddress:" + bindAddress + " webappDir:" + webappDir
-        + " port:" + port + " server:" + server + " }";
+        + " port:" + port + " scanForApps:" + scanForApps + " server:" + server
+        + " }";
   }
 
   public Server getServer() {
@@ -228,6 +246,14 @@ public class InternalHttpServer {
 
   public void setBindAddress(String bindAddress) {
     this.bindAddress = bindAddress;
+  }
+
+  public boolean getScanForApps() {
+    return scanForApps;
+  }
+
+  public void setScanForApps(boolean scanForApps) {
+    this.scanForApps = scanForApps;
   }
 
   public static class InternalHttpServerException extends RuntimeException {

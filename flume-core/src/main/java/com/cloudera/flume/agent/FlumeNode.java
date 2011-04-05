@@ -258,13 +258,12 @@ public class FlumeNode implements Reportable {
 
     if (startHttp) {
       try {
-        String webPath = getWebPath(conf);
-
         http = new InternalHttpServer();
 
         http.setBindAddress("0.0.0.0");
         http.setPort(conf.getNodeStatusPort());
-        http.setWebappDir(new File(webPath));
+        http.setWebappDir(new File(conf.getNodeWebappRoot()));
+        http.setScanForApps(true);
 
         http.start();
       } catch (Throwable t) {

@@ -259,7 +259,7 @@ public class FlumeMaster implements Reportable {
       */
       http.setBindAddress("0.0.0.0");
       http.setPort(cfg.getMasterHttpPort());
-      http.setWebappDir(new File(webPath));
+      http.setWebappDir(new File(FlumeConfiguration.get().getMasterWebappRoot()));
       http.start();
     }
 

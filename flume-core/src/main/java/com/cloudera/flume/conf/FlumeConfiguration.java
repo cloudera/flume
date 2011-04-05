@@ -261,6 +261,10 @@ public class FlumeConfiguration extends Configuration {
   public static final String RPC_TYPE_THRIFT = "THRIFT";
   public static final String RPC_TYPE_AVRO = "AVRO";
 
+  // Web app options
+  public static final String WEBAPP_ROOT_NODE = "flume.node.webapp.root";
+  public static final String WEBAPP_ROOT_MASTER = "flume.master.webapp.root";
+
   /**
    * Returns true if there is more than one server in MASTER_SERVERS.
    */
@@ -990,6 +994,20 @@ public class FlumeConfiguration extends Configuration {
    */
   public String getDefaultFlowName() {
     return get(DEFAULT_FLOW_NAME, "default-flow");
+  }
+
+  /**
+   * Returns the webapp root for the master.
+   */
+  public String getMasterWebappRoot() {
+    return getFlumeHome() + File.separator + get(WEBAPP_ROOT_MASTER, null);
+  }
+
+  /**
+   * Returns the webapp root for the node (i.e. agent or collector).
+   */
+  public String getNodeWebappRoot() {
+    return getFlumeHome() + File.separator + get(WEBAPP_ROOT_NODE, null);
   }
 
   /**
