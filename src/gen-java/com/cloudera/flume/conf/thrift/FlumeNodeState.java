@@ -17,7 +17,8 @@ public enum FlumeNodeState implements org.apache.thrift.TEnum {
   ACTIVE(3),
   ERROR(4),
   LOST(5),
-  DECOMMISSIONED(6);
+  DECOMMISSIONED(6),
+  CLOSING(7);
 
   private final int value;
 
@@ -52,6 +53,8 @@ public enum FlumeNodeState implements org.apache.thrift.TEnum {
         return LOST;
       case 6:
         return DECOMMISSIONED;
+      case 7:
+        return CLOSING;
       default:
         return null;
     }
