@@ -566,7 +566,7 @@ to call at top-level: ant deploy-contrib compile-core-test
         errorProperty="tests.failed" failureProperty="tests.failed"
         timeout="${test.timeout}"
         dir="${test.build.dir}">
-      <classpath location="${ivy.tools.lib}/cobertura.jar"/>
+      <classpath location="${ivy.tools.lib}/cobertura-1.9.4.1.jar"/>
       <classpath location="build/instrumented-classes"/>
       
       <!-- uncomment this if you want to attach a debugger -->

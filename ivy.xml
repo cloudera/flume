@@ -50,7 +50,7 @@
     <dependency org="pmd" name="pmd" rev="4.2.5" conf="pmd->default"/>
 
     <dependency org="net.sourceforge.cobertura" name="cobertura"
-                rev="1.9.4.1" conf="coverage->default" transitive="false"/>
+                rev="1.9.4.1" conf="coverage->default"/>
 
     <dependency org="org.apache.rat" name="apache-rat-tasks"
                 rev="0.6" conf="releaseaudit->default"/>
