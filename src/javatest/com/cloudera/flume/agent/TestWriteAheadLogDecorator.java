@@ -31,6 +31,7 @@ import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.FlumeBuilder;
 import com.cloudera.flume.conf.FlumeConfiguration;
 import com.cloudera.flume.conf.FlumeSpecException;
+import com.cloudera.flume.conf.LogicalNodeContext;
 import com.cloudera.flume.conf.ReportTestingContext;
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventImpl;
@@ -44,7 +45,8 @@ import com.cloudera.util.FileUtil;
  * Tests WriteAheadLogDeco's builder, multiple open close, and actual behavior.
  */
 public class TestWriteAheadLogDecorator {
-  static final Logger LOG = LoggerFactory.getLogger(TestWriteAheadLogDecorator.class);
+  static final Logger LOG = LoggerFactory
+      .getLogger(TestWriteAheadLogDecorator.class);
   File tmpdir = null;
 
   @Before
@@ -81,14 +83,14 @@ public class TestWriteAheadLogDecorator {
     FlumeNode node = new FlumeNode(new MockMasterRPC(), false, false);
 
     String cfg = " { ackedWriteAhead => null}";
-    FlumeBuilder.buildSink(new Context(), cfg);
+    FlumeBuilder.buildSink(LogicalNodeContext.testingContext(), cfg);
 
     String cfg1 = "{ ackedWriteAhead(15000) => null}";
-    FlumeBuilder.buildSink(new Context(), cfg1);
+    FlumeBuilder.buildSink(LogicalNodeContext.testingContext(), cfg1);
 
     String cfg4 = "{ ackedWriteAhead(\"failurama\") => null}";
     try {
-      FlumeBuilder.buildSink(new Context(), cfg4);
+      FlumeBuilder.buildSink(LogicalNodeContext.testingContext(), cfg4);
     } catch (Exception e) {
       return;
     }
@@ -96,18 +98,20 @@ public class TestWriteAheadLogDecorator {
   }
 
   @Test
-  public void testOpenClose() throws IOException, FlumeSpecException {
+  public void testOpenClose() throws IOException, FlumeSpecException,
+      InterruptedException {
     String rpt = "foo";
     String snk = " { ackedWriteAhead(100) => [console,  counter(\"" + rpt
         + "\") ] } ";
     for (int i = 0; i < 100; i++) {
-      EventSink es = FlumeBuilder.buildSink(new Context(), snk);
+      EventSink es = FlumeBuilder.buildSink(
+          LogicalNodeContext.testingContext(), snk);
       es.open();
       es.close();
     }
 
-  }  
-  
+  }
+
   /**
    * This is a trickier test case. We create a console/counter sink that has a
    * ackedWriteAhead in front of it (aiming for 100 ms per batch). All events
@@ -120,9 +124,11 @@ public class TestWriteAheadLogDecorator {
     int count = 10;
     String rpt = "foo";
     String snk = " { ackedWriteAhead(500) => { ackChecker => [console,  counter(\""
-        + rpt + "\") ] } } ";            
-    
-    EventSink es = FlumeBuilder.buildSink(new ReportTestingContext(), snk);
+        + rpt + "\") ] } } ";
+
+    EventSink es = FlumeBuilder.buildSink(new ReportTestingContext(
+        LogicalNodeContext.testingContext()), snk);
+
     es.open();
     for (int i = 0; i < count; i++) {
       Event e = new EventImpl(("test message " + i).getBytes());

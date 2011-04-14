@@ -37,6 +37,7 @@ import com.cloudera.flume.agent.DirectMasterRPC;
 import com.cloudera.flume.agent.FlumeNode;
 import com.cloudera.flume.agent.LogicalNode;
 import com.cloudera.flume.conf.FlumeSpecException;
+import com.cloudera.flume.conf.LogicalNodeContext;
 import com.cloudera.flume.core.EventSink;
 import com.cloudera.flume.core.EventSource;
 import com.cloudera.flume.core.EventUtil;
@@ -147,8 +148,8 @@ public class TestConcurrentDFOMan {
             dfos[idx] = dfoMan; // save for checking.
 
             // short trigger causes lots of rolls
-            EventSink snk = new DiskFailoverDeco<EventSink>(cnt1, dfoMan,
-                new TimeTrigger(100), 50);
+            EventSink snk = new DiskFailoverDeco(cnt1, LogicalNodeContext
+                .testingContext(), dfoMan, new TimeTrigger(100), 50);
 
             ReportManager.get().add(cnt1);
             // make each parallel instance send a slightly different number of
@@ -190,7 +191,7 @@ public class TestConcurrentDFOMan {
       assertEquals(exp, (int) cnt.getCount());
 
       // check dfo reports to see if they are sane.
-      ReportEvent rpt = dfos[i].getReport();
+      ReportEvent rpt = dfos[i].getMetrics();
       LOG.info(rpt);
       long failovered = rpt.getLongMetric(DiskFailoverManager.A_MSG_WRITING);
       assertEquals(events + i, failovered);
@@ -226,7 +227,7 @@ public class TestConcurrentDFOMan {
     boolean success = true;
 
     for (int i = 0; i < threads; i++) {
-      LOG.info(dfos[i].getReport());
+      LOG.info(dfos[i].getMetrics());
     }
 
     for (int i = 0; i < threads; i++) {
@@ -264,7 +265,7 @@ public class TestConcurrentDFOMan {
 
   boolean areDFOsReconfigured(Collection<LogicalNode> lns) {
     for (LogicalNode n : lns) {
-      long val = n.getReport().getLongMetric(LogicalNode.A_RECONFIGURES);
+      long val = n.getMetrics().getLongMetric(LogicalNode.A_RECONFIGURES);
       if (val == 0) {
         return false;
       }

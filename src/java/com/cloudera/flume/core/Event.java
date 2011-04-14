@@ -41,21 +41,34 @@ abstract public class Event {
     FATAL, ERROR, WARN, INFO, DEBUG, TRACE
   };
 
-  // the body - a blob of raw bytes that contains the raw entry. Values can be
-  // extracted from this body but will not change the body.
+  /**
+   * the body - a blob of raw bytes that contains the raw entry. Values can be
+   * extracted from this body but must not change the body. This should never
+   * return null. To change an even body, one should create a new event.
+   */
   abstract public byte[] getBody();
 
-  // the priority - user specified priority
+  /**
+   * the priority - user specified priority
+   */
   abstract public Priority getPriority();
 
-  // a time stamp - unix millis,
+  /**
+   * a time stamp - unix millis
+   */
   abstract public long getTimestamp();
 
-  // a nano time - for ordering if entries have the same millis
+  /**
+   * a nano time - for ordering if entries have the same millis
+   */
   abstract public long getNanos();
 
-  // TODO (jon) consider wrapping this. Chose string because it doesn't assume
-  // ipv4 or ipv6, etc. May cause canonalicalization problems.
+  /**
+   * Host name of the machine that generated this event.
+   * 
+   * TODO (jon) consider wrapping this. Chose string because it doesn't assume
+   * ipv4 or ipv6, etc. May cause canonalicalization problems.
+   */
   abstract public String getHost();
 
   /**
@@ -170,7 +183,7 @@ abstract public class Event {
    * 
    * All shorthands are Date format strings, currently.
    * 
-   * Returns the empty string if an escape is not recognised.
+   * Returns the empty string if an escape is not recognized.
    * 
    * Dates follow the same format as unix date, with a few exceptions.
    * 
@@ -282,7 +295,7 @@ abstract public class Event {
    * Replace all substrings of form %{tagname} with get(tagname).toString() and
    * all shorthand substrings of form %x with a special value.
    * 
-   * Any unrecognised / not found tags will be replaced with the empty string.
+   * Any unrecognized / not found tags will be replaced with the empty string.
    * 
    * TODO(henry): we may want to consider taking this out of Event and into a
    * more general class when we get more use cases for this pattern.
@@ -317,7 +330,7 @@ abstract public class Event {
 
   /**
    * Instead of replacing escape sequences in a string, this method returns a
-   * mapping of an attibute name to the value based on the escape sequence found
+   * mapping of an attribute name to the value based on the escape sequence found
    * in the argument string.
    */
   public Map<String, String> getEscapeMapping(String in) {

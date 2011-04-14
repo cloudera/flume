@@ -18,26 +18,23 @@
 package com.cloudera.flume.handlers.text;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.FlumeConfiguration;
 import com.cloudera.flume.conf.SourceFactory.SourceBuilder;
 import com.cloudera.flume.core.Event;
-import com.cloudera.flume.core.EventImpl;
 import com.cloudera.flume.core.EventSource;
+import com.cloudera.flume.handlers.text.CustomDelimCursor.DelimMode;
 import com.cloudera.util.Clock;
+import com.cloudera.util.Pair;
 import com.google.common.base.Preconditions;
 
 /**
@@ -80,7 +77,7 @@ import com.google.common.base.Preconditions;
  * TestTailSource.readRotatePrexistingSameSizeWithNewModetime)
  * 
  * Ideally this would use the inode number of file handle number but didn't find
- * java api to get these, or Java 7's WatchSevice file watcher API.
+ * java api to get these, or Java 7's WatchService file watcher API.
  */
 public class TailSource extends EventSource.Base {
   private static final Logger LOG = LoggerFactory.getLogger(TailSource.class);
@@ -123,6 +120,29 @@ public class TailSource extends EventSource.Base {
     long modTime = f.lastModified();
     Cursor c = new Cursor(sync, f, readOffset, fileLen, modTime);
     addCursor(c);
+
+  }
+
+  /** Custom delimiter version **/
+  public TailSource(File f, long offset, long waitTime, boolean startFromEnd,
+      String regex, DelimMode dm) {
+    Preconditions.checkArgument(f != null, "Null File is an illegal argument");
+    Preconditions.checkArgument(waitTime > 0,
+        "waitTime <=0 is an illegal argument");
+    Preconditions.checkArgument(regex != null,
+        "Null regex is an illegal argument");
+    Preconditions.checkArgument(dm != null,
+        "Null Delimiter mode is an illegal argument");
+    this.sleepTime = waitTime;
+
+    // add initial cursor.
+    long fileLen = f.length();
+    long readOffset = startFromEnd ? fileLen : offset;
+    long modTime = f.lastModified();
+
+    Cursor c = new CustomDelimCursor(sync, f, readOffset, fileLen, modTime,
+        regex, dm);
+    addCursor(c);
   }
 
   /**
@@ -132,332 +152,6 @@ public class TailSource extends EventSource.Base {
   public TailSource(long waitTime) {
     this.sleepTime = waitTime;
   }
-
-  /**
-   * To support multiple tail readers, we have a Cursor for each file name
-   * 
-   * It takes a File and optionally a starting offset in the file. From there it
-   * attempts to open the file as a RandomAccessFile, and reads data using the
-   * RAF's FileChannel into a ByteBuffer. As \n's are found in the buffer, new
-   * event bodies are created and new Events are create and put into the sync
-   * queue.
-   * 
-   * If a file rotate is detected, the previous RAF is closed, and the File with
-   * the specified name is opened.
-   */
-  static class Cursor {
-    final BlockingQueue<Event> sync;
-    // For following a file name
-    final File file;
-    // For buffering reads
-    final ByteBuffer buf = ByteBuffer.allocateDirect(Short.MAX_VALUE);
-    // For closing file handles and getting FileChannels
-    RandomAccessFile raf = null;
-    // For reading data
-    FileChannel in = null;
-
-    long lastFileMod;
-    long lastChannelPos;
-    long lastChannelSize;
-    int readFailures;
-
-    Cursor(BlockingQueue<Event> sync, File f) {
-      this(sync, f, 0, 0, 0);
-    }
-
-    Cursor(BlockingQueue<Event> sync, File f, long lastReadOffset,
-        long lastFileLen, long lastMod) {
-      this.sync = sync;
-      this.file = f;
-      this.lastChannelPos = lastReadOffset;
-      this.lastChannelSize = lastFileLen;
-      this.lastFileMod = lastMod;
-      this.readFailures = 0;
-    }
-
-    /**
-     * Setup the initial cursor position.
-     */
-    void initCursorPos() throws InterruptedException {
-      try {
-        LOG.debug("initCursorPos " + file);
-        raf = new RandomAccessFile(file, "r");
-        raf.seek(lastChannelPos);
-        in = raf.getChannel();
-      } catch (FileNotFoundException e) {
-        resetRAF();
-      } catch (IOException e) {
-        resetRAF();
-      }
-    }
-
-    /**
-     * Flush any buffering the cursor has done. If the buffer does not end with
-     * '\n', the remainder will get turned into a new event.
-     * 
-     * This assumes that any remainders in buf are a single event -- this
-     * corresponds to the last lines of files that do not end with '\n'
-     */
-    void flush() throws InterruptedException {
-      if (raf != null) {
-        try {
-          raf.close(); // release handles
-        } catch (IOException e) {
-          LOG.error("problem closing file " + e.getMessage(), e);
-        }
-      }
-
-      buf.flip(); // buffer consume mode
-      int remaining = buf.remaining();
-      if (remaining > 0) {
-        byte[] body = new byte[remaining];
-        buf.get(body, 0, remaining); // read all data
-
-        Event e = new EventImpl(body);
-        e.set(A_TAILSRCFILE, file.getName().getBytes());
-        try {
-          sync.put(e);
-        } catch (InterruptedException e1) {
-          LOG.error("interruptedException! " + e1.getMessage(), e1);
-          throw e1;
-        }
-      }
-      in = null;
-      buf.clear();
-    }
-
-    /**
-     * Restart random accessfile cursor
-     * 
-     * This assumes that the buf is in write mode, and that any remainders in
-     * buf are last bytes of files that do not end with \n
-     * 
-     * @throws InterruptedException
-     */
-    void resetRAF() throws InterruptedException {
-      LOG.debug("reseting cursor");
-      flush();
-      lastChannelPos = 0;
-      lastFileMod = 0;
-      readFailures = 0;
-    }
-
-    /**
-     * There is a race here on file system states -- a truly evil dir structure
-     * can change things between these calls. Nothing we can really do though.
-     * 
-     * Ideally we would get and compare inode numbers, but in java land, we
-     * can't do that.
-     * 
-     * returns true if changed, false if not.
-     */
-    boolean checkForUpdates() throws IOException {
-      LOG.debug("tail " + file + " : recheck");
-      if (file.isDirectory()) { // exists but not a file
-        IOException ioe = new IOException("Tail expects a file '" + file
-            + "', but it is a dir!");
-        LOG.error(ioe.getMessage());
-        throw ioe;
-      }
-
-      if (!file.exists()) {
-        LOG.debug("Tail '" + file + "': nothing to do, waiting for a file");
-        return false; // do nothing
-      }
-
-      if (!file.canRead()) {
-        throw new IOException("Permission denied on " + file);
-      }
-
-      // oh! f exists and is a file
-      try {
-        if (in != null) {
-          if (lastFileMod == file.lastModified()
-              && lastChannelPos == file.length()) {
-            LOG.debug("Tail '" + file + "': recheck still the same");
-            return false;
-          }
-        }
-
-        // let's open the file
-        raf = new RandomAccessFile(file, "r");
-        lastFileMod = file.lastModified();
-        in = raf.getChannel();
-        lastChannelPos = in.position();
-        lastChannelSize = in.size();
-
-        LOG.debug("Tail '" + file + "': opened last mod=" + lastFileMod
-            + " lastChannelPos=" + lastChannelPos + " lastChannelSize="
-            + lastChannelSize);
-        return true;
-      } catch (FileNotFoundException fnfe) {
-        // possible because of file system race, we can recover from this.
-        LOG.debug("Tail '" + file
-            + "': a file existed then disappeared, odd but continue");
-        return false;
-      }
-    }
-
-    boolean extractLines(ByteBuffer buf, long fmod) throws IOException,
-        InterruptedException {
-      boolean madeProgress = false;
-      int start = buf.position();
-      buf.mark();
-      while (buf.hasRemaining()) {
-        byte b = buf.get();
-        // TODO windows: ('\r\n') line separators
-        if (b == '\n') {
-          int end = buf.position();
-          int sz = end - start;
-          byte[] body = new byte[sz - 1];
-          buf.reset(); // go back to mark
-          buf.get(body, 0, sz - 1); // read data
-          buf.get(); // read '\n'
-          buf.mark(); // new mark.
-          start = buf.position();
-
-          // this may be racy.
-          lastChannelPos = in.position();
-          lastFileMod = fmod;
-
-          Event e = new EventImpl(body);
-          e.set(A_TAILSRCFILE, file.getName().getBytes());
-          sync.put(e);
-          madeProgress = true;
-        }
-      }
-
-      // rewind for any left overs
-      buf.reset();
-      buf.compact(); // shift leftovers to front.
-      return madeProgress;
-    }
-
-    /**
-     * Attempt to get new data.
-     * 
-     * Returns true if cursor's state has changed (progress was made)
-     */
-    boolean tailBody() throws InterruptedException {
-      try {
-        // no file named f currently, needs to be opened.
-        if (in == null) {
-          LOG.debug("tail " + file + " : cur file is null");
-          return checkForUpdates();
-        }
-
-        // get stats from raf and from f.
-        long flen = file.length(); // length of filename
-        long chlen = in.size(); // length of file.
-        long fmod = file.lastModified(); // ideally this has raf's last
-        // modified.
-
-        lastChannelSize = chlen;
-
-        // cases:
-        if (chlen == flen && lastChannelPos == flen) {
-          if (lastFileMod == fmod) {
-            // // 3) raf len == file len, last read == file len, lastMod same ->
-            // no change
-            LOG.debug("tail " + file + " : no change");
-            return false;
-          } else {
-            // // 4) raf len == file len, last read == file len, lastMod diff ?!
-            // ->
-            // restart file.
-            LOG.debug("tail " + file
-                + " : same file len, but new last mod time" + " -> reset");
-            resetRAF();
-            return true;
-          }
-        }
-
-        // file has changed
-        LOG.debug("tail " + file + " : file changed");
-        LOG.debug("tail " + file + " : old size, mod time " + lastChannelPos
-            + "," + lastFileMod);
-        LOG.debug("tail " + file + " : new size, " + "mod time " + flen + ","
-            + fmod);
-
-        // // 1) truncated file? -> restart file
-        // file truncated?
-        if (lastChannelPos > flen) {
-          LOG.debug("tail " + file + " : file truncated!?");
-
-          // normally we would check the inode, but since we cannot, we restart
-          // the file.
-          resetRAF();
-          return true;
-        }
-
-        // I make this a rendezvous because this source is being pulled
-        // copy data from current file pointer to EOF to dest.
-        boolean madeProgress = false;
-
-        int rd;
-        while ((rd = in.read(buf)) > 0) {
-          // need char encoder to find line breaks in buf.
-          lastChannelPos += (rd < 0 ? 0 : rd); // rd == -1 if at end of
-          // stream.
-
-          int lastRd = 0;
-          int loops = 0;
-          boolean progress = false;
-          do {
-
-            if (lastRd == -1 && rd == -1) {
-              return madeProgress;
-            }
-
-            buf.flip();
-
-            // extract lines
-            progress = extractLines(buf, fmod);
-            if (progress) {
-              madeProgress = true;
-            }
-
-            lastRd = rd;
-            loops++;
-          } while (progress); // / potential race
-
-          // if the amount read catches up to the size of the file, we can fall
-          // out and let another fileChannel be read. If the last buffer isn't
-          // read, then it remain in the byte buffer.
-
-        }
-
-        if (rd == -1 && flen != lastChannelSize) {
-          // we've rotated with a longer file.
-          LOG.debug("tail " + file
-              + " : no progress but raflen != filelen, resetting");
-          resetRAF();
-          return true;
-
-        }
-
-        // LOG.debug("tail " + file + ": read " + len + " bytes");
-        LOG.debug("tail " + file + ": read " + lastChannelPos + " bytes");
-      } catch (IOException e) {
-        LOG.debug(e.getMessage(), e);
-        in = null;
-        readFailures++;
-
-        /*
-         * Back off on retries after 3 failures so we don't burn cycles. Note
-         * that this can exacerbate the race condition illustrated above where a
-         * file is truncated, created, written to, and truncated / removed while
-         * we're sleeping.
-         */
-        if (readFailures > 3) {
-          LOG.warn("Encountered " + readFailures + " failures on "
-              + file.getAbsolutePath() + " - sleeping");
-          return false;
-        }
-      }
-      return true;
-    }
-  };
 
   /**
    * This is the main driver thread that runs through the file cursor list
@@ -589,21 +283,58 @@ public class TailSource extends EventSource.Base {
     thd.start();
   }
 
+  /**
+   * This takes a context and extracts the delimiter regex and dilimiter mode.
+   * If no mode is specified it defaults to EXCLUDE mode. If no regex is
+   * specified, null is returned.
+   */
+  public static Pair<String, DelimMode> extractDelimContext(Context ctx) {
+    String delimRegex = ctx.getValue("delim");
+    if (delimRegex == null) {
+      // don't have a regex, return null;
+      return null;
+    }
+
+    // figure out mode, and delimiters
+    String delimModeStr = ctx.getValue("delimMode");
+    DelimMode delimMode = DelimMode.EXCLUDE; // default to exclude mode
+    if (delimModeStr != null) {
+      if ("exclude".equals(delimModeStr)) {
+        delimMode = DelimMode.EXCLUDE;
+      } else if ("prev".equals(delimModeStr)) {
+        delimMode = DelimMode.INCLUDE_PREV;
+      } else if ("next".equals(delimModeStr)) {
+        delimMode = DelimMode.INCLUDE_NEXT;
+      }
+    }
+    return new Pair<String, DelimMode>(delimRegex, delimMode);
+
+  }
+
   public static SourceBuilder builder() {
     return new SourceBuilder() {
 
       @Override
-      public EventSource build(String... argv) {
+      public EventSource build(Context ctx, String... argv) {
         if (argv.length != 1 && argv.length != 2) {
           throw new IllegalArgumentException(
-              "usage: tail(filename, [startFromEnd]) ");
+              "usage: tail(filename, [startFromEnd] {, delim=\"regex\", delimMode=\"exclude|prev|next\"}) ");
         }
         boolean startFromEnd = false;
         if (argv.length == 2) {
           startFromEnd = Boolean.parseBoolean(argv[1]);
         }
+
+        // delim regex, delim mode
+        Pair<String, DelimMode> mode = extractDelimContext(ctx);
+        if (mode == null) {
+          // normal '\n' delimiter in exclude mode
+          return new TailSource(new File(argv[0]), 0, FlumeConfiguration.get()
+              .getTailPollPeriod(), startFromEnd);
+        }
+
         return new TailSource(new File(argv[0]), 0, FlumeConfiguration.get()
-            .getTailPollPeriod(), startFromEnd);
+            .getTailPollPeriod(), startFromEnd, mode.getLeft(), mode.getRight());
       }
     };
   }
@@ -612,17 +343,35 @@ public class TailSource extends EventSource.Base {
     return new SourceBuilder() {
 
       @Override
-      public EventSource build(String... argv) {
+      public EventSource build(Context ctx, String... argv) {
         Preconditions.checkArgument(argv.length >= 1,
             "usage: multitail(file1[, file2[, ...]]) ");
         boolean startFromEnd = false;
         long pollPeriod = FlumeConfiguration.get().getTailPollPeriod();
         TailSource src = null;
+
+        // delim regex, delim mode
+        Pair<String, DelimMode> mode = extractDelimContext(ctx);
+
         for (int i = 0; i < argv.length; i++) {
-          if (src == null) {
-            src = new TailSource(new File(argv[i]), 0, pollPeriod, startFromEnd);
+          if (mode == null) {
+            // default '\n' exclude mode
+            if (src == null) {
+              src = new TailSource(new File(argv[i]), 0, pollPeriod,
+                  startFromEnd);
+            } else {
+              src.addCursor(new Cursor(src.sync, new File(argv[i])));
+            }
           } else {
-            src.addCursor(new Cursor(src.sync, new File(argv[i])));
+            // custom delimiters and delimiter modes
+            if (src == null) {
+              src = new TailSource(new File(argv[i]), 0, pollPeriod,
+                  startFromEnd, mode.getLeft(), mode.getRight());
+            } else {
+              src.addCursor(new CustomDelimCursor(src.sync, new File(argv[i]),
+                  mode.getLeft(), mode.getRight()));
+            }
+
           }
         }
         return src;

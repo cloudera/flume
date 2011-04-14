@@ -53,7 +53,8 @@ import com.google.common.base.Preconditions;
  * The number of successful and failed bloom checks are also recorded.
  */
 public class BloomCheckDecorator extends EventSinkDecorator<EventSink> {
-  public static final Logger LOG = LoggerFactory.getLogger(BloomCheckDecorator.class);
+  public static final Logger LOG = LoggerFactory
+      .getLogger(BloomCheckDecorator.class);
   protected BloomSet bloom;
   final int size; // size of bloom bit array in bytes
   final int hashes; // number of hashes per insertion/membership test
@@ -107,7 +108,7 @@ public class BloomCheckDecorator extends EventSinkDecorator<EventSink> {
    * {@inheritDoc}
    */
   @Override
-  synchronized public void open() throws IOException {
+  synchronized public void open() throws IOException, InterruptedException {
     bloom = new BloomSet(size, hashes);
     state = BloomCheckState.UNKNOWN;
     successCount = 0;
@@ -120,7 +121,7 @@ public class BloomCheckDecorator extends EventSinkDecorator<EventSink> {
    * {@inheritDoc}
    */
   @Override
-  public void append(Event e) throws IOException {
+  public void append(Event e) throws IOException, InterruptedException {
     byte[] data = e.get(BloomGeneratorDeco.A_BLOOMSETDATA);
     // if has BloomSet Data is present
     if (data != null) {
@@ -154,7 +155,7 @@ public class BloomCheckDecorator extends EventSinkDecorator<EventSink> {
         }
       }
 
-      ReportEvent rpt = getReport();
+      ReportEvent rpt = getMetrics();
       LOG.info(rpt.toText());
       reportSink.append(e);
       // record info but do not pass the message on.
@@ -171,7 +172,7 @@ public class BloomCheckDecorator extends EventSinkDecorator<EventSink> {
    * {@inheritDoc}
    */
   @Override
-  synchronized public void close() throws IOException {
+  synchronized public void close() throws IOException, InterruptedException {
     reportSink.close();
   }
 
@@ -179,8 +180,8 @@ public class BloomCheckDecorator extends EventSinkDecorator<EventSink> {
    * {@inheritDoc}
    */
   @Override
-  synchronized public ReportEvent getReport() {
-    ReportEvent evt = super.getReport();
+  synchronized public ReportEvent getMetrics() {
+    ReportEvent evt = super.getMetrics();
     evt.set(A_STATE, state.toString().getBytes());
     Attributes.setInt(evt, A_SUCCESS, successCount);
     Attributes.setInt(evt, A_FAILS, failCount);

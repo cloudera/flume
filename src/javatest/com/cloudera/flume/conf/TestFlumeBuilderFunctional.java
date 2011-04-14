@@ -56,7 +56,8 @@ public class TestFlumeBuilderFunctional implements ExampleData {
   final static int LINES = 25;
 
   @Test
-  public void testBuildConsole() throws IOException, FlumeSpecException {
+  public void testBuildConsole() throws IOException, FlumeSpecException,
+      InterruptedException {
 
     EventSink snk = FlumeBuilder.buildSink(new Context(), "console");
     snk.open();
@@ -65,9 +66,11 @@ public class TestFlumeBuilderFunctional implements ExampleData {
   }
 
   @Test
-  public void testBuildTextSource() throws IOException, FlumeSpecException {
+  public void testBuildTextSource() throws IOException, FlumeSpecException,
+      InterruptedException {
+    Context ctx = LogicalNodeContext.testingContext();
     LOG.info("Working Dir path: " + new File(".").getAbsolutePath());
-    EventSource src = FlumeBuilder.buildSource(SOURCE);
+    EventSource src = FlumeBuilder.buildSource(ctx, SOURCE);
     src.open();
     Event e = null;
     int cnt = 0;
@@ -82,10 +85,11 @@ public class TestFlumeBuilderFunctional implements ExampleData {
   @Test
   public void testConnector() throws IOException, InterruptedException,
       FlumeSpecException {
+    Context ctx = LogicalNodeContext.testingContext();
     EventSink snk = FlumeBuilder.buildSink(new Context(), "console");
     snk.open();
 
-    EventSource src = FlumeBuilder.buildSource(SOURCE);
+    EventSource src = FlumeBuilder.buildSource(ctx, SOURCE);
     src.open();
 
     DirectDriver conn = new DirectDriver(src, snk);
@@ -99,10 +103,12 @@ public class TestFlumeBuilderFunctional implements ExampleData {
   }
 
   @Test
-  public void testMultiSink() throws IOException, FlumeSpecException {
+  public void testMultiSink() throws IOException, FlumeSpecException,
+      InterruptedException {
+    Context ctx = LogicalNodeContext.testingContext();
     LOG.info("== multi test start");
     String multi = "[ console , accumulator(\"count\") ]";
-    EventSource src = FlumeBuilder.buildSource(SOURCE);
+    EventSource src = FlumeBuilder.buildSource(ctx, SOURCE);
     EventSink snk = FlumeBuilder.buildSink(new ReportTestingContext(), multi);
     src.open();
     snk.open();
@@ -116,12 +122,15 @@ public class TestFlumeBuilderFunctional implements ExampleData {
   }
 
   @Test
-  public void testDecorated() throws IOException, FlumeSpecException {
+  public void testDecorated() throws IOException, FlumeSpecException,
+      InterruptedException {
+    Context ctx = LogicalNodeContext.testingContext();
+
     LOG.info("== Decorated start");
     String decorated = "{ intervalSampler(5) =>  accumulator(\"count\")}";
     // String decorated = "{ intervalSampler(5) =>  console }";
 
-    EventSource src = FlumeBuilder.buildSource(SOURCE);
+    EventSource src = FlumeBuilder.buildSource(ctx, SOURCE);
     EventSink snk = FlumeBuilder.buildSink(new ReportTestingContext(),
         decorated);
     src.open();
@@ -136,11 +145,14 @@ public class TestFlumeBuilderFunctional implements ExampleData {
   }
 
   @Test
-  public void testFailover() throws IOException, FlumeSpecException {
+  public void testFailover() throws IOException, FlumeSpecException,
+      InterruptedException {
+    Context ctx = LogicalNodeContext.testingContext();
+
     LOG.info("== failover start");
     // the primary is 90% flakey
     String multi = "< { flakeyAppend(.9,1337) => console } ? accumulator(\"count\") >";
-    EventSource src = FlumeBuilder.buildSource(SOURCE);
+    EventSource src = FlumeBuilder.buildSource(ctx, SOURCE);
     EventSink snk = FlumeBuilder.buildSink(new ReportTestingContext(), multi);
     src.open();
     snk.open();
@@ -153,73 +165,9 @@ public class TestFlumeBuilderFunctional implements ExampleData {
     LOG.info("== failover stop");
   }
 
-  /**
-   * Functionally tests a let expression. First we use let to create a counter
-   * called count. Then we have a failover sink -- the primary is 50% flakey,
-   * but goes to count and and the backup is reliable and the same instance of
-   * count. 100 messages are sent and the count should count all 100 regardless
-   * of the path the message took (primary or backup).
-   * 
-   * This also checks that open and close is handled correctly. Open should open
-   * the let part of the expression, and not attempt to reopen them in the body
-   * section.
-   * 
-   * An accumulator must be used in these tests. Here's why: When a failure is
-   * detected on the primary of a failover sink, it periodically attempts to
-   * *reopen* the primary sink in order to use it again. The behavior of counter
-   * when opened is to reset which is a problem.
-   * 
-   * How we discovered this: When all tests are run in the same jvm, the backoff
-   * timing of the failover gets set to 0 (no backoff) by another test and these
-   * tests end up reopening the primary and resetting which restarts the counter
-   * at 0. An accumulator just keeps counting.
-   */
   @Test
-  public void testLet() throws IOException, FlumeSpecException {
-    LOG.info("== let and failover start");
-    // the primary is 50% flakey but the accumulator should get all the
-    // messages.
-    String letcount = "let count := accumulator(\"count\") in < { flakeyAppend(.5,1337) => count} ? count >";
-    EventSource src = MemorySinkSource.cannedData("canned data ", 100);
-    EventSink snk = FlumeBuilder
-        .buildSink(new ReportTestingContext(), letcount);
-    src.open();
-    snk.open();
-    EventUtil.dumpAll(src, snk);
-    src.close();
-    snk.close();
-    AccumulatorSink ctr = (AccumulatorSink) ReportManager.get().getReportable(
-        "count");
-    assertEquals(100, ctr.getCount());
-    LOG.info("== let and failover stop");
-  }
-
-  /**
-   * Lets allow for shadowing, sane semantics dictate the inner scope wins
-   */
-  @Test
-  public void testLetShadow() throws IOException, FlumeSpecException {
-    LOG.info("== let shadowing start");
-    String let = "let foo := accumulator(\"foo\") in let foo := accumulator(\"bar\") in foo";
-    EventSource src = MemorySinkSource.cannedData("canned data ", 100);
-    EventSink snk = FlumeBuilder.buildSink(new ReportTestingContext(), let);
-    src.open();
-    snk.open();
-    EventUtil.dumpAll(src, snk);
-    src.close();
-    snk.close();
-    AccumulatorSink fooctr = (AccumulatorSink) ReportManager.get()
-        .getReportable("foo");
-    AccumulatorSink barctr = (AccumulatorSink) ReportManager.get()
-        .getReportable("bar");
-    assertEquals(0, fooctr.getCount());
-    assertEquals(100, barctr.getCount());
-    LOG.info("== let and failover stop");
-
-  }
-
-  @Test
-  public void testNode() throws IOException, FlumeSpecException {
+  public void testNode() throws IOException, FlumeSpecException,
+      InterruptedException {
     LOG.info("== node start");
     String multi = "localhost : "
         + SOURCE

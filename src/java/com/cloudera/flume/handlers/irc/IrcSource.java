@@ -28,6 +28,7 @@ import org.schwering.irc.lib.IRCUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.FlumeConfiguration;
 import com.cloudera.flume.conf.SourceFactory.SourceBuilder;
 import com.cloudera.flume.core.Event;
@@ -186,7 +187,7 @@ public class IrcSource extends EventSource.Base {
   @Override
   public Event next() throws IOException {
     try {
-      Event e =  q.take();
+      Event e = q.take();
       updateEventProcessingStats(e);
       return e;
     } catch (InterruptedException e) {
@@ -198,7 +199,7 @@ public class IrcSource extends EventSource.Base {
   public static SourceBuilder builder() {
     return new SourceBuilder() {
       @Override
-      public EventSource build(String... argv) {
+      public EventSource build(Context ctx, String... argv) {
         Preconditions.checkArgument(argv.length == 4,
             "usage: ircSource(server, port, nick, chan)");
         String server = argv[0];
@@ -208,44 +209,5 @@ public class IrcSource extends EventSource.Base {
         return new IrcSource(server, port, nick, chan);
       }
     };
-  }
-
-  /**
-   * A simple irc client using the source irc source interface.
-   */
-  public static void main(String[] argv) throws IOException {
-
-    if (argv.length != 4) {
-      System.err.println("Usage: IrcSource server port nick #channel");
-      System.exit(-1);
-    }
-
-    String server = argv[0];
-    int port = 0;
-    try {
-      port = Integer.parseInt(argv[1]);
-    } catch (Exception e) {
-      System.err.println("Problem parsing port number: " + argv[1]);
-      System.exit(-1);
-    }
-
-    String nick = argv[2];
-    String chan = argv[3];
-
-    final IrcSource src = new IrcSource(server, port, nick, chan);
-
-    new Thread() {
-      public void run() {
-        try {
-          while (true) {
-            System.out.println(src.next());
-          }
-        } catch (IOException e) {
-          // TODO Auto-generated catch block
-          e.printStackTrace();
-        }
-      }
-    }.start();
-    src.open();
   }
 }

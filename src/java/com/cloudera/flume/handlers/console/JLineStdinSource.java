@@ -32,6 +32,7 @@ import jline.ConsoleReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.SourceFactory.SourceBuilder;
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventImpl;
@@ -47,7 +48,7 @@ import com.google.common.base.Preconditions;
  * The normal StdinSource that uses System.in.readLine() only has a blocking
  * mode. It does not return if in the readLine call with no incoming data.
  * 
- * Here we use jline's readline which acts at a character by character. To close
+ * Here we use jline's readline which acts character by character. To close
  * the jline readline, we interpose a extra check on read() that will return
  * CTRL_D (EOF) and allow a pending readline to exit.
  * 
@@ -144,7 +145,7 @@ public class JLineStdinSource extends EventSource.Base {
   public static SourceBuilder builder() {
     return new SourceBuilder() {
       @Override
-      public EventSource build(String... argv) {
+      public EventSource build(Context ctx, String... argv) {
         return new JLineStdinSource();
       }
     };

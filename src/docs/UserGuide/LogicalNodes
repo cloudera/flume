@@ -57,7 +57,7 @@ machine names.
 
 ----
 agent1 : _source_ | autoBEChain ; 
-collector1 : collectorSource | collectorSink("hdfs://....") ; 
+collector1 : autoCollectorSource | collectorSink("hdfs://....") ; 
 ----
 
 Later you learn that host1 is the name of the agent1 machine and host2 is the 
@@ -104,10 +104,18 @@ command:
 map host3 collector1
 ----
 
-NOTE: There are some limitations that need to be further described in this 
-section.
+NOTE: Logical nodes are not templates -- if you want to have the same
+source/sink pairs on a particular physical node, you need to have a
+logical node for each.  When adminstering many logical nodes it is
+often useful to write a script that generates configurations and
+unique individual logical node names.  Using the part of a host name
+is a common pattern.
 
+ 
 ==== Logical Sources and Logical Sinks
+
+WARNING: The logical sources and logical sinks feature does not
+currently work when using multiple masters.
 
 In the previous example, we used two abstractions under-the-covers that allow 
 the specifications of a graph topology for communications 'without having to 
@@ -161,6 +169,9 @@ the removed collectors will be automatically replaced by other failover nodes.
 
 
 ==== Flow Isolation
+
+WARNING: The automatic flow isolation feature does not currently work
+when using multiple masters.
 
 What happens if you want collect different kinds of data from the same 
 physical node?  For example, suppose you wanted to collect httpd logs as well 

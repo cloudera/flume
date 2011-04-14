@@ -60,9 +60,12 @@ public class TestFailChainSink {
   /**
    * this simulates having 5 failovers, but they write to 5 accumulators
    * instead. We We use the simplistic failover mechanism
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testAvailableSinkGen() throws IOException, FlumeSpecException {
+  public void testAvailableSinkGen() throws IOException, FlumeSpecException,
+      InterruptedException {
 
     List<String> names = Arrays.asList("first", "second", "third", "fourth",
         "fifth");
@@ -72,7 +75,7 @@ public class TestFailChainSink {
 
     // failover sink replaces each names
 
-    LOG.info(snk.getReport().toText());
+    LOG.info(snk.getMetrics().toText());
 
     snk.open();
     EventSource src = MemorySinkSource.cannedData("test is a test", 31);
@@ -82,7 +85,7 @@ public class TestFailChainSink {
     int[] ans = { 16, 8, 4, 2, 1 };
     for (int i = 0; i < ans.length; i++) {
       Reportable rptable = ReportManager.get().getReportable(names.get(i));
-      long val = rptable.getReport().getLongMetric(names.get(i));
+      long val = rptable.getMetrics().getLongMetric(names.get(i));
       assertEquals(ans[i], val);
     }
 
@@ -104,9 +107,12 @@ public class TestFailChainSink {
    * this simulates having 5 failovers, but they write to 5 counters instead. We
    * use the AvailabilityManager's spec generator -- to write an availableSink
    * specification that would acutally get shipped to the agent.
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testAvailableSinkBuilder() throws IOException, FlumeSpecException {
+  public void testAvailableSinkBuilder() throws IOException,
+      FlumeSpecException, InterruptedException {
     // this is equivalent of NeverBackoff
     FlumeConfiguration.get().setInt(
         FlumeConfiguration.AGENT_FAILOVER_INITIAL_BACKOFF, 0);
@@ -118,7 +124,7 @@ public class TestFailChainSink {
     System.out.println(spec);
     EventSink snk = new CompositeSink(new ReportTestingContext(), spec);
 
-    LOG.info(snk.getReport().toText());
+    LOG.info(snk.getMetrics().toText());
 
     snk.open();
     EventSource src = MemorySinkSource.cannedData("test is a test", 31);
@@ -128,7 +134,7 @@ public class TestFailChainSink {
     int[] ans = { 16, 8, 4, 2, 1 };
     for (int i = 0; i < ans.length; i++) {
       Reportable rptable = ReportManager.get().getReportable(names.get(i));
-      long val = rptable.getReport().getLongMetric(names.get(i));
+      long val = rptable.getMetrics().getLongMetric(names.get(i));
       System.out.println("report " + names.get(i) + " : " + val);
       System.out.flush();
       assertEquals(ans[i], val);
@@ -138,40 +144,25 @@ public class TestFailChainSink {
   /**
    * The next tests verify that the macro sinks can be generated, and will throw
    * exceptions when opened unless they are shadowed out by let statements.
+   * 
+   * @throws InterruptedException
    */
   @Test(expected = IOException.class)
-  public void testAutoBEChain() throws FlumeSpecException, IOException {
+  public void testAutoBEChain() throws FlumeSpecException, IOException,
+      InterruptedException {
     FlumeBuilder.buildSink(new Context(), "autoBEChain").open();
   }
 
-  /**
-   * no exception here -- it got shadowed.
-   */
-  @Test
-  public void testAutoBEChainLet() throws FlumeSpecException, IOException {
-    FlumeBuilder.buildSink(new Context(),
-        "let autoBEChain := null in autoBEChain").open();
-  }
-
   @Test(expected = IOException.class)
-  public void testAutoDFOChain() throws FlumeSpecException, IOException {
+  public void testAutoDFOChain() throws FlumeSpecException, IOException,
+      InterruptedException {
     FlumeBuilder.buildSink(new Context(), "autoDFOChain").open();
   }
 
-  @Test
-  public void testAutoDFOChainLet() throws FlumeSpecException, IOException {
-    FlumeBuilder.buildSink(new Context(),
-        "let autoDFOChain := null in autoDFOChain").open();
-  }
-
   @Test(expected = IOException.class)
-  public void testAutoE2EChain() throws FlumeSpecException, IOException {
+  public void testAutoE2EChain() throws FlumeSpecException, IOException,
+      InterruptedException {
     FlumeBuilder.buildSink(new Context(), "autoE2EChain").open();
   }
 
-  @Test
-  public void testAutoE2EChainLet() throws FlumeSpecException, IOException {
-    FlumeBuilder.buildSink(new Context(),
-        "let autoE2EChain := null in autoE2EChain").open();
-  }
 }

@@ -30,6 +30,7 @@ import org.junit.Test;
 import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.FlumeBuilder;
 import com.cloudera.flume.conf.FlumeSpecException;
+import com.cloudera.flume.conf.LogicalNodeContext;
 import com.cloudera.flume.conf.ReportTestingContext;
 import com.cloudera.flume.conf.SinkFactory.SinkDecoBuilder;
 import com.cloudera.flume.core.Attributes;
@@ -189,13 +190,17 @@ public class TestBloomSetDecos {
 
   /**
    * Instantiate decos, run them and check their reports.
+   * 
+   * @throws InterruptedException
    */
   @SuppressWarnings("unchecked")
   @Test
-  public void testBloomDecos() throws FlumeSpecException, IOException {
+  public void testBloomDecos() throws FlumeSpecException, IOException,
+      InterruptedException {
     String spec = "{ bloomGen(10000,2) => { bloomCheck(10000,2) => counter(\"test\")} } ";
     EventSink snk = FlumeBuilder.buildSink(new ReportTestingContext(), spec);
-    EventSource src = FlumeBuilder.buildSource("asciisynth(10000)");
+    EventSource src = FlumeBuilder.buildSource(LogicalNodeContext
+        .testingContext(), "asciisynth(10000)");
     snk.open();
     src.open();
     EventUtil.dumpAll(src, snk);
@@ -208,7 +213,7 @@ public class TestBloomSetDecos {
     // Hack until we get a better mechanism:
     BloomCheckDecorator bcd = (BloomCheckDecorator) (((EventSinkDecorator<EventSink>) snk)
         .getSink());
-    ReportEvent r = bcd.getReport();
+    ReportEvent r = bcd.getMetrics();
     assertEquals(BloomCheckState.SUCCESS.toString(), new String(r
         .get(BloomCheckDecorator.A_STATE)));
     assertEquals(1, Attributes.readInt(r, BloomCheckDecorator.A_SUCCESS)
@@ -219,9 +224,12 @@ public class TestBloomSetDecos {
 
   /**
    * Tests to make sure the report sink receives data.
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testBloomReportSink() throws FlumeSpecException, IOException {
+  public void testBloomReportSink() throws FlumeSpecException, IOException,
+      InterruptedException {
     String spec = "{bloomGen(100,2) => {bloomCheck(100,2,\"counter(\\\"test\\\") \")  => counter(\"total\") } } }";
     EventSink snk = FlumeBuilder.buildSink(new ReportTestingContext(), spec);
     snk.open();

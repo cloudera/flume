@@ -44,7 +44,8 @@ import com.cloudera.util.Clock;
 
 public class TestLogicalNode {
 
-  public static final Logger LOG = LoggerFactory.getLogger(TestLogicalNode.class);
+  public static final Logger LOG = LoggerFactory
+      .getLogger(TestLogicalNode.class);
 
   /**
    * Test that checkConfig has the correct versioning behaviour
@@ -89,7 +90,7 @@ public class TestLogicalNode {
     long sleep = 1000;
     Clock.sleep(sleep); // sleep is not the right approach
 
-    long reconfs = node.getReport().getLongMetric(LogicalNode.A_RECONFIGURES);
+    long reconfs = node.getMetrics().getLongMetric(LogicalNode.A_RECONFIGURES);
     LOG.info("reconfigured " + reconfs + " times in " + sleep + " ms");
     // failed, and then to last good which is null|null;
     assertEquals(1, reconfs);
@@ -118,7 +119,7 @@ public class TestLogicalNode {
     SourceFactoryImpl srcfact = new SourceFactoryImpl();
     srcfact.setSource("failOpen", new SourceBuilder() {
       @Override
-      public EventSource build(String... argv) {
+      public EventSource build(Context ctx, String... argv) {
         return new EventSource.Base() {
           @Override
           public void open() throws IOException {
@@ -141,7 +142,7 @@ public class TestLogicalNode {
     SourceFactoryImpl srcfact = new SourceFactoryImpl();
     srcfact.setSource("failNext", new SourceBuilder() {
       @Override
-      public EventSource build(String... argv) {
+      public EventSource build(Context ctx, String... argv) {
         return new EventSource.Base() {
           @Override
           public Event next() throws IOException {
@@ -166,7 +167,7 @@ public class TestLogicalNode {
     SourceFactoryImpl srcfact = new SourceFactoryImpl();
     srcfact.setSource("failClose", new SourceBuilder() {
       @Override
-      public EventSource build(String... argv) {
+      public EventSource build(Context ctx, String... argv) {
         return new EventSource.Base() {
           @Override
           public void close() throws IOException {

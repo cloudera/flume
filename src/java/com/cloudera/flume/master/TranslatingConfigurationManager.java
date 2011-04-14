@@ -30,9 +30,11 @@ import java.util.Map.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cloudera.flume.conf.FlumeSpecException;
 import com.cloudera.flume.conf.FlumeConfigData;
+import com.cloudera.flume.conf.FlumeSpecException;
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.ReportUtil;
+import com.cloudera.flume.reporter.Reportable;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Multimap;
 
@@ -47,7 +49,7 @@ import com.google.common.collect.Multimap;
  * If in-place changes are ok, use the same configuration manager as the parent
  * and self. If not, use a different configuration manager for parent and self.
  * 
- * Read method calls on a TranslatingConfiguraitonManager always read from the
+ * Read method calls on a TranslatingConfigurationManager always read from the
  * self manager. Write method calls write to the parent manager and write the
  * translated versions to the self manager.
  */
@@ -124,6 +126,7 @@ abstract public class TranslatingConfigurationManager implements
     html.append("<td>" + name + "</td>");
     FlumeConfigData cfg = fcd;
     html.append("<td>" + new Date(cfg.timestamp) + "</td>");
+    html.append("<td>" + cfg.flowID + "</td>");
     html.append("<td>" + cfg.sourceConfig + "</td>");
     html.append("<td>" + cfg.sinkConfig + "</td>");
     if (xfcd != null) {
@@ -144,11 +147,11 @@ abstract public class TranslatingConfigurationManager implements
    * TODO convert to a report, do not depend on this output.
    */
   @Override
-  synchronized public ReportEvent getReport() {
+  synchronized public ReportEvent getMetrics() {
     StringBuilder html = new StringBuilder();
     html
         .append("<h2>Node configuration</h2>\n<table border=\"1\"><tr>"
-            + "<th>Node</th><th>Version</th><th>Source</th><th>Sink</th>"
+            + "<th>Node</th><th>Version</th><th>Flow ID</th><th>Source</th><th>Sink</th>"
             + "<th>Translated Version</th><th>Translated Source</th><th>Translated Sink</th>"
             + "</tr>");
 
@@ -179,6 +182,12 @@ abstract public class TranslatingConfigurationManager implements
     return ReportEvent.createLegacyHtmlReport("configs", html.toString());
   }
 
+  // TODO make this point to child configuration translators
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    return ReportUtil.noChildren();
+  }
+
   /**
    * {@inheritDoc} This always just forwards to the parent.
    */
@@ -205,7 +214,7 @@ abstract public class TranslatingConfigurationManager implements
   }
 
   /**
-   * Returns the translations of all configuraitons
+   * Returns the translations of all configurations
    */
   synchronized public Map<String, FlumeConfigData> getTranslatedConfigs() {
     return selfMan.getAllConfigs();

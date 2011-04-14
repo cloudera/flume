@@ -70,7 +70,7 @@ public class ThriftEventSink extends EventSink.Base {
   }
 
   @Override
-  public void append(Event e) throws IOException {
+  public void append(Event e) throws IOException, InterruptedException {
     ThriftFlumeEvent tfe = ThriftEventAdaptor.convert(e);
     try {
       client.append(tfe);
@@ -118,32 +118,22 @@ public class ThriftEventSink extends EventSink.Base {
   }
 
   @Override
-  public ReportEvent getReport() {
-    ReportEvent rpt = super.getReport();
+  public ReportEvent getMetrics() {
+    ReportEvent rpt = super.getMetrics();
     rpt.setStringMetric(A_SERVERHOST, host);
     rpt.setLongMetric(A_SERVERPORT, port);
     rpt.setLongMetric(A_SENTBYTES, sentBytes.get());
     return rpt;
   }
 
-  public static void main(String argv[]) {
-    FlumeConfiguration conf = FlumeConfiguration.get();
-    ThriftEventSink sink = new ThriftEventSink("localhost", conf
-        .getCollectorPort());
-    try {
-      sink.open();
-
-      for (int i = 0; i < 100; i++) {
-        Event e = new EventImpl(("This is a test " + i).getBytes());
-        sink.append(e);
-        Thread.sleep(200);
-      }
-    } catch (IOException e) {
-      e.printStackTrace();
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
-
+  @Deprecated
+  @Override
+  public ReportEvent getReport() {
+    ReportEvent rpt = super.getReport();
+    rpt.setStringMetric(A_SERVERHOST, host);
+    rpt.setLongMetric(A_SERVERPORT, port);
+    rpt.setLongMetric(A_SENTBYTES, sentBytes.get());
+    return rpt;
   }
 
   public static SinkBuilder builder() {

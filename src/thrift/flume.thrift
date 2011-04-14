@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to Cloudera, Inc. under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -57,16 +57,9 @@ struct ThriftFlumeEvent {
   6: map<string,binary> fields
 }
 
-# Instead of using thrift's serialization, we just assume the contents are serialized already.
-struct RawEvent {
-  1: binary raw
-}
-
 service ThriftFlumeEventServer {
   oneway void append( 1:ThriftFlumeEvent evt ),
-  oneway void rawAppend( 1:RawEvent evt),
-  EventStatus ackedAppend( 1: ThriftFlumeEvent evt ), 
-    
+
   void close(), 
 }
 

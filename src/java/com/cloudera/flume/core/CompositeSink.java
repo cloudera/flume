@@ -24,6 +24,7 @@ import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.FlumeBuilder;
 import com.cloudera.flume.conf.FlumeSpecException;
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.Reportable;
 
 /**
  * This sink takes a data flow spec string as a constructor argument. It parses
@@ -45,23 +46,18 @@ public class CompositeSink extends EventSink.Base {
     }
   }
 
-  @Deprecated
-  public CompositeSink(String spec) throws FlumeSpecException {
-    this(new Context(), spec);
-  }
-
   @Override
-  public void open() throws IOException {
+  public void open() throws IOException, InterruptedException {
     snk.open();
   }
 
   @Override
-  public void close() throws IOException {
+  public void close() throws IOException, InterruptedException {
     snk.close();
   }
 
   @Override
-  public void append(Event e) throws IOException {
+  public void append(Event e) throws IOException, InterruptedException {
     snk.append(e);
     super.append(e);
   }
@@ -72,9 +68,24 @@ public class CompositeSink extends EventSink.Base {
   }
 
   @Override
+  public ReportEvent getMetrics() {
+    return snk.getMetrics();
+  }
+
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    return snk.getSubMetrics();
+  }
+
+  @Deprecated
+  @Override
   public void getReports(String namePrefix, Map<String, ReportEvent> reports) {
     super.getReports(namePrefix, reports);
     snk.getReports(namePrefix + getName() + ".", reports);
+  }
+  
+  public EventSink getSink() {
+	  return snk;
   }
 
 }

@@ -31,7 +31,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.thrift.transport.TTransportException;
-import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,16 +41,12 @@ import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.FlumeBuilder;
 import com.cloudera.flume.conf.FlumeConfigData;
 import com.cloudera.flume.conf.FlumeConfiguration;
-import com.cloudera.flume.conf.FlumeSpecException;
 import com.cloudera.flume.conf.SourceFactory;
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventImpl;
 import com.cloudera.flume.core.EventSource;
 import com.cloudera.flume.handlers.debug.NullSink;
 import com.cloudera.flume.handlers.syslog.SyslogTcpSourceThreads;
-import com.cloudera.flume.handlers.text.FormatFactory;
-import com.cloudera.flume.handlers.text.FormatFactory.OutputFormatBuilder;
-import com.cloudera.flume.handlers.text.output.OutputFormat;
 import com.cloudera.flume.master.CommandManager;
 import com.cloudera.flume.master.ConfigManager;
 import com.cloudera.flume.master.ConfigStore;
@@ -76,9 +71,12 @@ public class TestFlumeNode {
    * In this, an exception is thrown on any close this would have forced the
    * problem and shows that progress can be made. loadNode only throws if open
    * fails.
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testSurviveCloseException() throws IOException {
+  public void testSurviveCloseException() throws IOException,
+      InterruptedException {
     LogicalNode node = new LogicalNode(new Context(), "test");
 
     class CloseExnSource extends EventSource.Base {
@@ -133,7 +131,7 @@ public class TestFlumeNode {
     ;
 
     FlumeBuilder.setSourceFactory(new SourceFactory() {
-      public EventSource getSource(String name, String... args) {
+      public EventSource getSource(Context ctx, String name, String... args) {
         return new NextExnSource();
       }
 
@@ -164,7 +162,8 @@ public class TestFlumeNode {
   }
 
   @Test
-  public void testFailfastOutException() throws IOException {
+  public void testFailfastOutException() throws IOException,
+      InterruptedException {
     LogicalNode node = new LogicalNode(new Context(), "test");
 
     class OpenExnSource extends EventSource.Base {
@@ -192,9 +191,12 @@ public class TestFlumeNode {
   /**
    * This tests to make sure that openLoadNode opens newly specified sources,
    * and closes previous sources when a new one is specified.
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testOpenCloseOpenIsOpen() throws IOException {
+  public void testOpenCloseOpenIsOpen() throws IOException,
+      InterruptedException {
     class IsOpenSource extends EventSource.Base {
       boolean isOpen = false;
 
@@ -237,9 +239,12 @@ public class TestFlumeNode {
    * This test makes sure there the openLoadNode behaviour works where the new
    * source is opened and the old sink is closed. (and no resource contention
    * IOExceptions are triggered.
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testOpenCloseSyslogTcpSourceThreads() throws IOException {
+  public void testOpenCloseSyslogTcpSourceThreads() throws IOException,
+      InterruptedException {
     LogicalNode node = new LogicalNode(new Context(), "test");
     EventSource prev = new SyslogTcpSourceThreads(6789);
     node.openLoadNode(prev, new NullSink());
@@ -331,57 +336,5 @@ public class TestFlumeNode {
     File dfoDir = new File(defaultDir, NaiveFileFailoverManager.WRITINGDIR);
     assertTrue(dfoDir.isDirectory());
     FileUtil.rmr(tmpdir);
-  }
-
-  /**
-   * Test the output format plugin loading mechanism. We additionally test that
-   * the builtin output formats continue to work.
-   */
-  @Test
-  public void testOutputFormatPluginLoader() {
-    FlumeConfiguration.get().set(FlumeConfiguration.OUTPUT_FORMAT_PLUGIN_CLASSES, "java.lang.String");
-    FlumeNode.loadOutputFormatPlugins();
-
-    try {
-      Assert.assertNotNull(FlumeBuilder.buildSink(new Context(), "console(\"raw\")"));
-      Assert.assertNotNull(FlumeBuilder.buildSink(new Context(), "console(\"avrojson\")"));
-      Assert.assertNotNull(FlumeBuilder.buildSink(new Context(), "console(\"avrodata\")"));
-      Assert.assertNotNull(FlumeBuilder.buildSink(new Context(), "console(\"syslog\")"));
-      Assert.assertNotNull(FlumeBuilder.buildSink(new Context(), "console(\"log4j\")"));
-      Assert.assertNotNull(FlumeBuilder.buildSink(new Context(), "console()"));
-    } catch (FlumeSpecException e) {
-      LOG.error("Unable to create a console sink with one of the built in output formats. Exception follows.", e);
-      Assert.fail("Unable to create a console sink with one of the built in output formats - " + e.getMessage());
-    }
-  }
-
-  @Test
-  public void testCustomOutputPluginLoader() {
-    FlumeConfiguration.get().set(FlumeConfiguration.OUTPUT_FORMAT_PLUGIN_CLASSES, "com.cloudera.flume.agent.TestFlumeNode$TestOutputFormatPlugin");
-    FlumeNode.loadOutputFormatPlugins();
-
-    try {
-      FlumeBuilder.buildSink(new Context(), "console(\"testformat\")");
-    } catch (FlumeSpecException e) {
-      LOG.error("Caught exception building console sink with testformat output format. Exception follows.", e);
-      Assert.fail("Unable to build a console sink with testformat output format");
-    }
-
-    /* Manually reset the registered plugins as best we can. */
-    Assert.assertTrue(FormatFactory.get().unregisterFormat("testformat"));
-  }
-
-  public static class TestOutputFormatPlugin extends OutputFormatBuilder {
-
-    @Override
-    public OutputFormat build(String... args) {
-      // Do nothing.
-      return null;
-    }
-
-    public String getName() {
-      return "testformat";
-    }
-
   }
 }

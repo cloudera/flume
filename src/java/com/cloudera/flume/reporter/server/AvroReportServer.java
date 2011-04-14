@@ -22,9 +22,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.avro.ipc.AvroRemoteException;
+import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.HttpServer;
-import org.apache.avro.specific.SpecificResponder;
+import org.apache.avro.ipc.specific.SpecificResponder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.cloudera.flume.conf.FlumeConfiguration;
@@ -72,7 +72,7 @@ public class AvroReportServer implements AvroFlumeReportServer {
     Map<String, Reportable> reports = reportManager.getReportables();
 
     for (Entry<String, Reportable> e : reports.entrySet()) {
-      AvroFlumeReport report = reportToAvro(e.getValue().getReport());
+      AvroFlumeReport report = reportToAvro(e.getValue().getMetrics());
       retMap.put(e.getKey(), report);
     }
     return retMap;
@@ -87,7 +87,7 @@ public class AvroReportServer implements AvroFlumeReportServer {
     ReportManager reportManager = ReportManager.get();
     Map<String, Reportable> reports = reportManager.getReportables();
     if (reports.containsKey(reportName.toString())) {
-      return reportToAvro(reports.get(reportName.toString()).getReport());
+      return reportToAvro(reports.get(reportName.toString()).getMetrics());
     }
     return null;
   }

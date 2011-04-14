@@ -63,9 +63,11 @@ public class TestAvroSinks implements ExampleData {
    * text file -> mem
    * 
    * mem -> AvroEventSink -> AvroEventSource -> counter
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testAvroSend() throws IOException {
+  public void testAvroSend() throws IOException, InterruptedException {
     EventSource txt = new NoNlASCIISynthSource(25, 100);
     txt.open();
     MemorySinkSource mem = new MemorySinkSource();
@@ -83,7 +85,7 @@ public class TestAvroSinks implements ExampleData {
       public void run() {
         try {
           EventUtil.dumpAll(tes, cnt);
-        } catch (IOException e) {
+        } catch (Exception e) {
         }
       }
     };
@@ -105,7 +107,7 @@ public class TestAvroSinks implements ExampleData {
     }
     tes.close();
     assertEquals(25, cnt.getCount());
-    ReportEvent rpt = tes.getReport();
+    ReportEvent rpt = tes.getMetrics();
     /*
      * The check on BytesIn is different than one on TestThriftSinks tests. This
      * is because currently in the AvroSink version, BytesIn is equal to the
@@ -146,7 +148,7 @@ public class TestAvroSinks implements ExampleData {
       public void run() {
         try {
           EventUtil.dumpAll(tes, cnt);
-        } catch (IOException e) {
+        } catch (Exception e) {
         }
       }
     };
@@ -201,7 +203,7 @@ public class TestAvroSinks implements ExampleData {
 
     tes.close();
     assertEquals(25 * threads, cnt.getCount());
-    ReportEvent rpt = tes.getReport();
+    ReportEvent rpt = tes.getMetrics();
     assertEquals(2500 * threads, sendByteSum.get());
     assertEquals(2500 * threads, rpt.getLongMetric(AvroEventSource.A_BYTES_IN)
         .longValue());

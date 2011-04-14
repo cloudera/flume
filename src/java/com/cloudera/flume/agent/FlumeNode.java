@@ -23,8 +23,10 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Map.Entry;
+import java.util.Properties;
+
+import javax.ws.rs.core.Application;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -51,10 +53,11 @@ import com.cloudera.flume.handlers.debug.ChokeManager;
 import com.cloudera.flume.handlers.endtoend.AckListener;
 import com.cloudera.flume.handlers.endtoend.CollectorAckListener;
 import com.cloudera.flume.handlers.text.FormatFactory;
-import com.cloudera.flume.handlers.text.FormatFactory.OutputFormatBuilder;
 import com.cloudera.flume.reporter.MasterReportPusher;
+import com.cloudera.flume.reporter.NodeReportResource;
 import com.cloudera.flume.reporter.ReportEvent;
 import com.cloudera.flume.reporter.ReportManager;
+import com.cloudera.flume.reporter.ReportUtil;
 import com.cloudera.flume.reporter.Reportable;
 import com.cloudera.flume.util.FlumeVMInfo;
 import com.cloudera.flume.util.SystemInfo;
@@ -64,6 +67,8 @@ import com.cloudera.util.NetUtils;
 import com.cloudera.util.Pair;
 import com.cloudera.util.StatusHttpServer;
 import com.google.common.base.Preconditions;
+import com.sun.jersey.api.core.DefaultResourceConfig;
+import com.sun.jersey.spi.container.servlet.ServletContainer;
 
 /**
  * This is a configurable flume node.
@@ -98,6 +103,7 @@ public class FlumeNode implements Reportable {
   private MasterRPC rpcMan;
   private LogicalNodeManager nodesMan;
 
+  private ReportManager simpleReportManager = new ReportManager("simple");
   private final MasterReportPusher reportPusher;
 
   /**
@@ -140,7 +146,7 @@ public class FlumeNode implements Reportable {
         + this.physicalNodeName + ".");
 
     this.reportPusher = new MasterReportPusher(FlumeConfiguration.get(),
-        ReportManager.get(), rpcMan);
+        simpleReportManager, rpcMan);
     this.sysInfo = new SystemInfo(PHYSICAL_NODE_REPORT_PREFIX
         + this.physicalNodeName + ".");
   }
@@ -164,7 +170,7 @@ public class FlumeNode implements Reportable {
     if (!oneshot) {
       this.liveMan = new LivenessManager(nodesMan, rpcMan,
           new FlumeNodeWALNotifier(this.walMans));
-      this.reportPusher = new MasterReportPusher(conf, ReportManager.get(),
+      this.reportPusher = new MasterReportPusher(conf, simpleReportManager,
           rpcMan);
 
     } else {
@@ -223,8 +229,40 @@ public class FlumeNode implements Reportable {
     return webPath;
   }
 
+  ServletContainer jerseyNodeServlet() {
+    Application app = new DefaultResourceConfig(NodeReportResource.class);
+    ServletContainer sc = new ServletContainer(app);
+    return sc;
+  }
+
+  /**
+   * This also implements the Apache Commons Daemon interface's start
+   */
   synchronized public void start() {
     FlumeConfiguration conf = FlumeConfiguration.get();
+
+    // the simple report interface
+    simpleReportManager.add(vmInfo);
+    simpleReportManager.add(sysInfo);
+    simpleReportManager.add(new Reportable() {
+
+      @Override
+      public String getName() {
+        return FlumeNode.this.getName();
+      }
+
+      @Override
+      public ReportEvent getMetrics() {
+        return FlumeNode.this.getReport();
+      }
+
+      @Override
+      public Map<String, Reportable> getSubMetrics() {
+        return ReportUtil.noChildren();
+      }
+    });
+
+    // the full report interface
     ReportManager.get().add(vmInfo);
     ReportManager.get().add(sysInfo);
     ReportManager.get().add(this);
@@ -236,11 +274,12 @@ public class FlumeNode implements Reportable {
         boolean findport = FlumeConfiguration.get().getNodeAutofindHttpPort();
         this.http = new StatusHttpServer("flumeagent", webPath, "0.0.0.0", conf
             .getNodeStatusPort(), findport);
+        http.addServlet(jerseyNodeServlet(), "/node/*");
         http.start();
       } catch (IOException e) {
         LOG.error("Flume node failed: " + e.getMessage(), e);
       } catch (Throwable t) {
-        LOG.error("Unexcepted exception/error thrown! " + t.getMessage(), t);
+        LOG.error("Unexpected exception/error thrown! " + t.getMessage(), t);
       }
     }
 
@@ -260,6 +299,9 @@ public class FlumeNode implements Reportable {
 
   }
 
+  /**
+   * This also implements the Apache Commons Daemon interface's stop
+   */
   synchronized public void stop() {
     if (this.http != null) {
       try {
@@ -285,43 +327,29 @@ public class FlumeNode implements Reportable {
   }
 
   /**
-   * Load output format plugins specified by
-   * {@link FlumeConfiguration#OUTPUT_FORMAT_PLUGIN_CLASSES}. Invalid plugins
-   * are discarded from the list with errors logged.
+   * This also implements the Apache Commons Daemon interface's init
    */
-  public static void loadOutputFormatPlugins() {
-    String outputFormatPluginClasses = FlumeConfiguration.get().get(FlumeConfiguration.OUTPUT_FORMAT_PLUGIN_CLASSES, "");
-    String[] classes = outputFormatPluginClasses.split(",\\s*");
-
-    for (String className : classes) {
-      try {
-        Class<?> cls = Class.forName(className);
-        if (OutputFormatBuilder.class.isAssignableFrom(cls)) {
-          OutputFormatBuilder builder = (OutputFormatBuilder) cls.newInstance();
-
-          FormatFactory.get().registerFormat(builder.getName(), builder);
-
-          LOG.info("Registered output format plugin " + className);
-        } else {
-          LOG.warn("Ignoring output format plugin class " + className + " - Does not subclass OutputFormatBuilder");
-        }
-      } catch (ClassNotFoundException e) {
-        LOG.warn("Unable to load output format plugin class " + className + " - Class not found");
-      } catch (FlumeSpecException e) {
-        LOG.warn("Unable to load output format plugin class " + className + " - Flume spec exception follows.", e);
-      } catch (InstantiationException e) {
-        LOG.warn("Unable to load output format plugin class " + className + " - Unable to instantiate class.", e);
-      } catch (IllegalAccessException e) {
-        LOG.warn("Unable to load output format plugin class " + className + " - Access violation.", e);
-      }
+  public void init(String[] args) {
+    try {
+      setup(args);
+    } catch (IOException ioe) {
+      LOG.error("Failed to init Flume Node", ioe);
     }
+  }
+
+  /**
+   * This also implements the Apache Commons Daemon interface's destroy
+   */
+  public void destroy() {
+    stop(); // I think this is ok.
   }
 
   /**
    * This method is currently called by the JSP to display node information.
    */
+  @Deprecated
   public String report() {
-    return getReport().toHtml();
+    return ReportUtil.getFlattenedReport(this).toHtml();
   }
 
   public WALAckManager getAckChecker() {
@@ -349,8 +377,8 @@ public class FlumeNode implements Reportable {
 
   /**
    * This function checks the agent logs dir to make sure that the process has
-   * the ability to the directory if necesary, that the path if it does exist is
-   * a directory, and that it can infact create files inside of the directory.
+   * the ability to the directory if necessary, that the path if it does exist is
+   * a directory, and that it can in fact create files inside of the directory.
    * If it fails any of these, it throws an exception.
    * 
    * Finally, it checks to see if the path is in /tmp and warns the user that
@@ -399,7 +427,15 @@ public class FlumeNode implements Reportable {
     }
   }
 
-  public static void setup(String[] argv) throws IOException {
+  /**
+   * Returns a Flume Node with settings from specified command line parameters.
+   * (See usage for instructions)
+   * 
+   * @param argv
+   * @return
+   * @throws IOException
+   */
+  public static FlumeNode setup(String[] argv) throws IOException {
     logVersion(LOG);
     logEnvironment(LOG);
     // Make sure the Java version is not older than 1.6
@@ -422,7 +458,7 @@ public class FlumeNode implements Reportable {
     options.addOption("1", false,
         "Make flume node one shot (if closes or errors, exits)");
     options.addOption("m", false,
-        "Have flume hard exit if in likey gc thrash situation");
+        "Have flume hard exit if in likely GC thrash situation");
     options.addOption("h", false, "Print help information");
     options.addOption("v", false, "Print version information");
     try {
@@ -431,19 +467,19 @@ public class FlumeNode implements Reportable {
     } catch (ParseException e) {
       HelpFormatter fmt = new HelpFormatter();
       fmt.printHelp("FlumeNode", options, true);
-      return;
+      return null;
     }
 
     // dump version info only
     if (cmd != null && cmd.hasOption("v")) {
-      return;
+      return null;
     }
 
     // dump help info.
     if (cmd != null && cmd.hasOption("h")) {
       HelpFormatter fmt = new HelpFormatter();
       fmt.printHelp("FlumeNode", options, true);
-      return;
+      return null;
     }
     // Check FlumeConfiguration file for settings that may cause node to fail.
     nodeConfigChecksOk();
@@ -466,7 +502,7 @@ public class FlumeNode implements Reportable {
       oneshot = true;
     }
 
-    loadOutputFormatPlugins();
+    FormatFactory.loadOutputFormatPlugins();
 
     // Instantiate the flume node.
     FlumeConfiguration conf = FlumeConfiguration.get();
@@ -481,6 +517,7 @@ public class FlumeNode implements Reportable {
       LOG.info("Loading spec from command line: '" + spec + "'");
 
       try {
+        // TODO the first one should be physical node name
         Context ctx = new LogicalNodeContext(nodename, nodename);
         Map<String, Pair<String, String>> cfgs = FlumeBuilder.parseConf(ctx,
             spec);
@@ -519,6 +556,7 @@ public class FlumeNode implements Reportable {
     }
 
     // hangout, waiting for other agent thread to exit.
+    return flume;
   }
 
   /**
@@ -739,7 +777,7 @@ public class FlumeNode implements Reportable {
     return PHYSICAL_NODE_REPORT_PREFIX + this.getPhysicalNodeName();
   }
 
-  @Override
+  @Deprecated
   public ReportEvent getReport() {
     ReportEvent node = new ReportEvent(getName());
     node.setLongMetric(R_NUM_LOGICAL_NODES, this.getLogicalNodeManager()
@@ -747,15 +785,47 @@ public class FlumeNode implements Reportable {
     node.hierarchicalMerge(nodesMan.getName(), nodesMan.getReport());
     if (getAckChecker() != null) {
       node.hierarchicalMerge(getAckChecker().getName(), getAckChecker()
-          .getReport());
+          .getMetrics());
     }
+    return node;
+  }
+
+  @Override
+  public ReportEvent getMetrics() {
+    ReportEvent node = new ReportEvent(getName());
+    node.setLongMetric(R_NUM_LOGICAL_NODES, this.getLogicalNodeManager()
+        .getNodes().size());
+    return node;
+  }
+
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    Map<String, Reportable> map = new HashMap<String, Reportable>();
+    map.put(nodesMan.getName(), nodesMan);
+
+    WALAckManager ack = getAckChecker();
+    if (ack != null) {
+      map.put(ack.getName(), ack);
+    }
+
+    map.put("jvmInfo", vmInfo);
+    map.put("sysInfo",sysInfo);
+    
     // TODO (jon) LivenessMan
     // TODO (jon) rpcMan
 
-    return node;
+    return map;
   }
 
   public String getPhysicalNodeName() {
     return physicalNodeName;
+  }
+
+  public SystemInfo getSystemInfo() {
+    return sysInfo;
+  }
+
+  public FlumeVMInfo getVMInfo() {
+    return vmInfo;
   }
 }

@@ -19,6 +19,8 @@ package com.cloudera.flume.agent.durability;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 import org.slf4j.Logger;
@@ -43,6 +45,7 @@ import com.cloudera.flume.handlers.rolling.RollSink;
 import com.cloudera.flume.handlers.rolling.RollTrigger;
 import com.cloudera.flume.handlers.rolling.TimeTrigger;
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.Reportable;
 import com.google.common.base.Preconditions;
 
 /**
@@ -50,18 +53,17 @@ import com.google.common.base.Preconditions;
  * has a subordinate thread that drains the events that have been written to
  * disk. Latches are used to maintain open and close semantics.
  */
-public class NaiveFileWALDeco<S extends EventSink> extends
-    EventSinkDecorator<S> {
+public class NaiveFileWALDeco extends EventSinkDecorator<EventSink> {
   static final Logger LOG = LoggerFactory.getLogger(NaiveFileWALDeco.class);
 
   final WALManager walman;
   final RollTrigger trigger;
   final AckListener queuer;
-  final EventSinkDecorator<S> drainSink;
+  final EventSinkDecorator<EventSink> drainSink;
   final long checkMs;
 
   RollSink input;
-  EventSource drainSource;
+  EventSource drainSource = null;
   Driver conn;
   Context ctx;
 
@@ -70,7 +72,7 @@ public class NaiveFileWALDeco<S extends EventSink> extends
   CountDownLatch started = null; // blocks open until subthread is started
   volatile IOException lastExn = null;
 
-  public NaiveFileWALDeco(Context ctx, S s, final WALManager walman,
+  public NaiveFileWALDeco(Context ctx, EventSink s, final WALManager walman,
       RollTrigger t, AckListener al, long checkMs) {
     super(s);
     this.ctx = ctx;
@@ -78,9 +80,8 @@ public class NaiveFileWALDeco<S extends EventSink> extends
     this.trigger = t;
     this.queuer = new AckListener.Empty();
     this.al = al;
-    // TODO get rid of this cast.
-    this.drainSink = (EventSinkDecorator<S>) new EventSinkDecorator(
-        new LazyOpenDecorator(new AckChecksumRegisterer<S>(s, al)));
+    this.drainSink = new LazyOpenDecorator<EventSink>(
+        new AckChecksumRegisterer<EventSink>(s, al));
     this.checkMs = checkMs;
   }
 
@@ -94,7 +95,7 @@ public class NaiveFileWALDeco<S extends EventSink> extends
     }
 
     @Override
-    public void append(Event e) throws IOException {
+    public void append(Event e) throws IOException, InterruptedException {
 
       super.append(e);
 
@@ -126,7 +127,8 @@ public class NaiveFileWALDeco<S extends EventSink> extends
    * TODO(jon): double check that the synchronization is appropriate here
    */
   @Override
-  public synchronized void append(Event e) throws IOException {
+  public synchronized void append(Event e) throws IOException,
+      InterruptedException {
     Preconditions.checkNotNull(sink, "NaiveFileWALDeco was invalid!");
     Preconditions.checkState(isOpen.get(),
         "NaiveFileWALDeco not open for append");
@@ -137,7 +139,7 @@ public class NaiveFileWALDeco<S extends EventSink> extends
   }
 
   @Override
-  public synchronized void close() throws IOException {
+  public synchronized void close() throws IOException, InterruptedException {
     Preconditions.checkNotNull(sink,
         "Attmpted to close a null NaiveFileWALDeco");
     LOG.debug("Closing NaiveFileWALDeco");
@@ -148,7 +150,7 @@ public class NaiveFileWALDeco<S extends EventSink> extends
       LOG.debug("Waiting for subthread to complete .. ");
       int maxNoProgressTime = 10;
 
-      ReportEvent rpt = sink.getReport();
+      ReportEvent rpt = sink.getMetrics();
 
       Long levts = rpt.getLongMetric(EventSink.Base.R_NUM_EVENTS);
       long evts = (levts == null) ? 0 : levts;
@@ -161,7 +163,7 @@ public class NaiveFileWALDeco<S extends EventSink> extends
         }
 
         // driver still running, did we make progress?
-        ReportEvent rpt2 = sink.getReport();
+        ReportEvent rpt2 = sink.getMetrics();
         Long levts2 = rpt2.getLongMetric(EventSink.Base.R_NUM_EVENTS);
         long evts2 = (levts2 == null) ? 0 : levts;
         if (evts2 > evts) {
@@ -187,7 +189,9 @@ public class NaiveFileWALDeco<S extends EventSink> extends
       LOG.error("WAL drain thread interrupted", e);
     }
 
-    drainSource.close();
+    if (drainSource != null) {
+      drainSource.close();
+    }
     // This sets isOpen == false
     super.close();
 
@@ -208,7 +212,7 @@ public class NaiveFileWALDeco<S extends EventSink> extends
   }
 
   @Override
-  synchronized public void open() throws IOException {
+  synchronized public void open() throws IOException, InterruptedException {
     Preconditions.checkNotNull(sink,
         "Attempted to open a null NaiveFileWALDeco subsink");
     LOG.debug("Opening NaiveFileWALDeco");
@@ -254,6 +258,9 @@ public class NaiveFileWALDeco<S extends EventSink> extends
           conn.getSink().close();
         } catch (IOException e) {
           LOG.error("Error closing", e);
+        } catch (InterruptedException e) {
+          // TODO reconsider this
+          LOG.error("fireError interrupted", e);
         }
         completed.countDown();
         LOG.info("Error'ed Connector closed " + conn);
@@ -272,14 +279,14 @@ public class NaiveFileWALDeco<S extends EventSink> extends
     isOpen.set(true);
   }
 
-  public void setSink(S sink) {
+  public void setSink(EventSink sink) {
     this.sink = sink;
     // TODO get rid of this cast.
-    this.drainSink.setSink((S) new LazyOpenDecorator<EventSink>(
-        new AckChecksumRegisterer<S>(sink, al)));
+    this.drainSink.setSink(new LazyOpenDecorator<EventSink>(
+        new AckChecksumRegisterer<EventSink>(sink, al)));
   }
 
-  public synchronized boolean rotate() {
+  public synchronized boolean rotate() throws InterruptedException {
     return input.rotate();
   }
 
@@ -310,10 +317,8 @@ public class NaiveFileWALDeco<S extends EventSink> extends
         if (argv.length >= 2) {
           walnode = argv[1];
         }
-        if (walnode == null) {
-          LOG.warn("Context does not have a logical node name "
-              + "-- this will likely be a problem if you have multiple WALs");
-        }
+        Preconditions.checkArgument(walnode != null,
+            "Context does not have a logical node name");
 
         long checkMs = 250; // TODO replace with config var;
         if (argv.length >= 3) {
@@ -323,9 +328,8 @@ public class NaiveFileWALDeco<S extends EventSink> extends
         // TODO (jon) this is going to be unsafe because it creates before open.
         // This needs to be pushed into the logic of the decorator
         WALManager walman = node.getAddWALManager(walnode);
-        return new NaiveFileWALDeco<EventSink>(context, null, walman,
-            new TimeTrigger(delayMillis), node.getAckChecker()
-                .getAgentAckQueuer(), checkMs);
+        return new NaiveFileWALDeco(context, null, walman, new TimeTrigger(
+            delayMillis), node.getAckChecker().getAgentAckQueuer(), checkMs);
       }
     };
   }
@@ -335,14 +339,32 @@ public class NaiveFileWALDeco<S extends EventSink> extends
     return "NaiveFileWAL";
   }
 
+  @Deprecated
   @Override
   public ReportEvent getReport() {
     ReportEvent rpt = super.getReport();
-    ReportEvent walRpt = walman.getReport();
+    ReportEvent walRpt = walman.getMetrics();
     rpt.merge(walRpt);
     ReportEvent sinkReport = sink.getReport();
     rpt.hierarchicalMerge(getName(), sinkReport);
-
     return rpt;
   }
+
+  @Override
+  public ReportEvent getMetrics() {
+    ReportEvent rpt = super.getMetrics();
+    return rpt;
+  }
+
+  public Map<String, Reportable> getSubMetrics() {
+    Map<String, Reportable> map = new HashMap<String, Reportable>();
+    map.put(walman.getName(), walman);
+    map.put("drainSink." + sink.getName(), sink);
+    if (drainSource != null) {
+      // careful, drainSource can be null if deco not opened yet
+      map.put("drainSource." + drainSource.getName(), drainSource);
+    }
+    return map;
+  }
+
 }

@@ -30,8 +30,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.ExampleData;
+import com.cloudera.flume.collector.CollectorSink;
+import com.cloudera.flume.core.EventSink;
 import com.cloudera.flume.handlers.rolling.RollSink;
-import com.cloudera.flume.master.availability.FailoverChainSink;
 
 /**
  * This code tests the parser and config spec error exceptions and data. Thses
@@ -40,7 +41,8 @@ import com.cloudera.flume.master.availability.FailoverChainSink;
  */
 public class TestFlumeBuilder implements ExampleData {
 
-  public static final Logger LOG = LoggerFactory.getLogger(TestFlumeBuilder.class);
+  public static final Logger LOG = LoggerFactory
+      .getLogger(TestFlumeBuilder.class);
   String SOURCE = "text(\"bogusfile\")";
 
   @Test
@@ -77,7 +79,7 @@ public class TestFlumeBuilder implements ExampleData {
     try {
       // too many arguments
       FlumeBuilder.buildSink(new Context(), "console(1,2,3,4,5,6)");
-    } catch (FlumeArgException e) {
+    } catch (FlumeSpecException e) {
       System.out.println(e);
       return;// we expected this exception to be thrown.
     }
@@ -178,8 +180,17 @@ public class TestFlumeBuilder implements ExampleData {
 
   @Test
   public void testFailover() throws IOException, FlumeSpecException {
+    String multi2 = "< flakeyAppend(.9,1337) console ? counter(\"count\") >";
+    FlumeBuilder.buildSink(new Context(), multi2);
+
     String multi = "< { flakeyAppend(.9,1337) => console } ? counter(\"count\") >";
     FlumeBuilder.buildSink(new Context(), multi);
+  }
+
+  @Test
+  public void testTerseDeco() throws IOException, FlumeSpecException {
+    String multi2 = "flakeyAppend(.9,1337) console";
+    FlumeBuilder.buildSink(new Context(), multi2);
   }
 
   @Test
@@ -208,57 +219,6 @@ public class TestFlumeBuilder implements ExampleData {
 
   }
 
-  /**
-   * Testing a successful parse (would throw exn on parser failure)
-   */
-  @Test
-  public void testLet() throws FlumeSpecException {
-    String let = "let foo := console in let bar := console in [ foo, bar ]";
-    FlumeBuilder.buildSink(new Context(), let);
-  }
-
-  /**
-   * Tests a parsing a case where lets vars are shadowed in a sub let expression
-   * (let names foo, and a sub let names a foo).
-   */
-  @Test
-  public void testLetShadow() throws IOException, FlumeSpecException {
-    String let = "let foo := console in let foo := null in foo";
-    FlumeBuilder.buildSink(new Context(), let);
-
-  }
-
-  /**
-   * Tests a parse that fails due to an undeclared var.
-   */
-  @Test
-  public void testLetBad() throws FlumeSpecException {
-    try {
-      String let2 = "let foo := console in let bar := console in [ foo, barf ]";
-      FlumeBuilder.buildSink(new Context(), let2);
-    } catch (FlumeSpecException e) {
-      System.out.println(e);
-      return;
-    }
-    fail("should have barfed");
-  }
-
-  /**
-   * Test a parse that fails due to a a variable used that is out of scope.
-   */
-  @Test
-  public void testLetBadContext() throws FlumeSpecException {
-    // bad variable names
-    try {
-      String let2 = "[ let foo := console in foo, let bar := console in [ foo, bar ] ]";
-      FlumeBuilder.buildSink(new Context(), let2);
-    } catch (FlumeSpecException e) {
-      System.out.println(e);
-      return;
-    }
-    fail("should have failed because foo is out of context");
-  }
-
   @Test
   public void testRollSinkParse() throws FlumeSpecException,
       RecognitionException {
@@ -269,13 +229,8 @@ public class TestFlumeBuilder implements ExampleData {
   @Test
   public void testRollSink() throws FlumeSpecException, RecognitionException {
     String roll = "roll (200) { null } ";
-    assertTrue(FlumeBuilder.buildSink(new Context(), roll) instanceof RollSink);
-  }
-
-  @Test
-  public void testFailChain() throws FlumeSpecException {
-    String failchain = "failchain (\"foo\", \"bar\",\"baz\") { logicalSink(\"%s\") } ";
-    assertTrue(FlumeBuilder.buildSink(new Context(), failchain) instanceof FailoverChainSink);
+    EventSink snk = FlumeBuilder.buildSink(new Context(), roll);
+    assertTrue(snk instanceof RollSink);
   }
 
   /**
@@ -299,5 +254,30 @@ public class TestFlumeBuilder implements ExampleData {
     FlumeBuilder.getSinkNames().contains("agentSink");
     FlumeBuilder.getDecoratorNames().contains("regex");
     FlumeBuilder.getSourceNames().contains("collectorSource");
+  }
+
+  @Test
+  public void testGenCollector() throws FlumeSpecException {
+    EventSink snk = FlumeBuilder.buildSink(LogicalNodeContext.testingContext(),
+        "collector() { customDfsSink(\"file:///tmp/foo\",\"foo\") }");
+    assertTrue(snk instanceof CollectorSink);
+  }
+
+  @Test
+  public void testGenCollectorArgs() throws FlumeSpecException {
+    EventSink snk = FlumeBuilder
+        .buildSink(LogicalNodeContext.testingContext(),
+            "collector(foo=\"bar\") { customDfsSink(\"file:///tmp/foo\",\"foo\") }");
+    assertTrue(snk instanceof CollectorSink);
+
+    snk = FlumeBuilder
+        .buildSink(LogicalNodeContext.testingContext(),
+            "collector(3,foo=\"bar\") { customDfsSink(\"file:///tmp/foo\",\"foo\") }");
+    assertTrue(snk instanceof CollectorSink);
+
+    snk = FlumeBuilder.buildSink(LogicalNodeContext.testingContext(),
+        "collector(3) { customDfsSink(\"file:///tmp/foo\",\"foo\") }");
+    assertTrue(snk instanceof CollectorSink);
+
   }
 }

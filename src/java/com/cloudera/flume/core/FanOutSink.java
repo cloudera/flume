@@ -22,12 +22,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.Reportable;
 import com.cloudera.util.MultipleIOException;
 
 /**
@@ -42,6 +43,8 @@ public class FanOutSink<S extends EventSink> extends EventSink.Base {
   // not. Make a test to find out.
   final List<S> sinks = Collections
       .synchronizedList(new CopyOnWriteArrayList<S>());
+
+  public final static String R_SUBSINKS = "subsinks";
 
   public FanOutSink() {
   }
@@ -74,7 +77,7 @@ public class FanOutSink<S extends EventSink> extends EventSink.Base {
    * Close all children
    */
   @Override
-  public void close() throws IOException {
+  public void close() throws IOException, InterruptedException {
     List<IOException> exs = new ArrayList<IOException>();
 
     for (S snk : sinks) {
@@ -95,7 +98,7 @@ public class FanOutSink<S extends EventSink> extends EventSink.Base {
    * Open all children.
    */
   @Override
-  public void open() throws IOException {
+  public void open() throws IOException, InterruptedException {
     List<IOException> exs = new ArrayList<IOException>();
 
     for (S snk : sinks) {
@@ -113,13 +116,17 @@ public class FanOutSink<S extends EventSink> extends EventSink.Base {
   }
 
   @Override
-  synchronized public void append(Event e) throws IOException {
+  synchronized public void append(Event e) throws IOException,
+      InterruptedException {
     List<IOException> exs = new ArrayList<IOException>();
 
     for (S snk : sinks) {
       try {
-        snk.append(e);
-        super.append(e);
+        // Make a copy of the event for each branch of the fan out. This makes
+        // the events independently modifiable down each fanout path.
+        Event e2 = new EventImpl(e);
+        snk.append(e2);
+        super.append(e2);
       } catch (IOException ioe) {
         exs.add(ioe);
       }
@@ -136,6 +143,25 @@ public class FanOutSink<S extends EventSink> extends EventSink.Base {
     return "Fanout";
   }
 
+  @Override
+  public ReportEvent getMetrics() {
+    ReportEvent rpt = super.getMetrics();
+    rpt.setLongMetric(R_SUBSINKS, sinks.size());
+    return rpt;
+  }
+
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    Map<String, Reportable> map = new HashMap<String, Reportable>();
+    int i = 0;
+    for (EventSink s : sinks) {
+      map.put(getName() + "[" + i + "]", s);
+      i++;
+    }
+    return map;
+  }
+
+  @Deprecated
   @Override
   public void getReports(String namePrefix, Map<String, ReportEvent> reports) {
     super.getReports(namePrefix, reports);

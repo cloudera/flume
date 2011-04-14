@@ -20,8 +20,10 @@ package com.cloudera.flume.core;
 import java.io.IOException;
 import java.util.Map;
 
+import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.SourceFactory.SourceBuilder;
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.ReportUtil;
 import com.cloudera.flume.reporter.Reportable;
 import com.google.common.base.Preconditions;
 
@@ -38,16 +40,17 @@ public interface EventSource extends Reportable {
    * @return event or null if source is done/empty
    * @throws IOException
    */
-  Event next() throws IOException;
+  Event next() throws IOException, InterruptedException;
 
-  public void open() throws IOException;
+  public void open() throws IOException, InterruptedException;
 
-  public void close() throws IOException;
+  public void close() throws IOException, InterruptedException;
 
   /**
    * Generates one or more reports in some sort of readable format using the
    * supplied naming prefix.
    */
+  @Deprecated
   public void getReports(String namePrefix, Map<String, ReportEvent> reports);
 
   /**
@@ -78,14 +81,19 @@ public interface EventSource extends Reportable {
     }
 
     @Override
-    public ReportEvent getReport() {
+    public ReportEvent getMetrics() {
       return new ReportEvent(getName());
+    }
+
+    @Override
+    public Map<String, Reportable> getSubMetrics() {
+      return ReportUtil.noChildren();
     }
 
     public static SourceBuilder builder() {
       return new SourceBuilder() {
         @Override
-        public EventSource build(String... argv) {
+        public EventSource build(Context ctx, String... argv) {
           return new StubSource();
         }
       };
@@ -97,12 +105,12 @@ public interface EventSource extends Reportable {
     public static SourceBuilder builder(final int minArgs, final int maxArgs) {
       return new SourceBuilder() {
         @Override
-        public EventSource build(String... argv) {
+        public EventSource build(Context ctx, String... argv) {
           Preconditions.checkArgument(argv.length >= minArgs,
               "Too few arguments: expected at least " + minArgs
                   + " but only had " + argv.length);
           Preconditions.checkArgument(argv.length <= maxArgs,
-              "Too many arguments : exepected at most " + maxArgs + " but had "
+              "Too many arguments : expected at most " + maxArgs + " but had "
                   + argv.length);
           return new StubSource();
         }
@@ -111,7 +119,7 @@ public interface EventSource extends Reportable {
 
     @Override
     public void getReports(String namePrefix, Map<String, ReportEvent> reports) {
-      reports.put(namePrefix + getName(), getReport());
+      reports.put(namePrefix + getName(), getMetrics());
     }
   }
 
@@ -129,11 +137,11 @@ public interface EventSource extends Reportable {
     private long numBytes = 0;
 
     @Override
-    public void close() throws IOException {
+    public void close() throws IOException, InterruptedException {
     }
 
     @Override
-    public Event next() throws IOException {
+    public Event next() throws IOException, InterruptedException {
       return null;
     }
 
@@ -149,7 +157,7 @@ public interface EventSource extends Reportable {
     }
 
     @Override
-    public void open() throws IOException {
+    public void open() throws IOException, InterruptedException {
     }
 
     @Override
@@ -158,7 +166,7 @@ public interface EventSource extends Reportable {
     }
 
     @Override
-    synchronized public ReportEvent getReport() {
+    synchronized public ReportEvent getMetrics() {
       ReportEvent rpt = new ReportEvent(getName());
 
       rpt.setStringMetric(R_TYPE, getName());
@@ -169,8 +177,13 @@ public interface EventSource extends Reportable {
     }
 
     @Override
+    public Map<String, Reportable> getSubMetrics() {
+      return ReportUtil.noChildren();
+    }
+
+    @Override
     public void getReports(String namePrefix, Map<String, ReportEvent> reports) {
-      reports.put(namePrefix + getName(), getReport());
+      reports.put(namePrefix + getName(), getMetrics());
     }
   }
 

@@ -45,7 +45,7 @@ abstract public class HistogramSink extends EventSink.Base {
   abstract public String extract(Event e);
 
   @Override
-  public void append(Event e) throws IOException {
+  public void append(Event e) throws IOException, InterruptedException {
     String t = extract(e);
     // if failed to extract, skip
     if (t != null) {
@@ -59,8 +59,11 @@ abstract public class HistogramSink extends EventSink.Base {
     return name;
   }
 
+  /**
+   * TODO change to not use createLegacyHtmlReport
+   */
   @Override
-  public ReportEvent getReport() {
+  public ReportEvent getMetrics() {
     String report = (ChartPackage.createHistogramGen().generate(h) + "<pre>"
         + name + "\n" + h + "</pre>");
     return ReportEvent.createLegacyHtmlReport(name, report);

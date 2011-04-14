@@ -203,9 +203,11 @@ public class BenchmarkHarness {
    * This takes a single decorator, and then applies all of the datasets through
    * the decorator. Each source is bufferzied -- the given number of messages
    * are stored in memory so that they can be blasted through any deco.
+   * 
+   * @throws InterruptedException
    */
   public static void doDecoBenchmark(String deco, Map<String, EventSource> sets)
-      throws FlumeSpecException, IOException {
+      throws FlumeSpecException, IOException, InterruptedException {
     for (Map.Entry<String, EventSource> ent : sets.entrySet()) {
       setupLocalWriteDir();
       ReportManager.get().clear();
@@ -233,7 +235,7 @@ public class BenchmarkHarness {
         .getReportables());
     for (Map.Entry<String, Reportable> ent : sorted.entrySet()) {
       String params = ent.getKey();
-      ReportEvent r = ent.getValue().getReport();
+      ReportEvent r = ent.getValue().getMetrics();
       System.out.println(new String(r.toString()));
       System.err.print(new Date(r.getTimestamp()) + ",");
       System.err.print(params + ",");

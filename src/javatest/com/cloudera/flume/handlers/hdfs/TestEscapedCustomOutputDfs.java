@@ -57,7 +57,7 @@ public class TestEscapedCustomOutputDfs {
       .getLogger(TestEscapedCustomOutputDfs.class);
 
   @Test
-  public void testAvroOutputFormat() throws IOException {
+  public void testAvroOutputFormat() throws IOException, InterruptedException {
     // set the output format.
     FlumeConfiguration conf = FlumeConfiguration.get();
     conf.set(FlumeConfiguration.COLLECTOR_OUTPUT_FORMAT, "avrojson");
@@ -89,7 +89,7 @@ public class TestEscapedCustomOutputDfs {
   }
 
   @Test
-  public void testSyslogOutputFormat() throws IOException {
+  public void testSyslogOutputFormat() throws IOException, InterruptedException {
     // set the output format.
     FlumeConfiguration conf = FlumeConfiguration.get();
     conf.set(FlumeConfiguration.COLLECTOR_OUTPUT_FORMAT, "syslog");
@@ -121,7 +121,7 @@ public class TestEscapedCustomOutputDfs {
   }
 
   @Test
-  public void testLog4jOutputFormat() throws IOException {
+  public void testLog4jOutputFormat() throws IOException, InterruptedException {
     // set the output format.
     FlumeConfiguration conf = FlumeConfiguration.get();
     conf.set(FlumeConfiguration.COLLECTOR_OUTPUT_FORMAT, "log4j");
@@ -153,12 +153,15 @@ public class TestEscapedCustomOutputDfs {
 
   /**
    * Test to write few log lines, compress using gzip, write to disk, read back
-   * the compressed file and verify the written lines.
+   * the compressed file and verify the written lines. This test alone doesn't
+   * test GZipCodec with its Native Libs. java.library.path must contain the path to the
+   * hadoop native libs for this to happen.
    * 
    * @throws IOException
+   * @throws InterruptedException
    */
   @Test
-  public void testGZipCodec() throws IOException {
+  public void testGZipCodec() throws IOException, InterruptedException {
     // set the output format.
     FlumeConfiguration conf = FlumeConfiguration.get();
     conf.set(FlumeConfiguration.COLLECTOR_OUTPUT_FORMAT, "syslog");
@@ -200,13 +203,14 @@ public class TestEscapedCustomOutputDfs {
   }
 
   /**
-   * Test to write few log lines, compress using gzip, write to disk, read back
+   * Test to write few log lines, compress using bzip2, write to disk, read back
    * the compressed file and verify the written lines.
    * 
    * @throws IOException
+   * @throws InterruptedException
    */
   @Test
-  public void testBZip2Codec() throws IOException {
+  public void testBZip2Codec() throws IOException, InterruptedException {
     // set the output format.
     FlumeConfiguration conf = FlumeConfiguration.get();
     conf.set(FlumeConfiguration.COLLECTOR_OUTPUT_FORMAT, "syslog");
@@ -230,7 +234,7 @@ public class TestEscapedCustomOutputDfs {
     String expected = new String(exWriter.toByteArray());
 
     // check the output to make sure it is what we expected.
-    // read the gzip file and verify the contents
+    // read the bzip2 file and verify the contents
     BZip2Codec bz2Codec = new BZip2Codec();
     InputStream bz2in = bz2Codec.createInputStream(new FileInputStream(f
         .getPath() + "/sub-foo.bz2"));
@@ -247,17 +251,20 @@ public class TestEscapedCustomOutputDfs {
   }
 
   /**
-   * Test to write few log lines, compress using gzip, write to disk, read back
+   * Test to write few log lines, compress using bzip2, write to disk, read back
    * the compressed file and verify the written lines.
-   * 
+   *
+   * This test uses the wrong case for the codec name.
+   *
    * @throws IOException
+   * @throws InterruptedException
    */
   @Test
-  public void testGzipOutputFormat() throws IOException {
+  public void testBZip2CodecWrongCase() throws IOException, InterruptedException {
     // set the output format.
     FlumeConfiguration conf = FlumeConfiguration.get();
     conf.set(FlumeConfiguration.COLLECTOR_OUTPUT_FORMAT, "syslog");
-    conf.set(FlumeConfiguration.COLLECTOR_DFS_COMPRESS_GZIP, "true");
+    conf.set(FlumeConfiguration.COLLECTOR_DFS_COMPRESS_CODEC, "bzip2Codec");
 
     // build a sink that outputs to that format.
     File f = FileUtil.mktempdir();
@@ -277,17 +284,17 @@ public class TestEscapedCustomOutputDfs {
     String expected = new String(exWriter.toByteArray());
 
     // check the output to make sure it is what we expected.
-    // read the gzip file and verify the contents
-
-    GZIPInputStream gzin = new GZIPInputStream(new FileInputStream(f.getPath()
-        + "/sub-foo.gz"));
+    // read the bzip2 file and verify the contents
+    BZip2Codec bz2Codec = new BZip2Codec();
+    InputStream bz2in = bz2Codec.createInputStream(new FileInputStream(f
+        .getPath() + "/sub-foo.bz2"));
     byte[] buf = new byte[1];
     StringBuilder output = new StringBuilder();
 
-    while ((gzin.read(buf)) > 0) {
+    while ((bz2in.read(buf)) > 0) {
       output.append(new String(buf));
     }
-    gzin.close();// Must close for windows to delete
+    bz2in.close(); // Must close for windows to delete
     assertEquals(expected, output.toString());
 
     assertTrue("temp folder successfully deleted", FileUtil.rmr(f));
@@ -296,10 +303,12 @@ public class TestEscapedCustomOutputDfs {
   /**
    * Test to write few log lines, compress using default, write to disk, read
    * back the compressed file and verify the written lines.
+   * 
+   * @throws InterruptedException
    */
 
-  @Test(expected = IOException.class)
-  public void testDefaultCodec() throws IOException {
+  @Test
+  public void testDefaultCodec() throws IOException, InterruptedException {
     // set the output format.
     FlumeConfiguration conf = FlumeConfiguration.get();
     conf.set(FlumeConfiguration.COLLECTOR_OUTPUT_FORMAT, "syslog");
@@ -323,8 +332,9 @@ public class TestEscapedCustomOutputDfs {
     String expected = new String(exWriter.toByteArray());
 
     // check the output to make sure it is what we expected.
-    // read the gzip file and verify the contents
+    // read the file and verify the contents
     DefaultCodec defaultCodec = new DefaultCodec();
+    defaultCodec.setConf(conf);
     InputStream defaultIn = defaultCodec.createInputStream(new FileInputStream(
         f.getPath() + "/sub-foo.deflate"));
     byte[] buf = new byte[1];

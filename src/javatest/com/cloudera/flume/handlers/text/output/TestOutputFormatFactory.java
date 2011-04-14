@@ -51,9 +51,12 @@ public class TestOutputFormatFactory {
 
   /**
    * Visual inspection
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testSyslogConsole() throws FlumeSpecException, IOException {
+  public void testSyslogConsole() throws FlumeSpecException, IOException,
+      InterruptedException {
 
     EventSink snk = FlumeBuilder
         .buildSink(new Context(), "console(\"syslog\")");
@@ -67,9 +70,12 @@ public class TestOutputFormatFactory {
 
   /**
    * Visual inspection
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testDefaultConsole() throws FlumeSpecException, IOException {
+  public void testDefaultConsole() throws FlumeSpecException, IOException,
+      InterruptedException {
 
     EventSink snk = FlumeBuilder.buildSink(new Context(),
         "console(\"default\")");
@@ -83,11 +89,32 @@ public class TestOutputFormatFactory {
 
   /**
    * Visual inspection
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testLog4jConsole() throws FlumeSpecException, IOException {
+  public void testLog4jConsole() throws FlumeSpecException, IOException,
+      InterruptedException {
 
     EventSink snk = FlumeBuilder.buildSink(new Context(), "console(\"log4j\")");
+    snk.open();
+    for (int i = 0; i < count; i++) {
+      Event e = new EventImpl(("simple test " + i).getBytes());
+      snk.append(e);
+    }
+    snk.close();
+  }
+
+  /**
+   * Visual inspection
+   *
+   * @throws InterruptedException
+   */
+  @Test
+  public void testJsonConsole() throws FlumeSpecException, IOException,
+      InterruptedException {
+
+    EventSink snk = FlumeBuilder.buildSink(new Context(), "console(\"json\")");
     snk.open();
     for (int i = 0; i < count; i++) {
       Event e = new EventImpl(("simple test " + i).getBytes());
@@ -109,9 +136,12 @@ public class TestOutputFormatFactory {
 
   /**
    * Write out to file and check to make sure there are 5 lines.
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testSyslogText() throws FlumeSpecException, IOException {
+  public void testSyslogText() throws FlumeSpecException, IOException,
+      InterruptedException {
 
     File tmp = File.createTempFile("syslogText", ".txt");
     tmp.deleteOnExit();
@@ -129,9 +159,12 @@ public class TestOutputFormatFactory {
 
   /**
    * Write out to file and check to make sure there are 5 lines.
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testDefaultText() throws FlumeSpecException, IOException {
+  public void testDefaultText() throws FlumeSpecException, IOException,
+      InterruptedException {
 
     File tmp = File.createTempFile("defaultText", ".txt");
     tmp.deleteOnExit();
@@ -150,9 +183,12 @@ public class TestOutputFormatFactory {
 
   /**
    * Write out to file and check to make sure there are 5 lines.
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testLog4jText() throws FlumeSpecException, IOException {
+  public void testLog4jText() throws FlumeSpecException, IOException,
+      InterruptedException {
 
     File tmp = File.createTempFile("log4jText", ".txt");
     tmp.deleteOnExit();
@@ -170,9 +206,35 @@ public class TestOutputFormatFactory {
 
   /**
    * Write out to file and check to make sure there are 5 lines.
+   *
+   * @throws InterruptedException
    */
   @Test
-  public void testSyslogDfs() throws FlumeSpecException, IOException {
+  public void testJsonText() throws FlumeSpecException, IOException,
+      InterruptedException {
+
+    File tmp = File.createTempFile("jsonText", ".txt");
+    tmp.deleteOnExit();
+
+    EventSink snk = FlumeBuilder.buildSink(new Context(), "text(\""
+        + escapeJava(tmp.getAbsolutePath()) + "\",\"json\")");
+    snk.open();
+    for (int i = 0; i < count; i++) {
+      Event e = new EventImpl(("simple test " + i).getBytes());
+      snk.append(e);
+    }
+    snk.close();
+    assert (checkFile(tmp));
+  }
+
+  /**
+   * Write out to file and check to make sure there are 5 lines.
+   * 
+   * @throws InterruptedException
+   */
+  @Test
+  public void testSyslogDfs() throws FlumeSpecException, IOException,
+      InterruptedException {
 
     File tmp = File.createTempFile("syslogDfs", ".txt");
     tmp.deleteOnExit();
@@ -191,9 +253,12 @@ public class TestOutputFormatFactory {
 
   /**
    * Write out to file and check to make sure there are 5 lines.
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testDefaultDfs() throws FlumeSpecException, IOException {
+  public void testDefaultDfs() throws FlumeSpecException, IOException,
+      InterruptedException {
 
     File tmp = File.createTempFile("defaultDfs", ".txt");
     tmp.deleteOnExit();
@@ -212,9 +277,12 @@ public class TestOutputFormatFactory {
 
   /**
    * Write out to file and check to make sure there are 5 lines.
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testLog4jDfs() throws FlumeSpecException, IOException {
+  public void testLog4jDfs() throws FlumeSpecException, IOException,
+      InterruptedException {
 
     File tmp = File.createTempFile("log4jDfs", ".txt");
     tmp.deleteOnExit();
@@ -232,13 +300,39 @@ public class TestOutputFormatFactory {
   }
 
   /**
+   * Write out to file and check to make sure there are 5 lines.
+   *
+   * @throws InterruptedException
+   */
+  @Test
+  public void testJsonDfs() throws FlumeSpecException, IOException,
+      InterruptedException {
+
+    File tmp = File.createTempFile("jsonDfs", ".txt");
+    tmp.deleteOnExit();
+
+    EventSink snk = FlumeBuilder.buildSink(new Context(),
+        "customdfs(\"file:///" + escapeJava(tmp.getAbsolutePath())
+            + "\",\"json\")");
+    snk.open();
+    for (int i = 0; i < count; i++) {
+      Event e = new EventImpl(("simple test " + i).getBytes());
+      snk.append(e);
+    }
+    snk.close();
+    assert (checkFile(tmp));
+  }
+
+  /**
    * Write out to file and check to make sure there are 5 lines prefixed by
    * "WACKADOODLE:".
    * 
    * @throws IOException
+   * @throws InterruptedException
    */
   @Test
-  public void testWackaDoodle() throws FlumeSpecException, IOException {
+  public void testWackaDoodle() throws FlumeSpecException, IOException,
+      InterruptedException {
     EventSink sink;
     File tmpFile;
     BufferedReader reader;

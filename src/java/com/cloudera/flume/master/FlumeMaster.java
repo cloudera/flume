@@ -23,7 +23,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.util.Map;
 import java.util.Set;
+
+import javax.ws.rs.core.Application;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -37,10 +42,12 @@ import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.agent.FlumeNode;
 import com.cloudera.flume.conf.FlumeConfiguration;
+import com.cloudera.flume.handlers.text.FormatFactory;
 import com.cloudera.flume.master.flows.FlowConfigManager;
 import com.cloudera.flume.master.logical.LogicalConfigurationManager;
 import com.cloudera.flume.reporter.ReportEvent;
 import com.cloudera.flume.reporter.ReportManager;
+import com.cloudera.flume.reporter.ReportUtil;
 import com.cloudera.flume.reporter.Reportable;
 import com.cloudera.flume.reporter.server.AvroReportServer;
 import com.cloudera.flume.reporter.server.ThriftReportServer;
@@ -49,6 +56,8 @@ import com.cloudera.flume.util.SystemInfo;
 import com.cloudera.util.CheckJavaVersion;
 import com.cloudera.util.NetUtils;
 import com.cloudera.util.StatusHttpServer;
+import com.sun.jersey.api.core.DefaultResourceConfig;
+import com.sun.jersey.spi.container.servlet.ServletContainer;
 
 /**
  * This is a first cut at a server for distributing configurations to different
@@ -86,6 +95,9 @@ public class FlumeMaster implements Reportable {
   final ConfigurationManager specman;
   final StatusManager statman;
   final MasterAckManager ackman;
+
+  final SystemInfo sysInfo = new SystemInfo(this.uniqueMasterName + ".");
+  final FlumeVMInfo vmInfo = new FlumeVMInfo(this.uniqueMasterName + ".");
 
   final String uniqueMasterName;
 
@@ -134,20 +146,43 @@ public class FlumeMaster implements Reportable {
 
     // configuration manager translate user entered configs
 
-    // TODO (jon) semantics have changed slightly -- different translations have
-    // thier configurations partitioned now, only the user entered root
-    // configurations are saved.
-    ConfigurationManager base = new ConfigManager(cfgStore);
-    ConfigurationManager flowedFailovers = new FlowConfigManager.FailoverFlowConfigManager(
-        base, statman);
-    this.specman = new LogicalConfigurationManager(flowedFailovers,
-        new ConfigManager(), statman);
+    if (FlumeConfiguration.get().getMasterIsDistributed()) {
+      LOG.info("Distributed master, disabling all config translations");
+      ConfigurationManager base = new ConfigManager(cfgStore);
+      this.specman = base;
+    } else {
+      // TODO (jon) translated configurations cause problems in multi-master
+      // situations. For now we disallow translation.
+      LOG.info("Single master, config translations enabled");
+      ConfigurationManager base = new ConfigManager(cfgStore);
+      ConfigurationManager flowedFailovers = new FlowConfigManager.FailoverFlowConfigManager(
+          base, statman);
+      this.specman = new LogicalConfigurationManager(flowedFailovers,
+          new ConfigManager(), statman);
+    }
 
     if (FlumeConfiguration.get().getMasterIsDistributed()) {
       this.ackman = new GossipedMasterAckManager(FlumeConfiguration.get());
     } else {
       this.ackman = new MasterAckManager();
     }
+  }
+
+  /**
+   * Completely generic and pluggable Flume master constructor. Used for test
+   * cases. Webserver is by default on.
+   */
+  public FlumeMaster(CommandManager cmd, ConfigurationManager cfgMan,
+      StatusManager stat, MasterAckManager ack, FlumeConfiguration cfg,
+      boolean doHttp) {
+    instance = this;
+    this.doHttp = doHttp;
+    this.cmdman = cmd;
+    this.specman = cfgMan;
+    this.statman = stat;
+    this.ackman = ack;
+    this.cfg = cfg;
+    this.uniqueMasterName = "flume-master-" + cfg.getMasterServerId();
   }
 
   /**
@@ -205,6 +240,14 @@ public class FlumeMaster implements Reportable {
     return cmdman.submit(cmd);
   }
 
+  ServletContainer jerseyMasterServlet() {
+    Application app = new DefaultResourceConfig(FlumeMasterResource
+        .getResources());
+    ServletContainer sc = new ServletContainer(app);
+
+    return sc;
+  }
+
   public void serve() throws IOException {
     if (cfg.getMasterStore().equals(ZK_CFG_STORE)) {
       try {
@@ -213,13 +256,14 @@ public class FlumeMaster implements Reportable {
         throw new IOException("Unexpected interrupt when starting ZooKeeper", e);
       }
     }
-    ReportManager.get().add(new FlumeVMInfo(this.uniqueMasterName + "."));
-    ReportManager.get().add(new SystemInfo(this.uniqueMasterName + "."));
+    ReportManager.get().add(vmInfo);
+    ReportManager.get().add(sysInfo);
 
     if (doHttp) {
       String webPath = FlumeNode.getWebPath(cfg);
       this.http = new StatusHttpServer("flumeconfig", webPath, "0.0.0.0", cfg
           .getMasterHttpPort(), false);
+      http.addServlet(jerseyMasterServlet(), "/master/*");
       http.start();
     }
 
@@ -354,9 +398,9 @@ public class FlumeMaster implements Reportable {
    */
 
   public void reportHtml(Writer o) throws IOException {
-    statman.getReport().toHtml(o);
-    specman.getReport().toHtml(o);
-    cmdman.getReport().toHtml(o);
+    statman.getMetrics().toHtml(o);
+    specman.getMetrics().toHtml(o);
+    cmdman.getMetrics().toHtml(o);
   }
 
   /**
@@ -389,7 +433,7 @@ public class FlumeMaster implements Reportable {
   }
 
   @Override
-  public ReportEvent getReport() {
+  public ReportEvent getMetrics() {
     ReportEvent rpt = new ReportEvent(getName());
 
     rpt.setStringMetric(REPORTKEY_HOSTNAME, NetUtils.localhost());
@@ -398,6 +442,39 @@ public class FlumeMaster implements Reportable {
         .size());
 
     return rpt;
+  }
+
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    return ReportUtil.noChildren();
+  }
+
+  /**
+   * This returns true if the host running this process is in the list of master
+   * servers. The index is set in the FlumeConfiguration. If the host doesn't
+   * match, false is returned. If the hostnames in the master server list fail
+   * to resolve, an exception is thrown.
+   */
+
+  public static boolean inferMasterHostID() throws UnknownHostException,
+      SocketException {
+    String masters = FlumeConfiguration.get().getMasterServers();
+    String[] mtrs = masters.split(",");
+
+    int idx = NetUtils.findHostIndex(mtrs);
+    if (idx < 0) {
+
+      String localhost = NetUtils.localhost();
+      LOG.error("Attempted to start a master '{}' that is not "
+          + "in the master servers list: '{}'", localhost, mtrs);
+      // localhost ips weren't in the list.
+      return false;
+    }
+
+    FlumeConfiguration.get().setInt(FlumeConfiguration.MASTER_SERVER_ID, idx);
+    LOG.info("Inferred master server index {}", idx);
+    return true;
+
   }
 
   /**
@@ -426,8 +503,10 @@ public class FlumeMaster implements Reportable {
     } catch (ParseException e) {
       HelpFormatter fmt = new HelpFormatter();
       fmt.printHelp("FlumeNode", options, true);
-      System.exit(0);
+      System.exit(1);
     }
+    
+    FormatFactory.loadOutputFormatPlugins();
 
     String nodeconfig = FlumeConfiguration.get().getMasterSavefile();
 
@@ -436,6 +515,8 @@ public class FlumeMaster implements Reportable {
     }
 
     if (cmd != null && cmd.hasOption("i")) {
+      // if manually overridden by command line, accept it, live with
+      // consequences.
       String sid = cmd.getOptionValue("i");
       LOG.info("Setting serverid from command line to be " + sid);
       try {
@@ -444,8 +525,20 @@ public class FlumeMaster implements Reportable {
             serverid);
       } catch (NumberFormatException e) {
         LOG.error("Couldn't parse server id as integer: " + sid);
-        System.exit(0);
+        System.exit(1);
       }
+    } else {
+      // attempt to auto detect master id.
+      try {
+        if (!inferMasterHostID()) {
+          System.exit(1);
+        }
+      } catch (Exception e) {
+        // master needs to be valid to continue;
+        LOG.error("Unable to resolve host '{}' ", e.getMessage());
+        System.exit(1);
+      }
+
     }
 
     // This will instantiate and read FlumeConfiguration - so make sure that
@@ -471,5 +564,13 @@ public class FlumeMaster implements Reportable {
       LOG.error("IO problem: " + e.getMessage());
       LOG.debug("IOException", e);
     }
+  }
+
+  public FlumeVMInfo getVMInfo() {
+    return vmInfo;
+  }
+
+  public SystemInfo getSystemInfo() {
+    return sysInfo;
   }
 }

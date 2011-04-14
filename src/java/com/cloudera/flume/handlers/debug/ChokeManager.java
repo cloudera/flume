@@ -32,7 +32,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class ChokeManager extends Thread {
 
   // Time quanta in millisecs. It is a constant right now, we can change this
-  // later. The main thread of the Chokemanager fills up the buckets
+  // later. The main thread of the ChokeManager fills up the buckets
   // corresponding to different choke-ids and the physical node after this time
   // quanta.
 
@@ -176,13 +176,16 @@ public class ChokeManager extends Thread {
    * This method blocks at most for 2 time quanta. So if many driver threads are
    * using the same choke and the message size is huge, accuracy can be thrown
    * off, i.e., more bytes than the maximum limit can be shipped.
+   * 
+   * @throws InterruptedException
    */
-  public void spendTokens(String id, int numBytes) throws IOException {
+  public void spendTokens(String id, int numBytes) throws IOException,
+      InterruptedException {
     // TODO(Vibhor): Change this when we implement physical-node-level
     // throttling policy.
     rwlChokeInfoMap.readLock().lock();
     try {
-      // simple policy for now: if the chokeid is not there then simply return,
+      // simple policy for now: if the chokeId is not there then simply return,
       // essentially no throttling with an invalid chokeID.
       if (this.isChokeId(id) != false) {
         int loopCount = 0;
@@ -193,8 +196,10 @@ public class ChokeManager extends Thread {
             try {
               myTinfoData.wait(ChokeManager.timeQuanta);
             } catch (InterruptedException e) {
-              Thread.currentThread().interrupt();
-              throw new IOException(e);
+              // TODO handle interruptions
+              throw e;
+              // Thread.currentThread().interrupt();
+              // throw new IOException(e);
             }
             if (loopCount++ >= 2) // just wait twice to avoid starvation
               break;

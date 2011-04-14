@@ -34,12 +34,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.cloudera.flume.VersionInfo;
+import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.FlumeConfiguration;
 import com.cloudera.flume.conf.SourceFactory.SourceBuilder;
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventImpl;
 import com.cloudera.flume.core.EventSource;
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.ReportUtil;
+import com.cloudera.flume.reporter.Reportable;
 import com.cloudera.flume.util.ThriftServer;
 import com.cloudera.util.Clock;
 import com.google.common.base.Preconditions;
@@ -224,7 +227,7 @@ public class ScribeEventSource extends ThriftServer implements EventSource,
   public static SourceBuilder builder() {
     return new SourceBuilder() {
       @Override
-      public EventSource build(String... argv) {
+      public EventSource build(Context ctx, String... argv) {
         Preconditions.checkArgument(argv.length <= 1, "usage: scribe[(port={"
             + FlumeConfiguration.DEFAULT_SCRIBE_SOURCE_PORT + "})]");
         int port = FlumeConfiguration.get().getScribeSourcePort();
@@ -237,14 +240,19 @@ public class ScribeEventSource extends ThriftServer implements EventSource,
   }
 
   @Override
-  public ReportEvent getReport() {
+  public ReportEvent getMetrics() {
     // TODO(henry): add metrics
     // TODO missing EventSource stats
     return new ReportEvent("scribe-source");
   }
 
   @Override
+  public Map<String, Reportable> getSubMetrics() {
+    return ReportUtil.noChildren();
+  }
+
+  @Override
   public void getReports(String namePrefix, Map<String, ReportEvent> reports) {
-    reports.put(namePrefix + getName(), getReport());
+    reports.put(namePrefix + getName(), getMetrics());
   }
 }

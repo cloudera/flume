@@ -35,6 +35,7 @@ import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventSink;
 import com.cloudera.flume.master.availability.FailoverChainManager;
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.Reportable;
 import com.cloudera.util.NetUtils;
 import com.cloudera.util.Pair;
 import com.google.common.base.Preconditions;
@@ -50,11 +51,6 @@ public class AgentFailChainSink extends EventSink.Base {
   public enum RELIABILITY {
     E2E, DFO, BE
   };
-
-  public AgentFailChainSink(RELIABILITY rel, String... hosts)
-      throws FlumeSpecException {
-    this(new Context(), rel, hosts);
-  }
 
   public AgentFailChainSink(Context context, RELIABILITY rel, String... hosts)
       throws FlumeSpecException {
@@ -79,6 +75,7 @@ public class AgentFailChainSink extends EventSink.Base {
       break;
     }
     case BE: {
+      thriftlist.add("null");
       String chains = AgentFailChainSink.genBestEffortChain(thriftlist
           .toArray(new String[0]));
       LOG.info("Setting failover chain to  " + chains);
@@ -86,27 +83,38 @@ public class AgentFailChainSink extends EventSink.Base {
       break;
     }
     default: {
-      throw new FlumeSpecException("Unknown relability " + rel);
+      throw new FlumeSpecException("Unknown reliability " + rel);
     }
     }
   }
 
   @Override
-  public void open() throws IOException {
+  public void open() throws IOException, InterruptedException {
     snk.open();
   }
 
   @Override
-  public void close() throws IOException {
+  public void close() throws IOException, InterruptedException {
     snk.close();
   }
 
   @Override
-  public void append(Event e) throws IOException {
+  public void append(Event e) throws IOException, InterruptedException {
     snk.append(e);
     super.append(e);
   }
 
+  @Override
+  public ReportEvent getMetrics() {
+    return snk.getMetrics();
+  }
+
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    return snk.getSubMetrics();
+  }
+
+  @Deprecated
   @Override
   public void getReports(String namePrefix, Map<String, ReportEvent> reports) {
     super.getReports(namePrefix, reports);
@@ -130,8 +138,6 @@ public class AgentFailChainSink extends EventSink.Base {
 
   /**
    * Generates a e2e acking chain. Writes to WAL then tries to send to failovers
-   * 
-   * TODO (jon) this needs to be live tested.
    */
   public static String genE2EChain(String... chain) {
     String body = " %s ";
@@ -148,20 +154,15 @@ public class AgentFailChainSink extends EventSink.Base {
   /**
    * Generates a dfo chain. Tries best effort and then writes to dfo log if
    * failed. Tries to resend best effort.
-   * 
-   * TODO (jon) this needs to be live tested.
    */
   public static String genDfoChain(String... chain) {
-    StringBuilder sb = new StringBuilder();
     String primaries = genBestEffortChain(chain);
-    sb.append("let primary := " + primaries);
-    String body = "< primary ? {diskFailover => { insistentOpen =>  primary} } >";
+    String body = "< " + primaries
+        + " ? diskFailover insistentAppend stubbornAppend insistentOpen "
+        + primaries + " >";
 
     LOG.info("Setting dfo failover chain to  " + body);
-    sb.append(" in ");
-    sb.append(body);
-
-    return sb.toString();
+    return body;
   }
 
   /**
@@ -171,7 +172,7 @@ public class AgentFailChainSink extends EventSink.Base {
     ArrayList<String> thriftified = new ArrayList<String>();
 
     if (list == null || list.size() == 0) {
-      String sink = String.format("tsink(\"%s\",%d)", FlumeConfiguration.get()
+      String sink = String.format("thriftSink(\"%s\",%d)", FlumeConfiguration.get()
           .getCollectorHost(), FlumeConfiguration.get().getCollectorPort());
       thriftified.add(sink);
       return thriftified;
@@ -183,7 +184,7 @@ public class AgentFailChainSink extends EventSink.Base {
       String collector = sock.getLeft();
       int port = sock.getRight();
       // This needs to be a physical address/node, not a logical node.
-      String sink = String.format("tsink(\"%s\",%d)", collector, port);
+      String sink = String.format("thriftSink(\"%s\",%d)", collector, port);
       thriftified.add(sink);
     }
     return thriftified;
@@ -206,7 +207,7 @@ public class AgentFailChainSink extends EventSink.Base {
             .checkArgument(argv.length >= 1,
                 "usage: agentE2EChain(\"machine1[:port]\" [, \"machine2[:port]\" [,...]])");
         try {
-          return new AgentFailChainSink(RELIABILITY.E2E, argv);
+          return new AgentFailChainSink(context, RELIABILITY.E2E, argv);
         } catch (FlumeSpecException e) {
           throw new IllegalArgumentException(e);
         }
@@ -234,7 +235,7 @@ public class AgentFailChainSink extends EventSink.Base {
             .checkArgument(argv.length >= 1,
                 "usage: agentDFOChain(\"machine1[:port]\" [, \"machine2[:port]\" [,...]])");
         try {
-          return new AgentFailChainSink(RELIABILITY.DFO, argv);
+          return new AgentFailChainSink(context, RELIABILITY.DFO, argv);
         } catch (FlumeSpecException e) {
           throw new IllegalArgumentException(e);
         }
@@ -258,7 +259,7 @@ public class AgentFailChainSink extends EventSink.Base {
             .checkArgument(argv.length >= 1,
                 "usage: agentBEChain(\"machine1[:port]\" [, \"machine2[:port]\" [,...]])");
         try {
-          return new AgentFailChainSink(RELIABILITY.BE, argv);
+          return new AgentFailChainSink(context, RELIABILITY.BE, argv);
         } catch (FlumeSpecException e) {
           throw new IllegalArgumentException(e);
         }

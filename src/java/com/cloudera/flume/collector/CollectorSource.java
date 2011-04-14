@@ -23,6 +23,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cloudera.flume.conf.Context;
 import com.cloudera.flume.conf.FlumeConfiguration;
 import com.cloudera.flume.conf.SourceFactory.SourceBuilder;
 import com.cloudera.flume.core.Event;
@@ -38,8 +39,8 @@ import com.google.common.base.Preconditions;
  * implementation details to may user configuration simpler. It has a default
  * options that come from flume-*.xml configuration file.
  * 
- * The actual implementation may change in the future (for example, thrift may
- * be replaced with avro) but user configurations would not need to change.
+ * The actual implementation may change in the future (for example, Thrift may
+ * be replaced with Avro) but user configurations would not need to change.
  * 
  * TODO (jon) auto version negotiation? (With agent sink)
  */
@@ -55,19 +56,19 @@ public class CollectorSource extends EventSource.Base {
   }
 
   @Override
-  public void close() throws IOException {
+  public void close() throws IOException, InterruptedException {
     LOG.info("closed");
     src.close();
   }
 
   @Override
-  public void open() throws IOException {
+  public void open() throws IOException, InterruptedException {
     LOG.info("opened");
     src.open();
   }
 
   @Override
-  public Event next() throws IOException {
+  public Event next() throws IOException, InterruptedException {
     Event e = src.next();
     updateEventProcessingStats(e);
     return e;
@@ -89,7 +90,7 @@ public class CollectorSource extends EventSource.Base {
   public static SourceBuilder builder() {
     return new SourceBuilder() {
       @Override
-      public EventSource build(String... argv) {
+      public EventSource build(Context ctx, String... argv) {
         // accept 0 or 1 argument.
         Preconditions.checkArgument(argv.length <= 1,
             "usage: collectorSource[(port={"

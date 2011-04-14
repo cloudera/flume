@@ -33,6 +33,8 @@ import com.cloudera.flume.core.CompositeSink;
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventSink;
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.ReportUtil;
+import com.cloudera.flume.reporter.Reportable;
 import com.cloudera.util.Clock;
 import com.google.common.base.Preconditions;
 
@@ -56,7 +58,7 @@ public class RollSink extends EventSink.Base {
   // reporting attributes and counters
   public final static String A_ROLLS = "rolls";
   public final static String A_ROLLFAILS = "rollfails";
-  public final String A_ROLLSPEC = "rollspec";
+  public final static String A_ROLLSPEC = "rollspec";
   public final String A_ROLL_TAG; // TODO (jon) parameterize this.
   public final static String DEFAULT_ROLL_TAG = "rolltag";
 
@@ -111,26 +113,31 @@ public class RollSink extends EventSink.Base {
 
     public void run() {
       startedLatch.countDown();
-      while (!isInterrupted()) {
-        // TODO there should probably be a lcok on Roll sink but until we handle
-        // interruptions throughout the code, we cannot because this causes a
-        // deadlock
-        if (trigger.isTriggered()) {
-          trigger.reset();
+      try {
+        while (!isInterrupted()) {
+          // TODO there should probably be a lock on Roll sink but until we
+          // handle
+          // interruptions throughout the code, we cannot because this causes a
+          // deadlock
+          if (trigger.isTriggered()) {
+            trigger.reset();
 
-          LOG.debug("Rotate started by triggerthread... ");
-          rotate();
-          LOG.debug("Rotate stopped by triggerthread... ");
-          continue;
-        }
+            LOG.debug("Rotate started by triggerthread... ");
+            rotate();
+            LOG.debug("Rotate stopped by triggerthread... ");
+            continue;
+          }
 
-        try {
-          Clock.sleep(checkLatencyMs);
-        } catch (InterruptedException e) {
-          LOG.warn("TriggerThread interrupted");
-          doneLatch.countDown();
-          return;
+          try {
+            Clock.sleep(checkLatencyMs);
+          } catch (InterruptedException e) {
+            LOG.warn("TriggerThread interrupted");
+            doneLatch.countDown();
+            return;
+          }
         }
+      } catch (InterruptedException e) {
+        LOG.error("RollSink interrupted", e);
       }
       LOG.info("TriggerThread shutdown");
       doneLatch.countDown();
@@ -150,7 +157,7 @@ public class RollSink extends EventSink.Base {
 
   // This is a large synchronized section. Won't fix until it becomes a problem.
   @Override
-  public void append(Event e) throws IOException {
+  public void append(Event e) throws IOException, InterruptedException {
     Preconditions.checkState(curSink != null,
         "Attempted to append when rollsink not open");
 
@@ -170,7 +177,7 @@ public class RollSink extends EventSink.Base {
     }
   }
 
-  synchronized public boolean rotate() {
+  synchronized public boolean rotate() throws InterruptedException {
     try {
       rolls.incrementAndGet();
       if (curSink == null) {
@@ -195,7 +202,7 @@ public class RollSink extends EventSink.Base {
   }
 
   @Override
-  public void close() throws IOException {
+  public void close() throws IOException, InterruptedException {
     LOG.info("closing RollSink '" + fspec + "'");
 
     // TODO triggerThread can race with an open call, but we really need to
@@ -207,6 +214,8 @@ public class RollSink extends EventSink.Base {
       } catch (InterruptedException e) {
         LOG
             .warn("Interrupted while waiting for batch timeout thread to finish");
+        // TODO check finally
+        throw e;
       }
     }
 
@@ -221,7 +230,7 @@ public class RollSink extends EventSink.Base {
   }
 
   @Override
-  synchronized public void open() throws IOException {
+  synchronized public void open() throws IOException, InterruptedException {
     Preconditions.checkState(curSink == null,
         "Attempting to open already open RollSink '" + fspec + "'");
     LOG.info("opening RollSink  '" + fspec + "'");
@@ -243,6 +252,26 @@ public class RollSink extends EventSink.Base {
   }
 
   @Override
+  synchronized public ReportEvent getMetrics() {
+    ReportEvent rpt = super.getMetrics();
+    rpt.setLongMetric(A_ROLLS, rolls.get());
+    rpt.setLongMetric(A_ROLLFAILS, rollfails.get());
+    rpt.setStringMetric(A_ROLLSPEC, fspec);
+    return rpt;
+  }
+
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    // subReports will handle case where curSink is null
+    return ReportUtil.subReports(curSink);
+  }
+
+  public String getRollSpec() {
+    return fspec;
+  }
+
+  @Deprecated
+  @Override
   synchronized public ReportEvent getReport() {
     ReportEvent rpt = super.getReport();
     rpt.setLongMetric(A_ROLLS, rolls.get());
@@ -251,6 +280,7 @@ public class RollSink extends EventSink.Base {
     return rpt;
   }
 
+  @Deprecated
   @Override
   public void getReports(String namePrefix, Map<String, ReportEvent> reports) {
     super.getReports(namePrefix, reports);

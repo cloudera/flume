@@ -42,9 +42,11 @@ public class TestSynthSources {
 
   /**
    * Test the body generating source
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void checkSynth() throws IOException {
+  public void checkSynth() throws IOException, InterruptedException {
     EventSource src = new SynthSource(5, 10, 1337);
     Event e = null;
     EventSink snk = new ConsoleEventSink(new AvroJsonOutputFormat());
@@ -67,9 +69,12 @@ public class TestSynthSources {
   /**
    * This makes sure that the synth source is reopened, it will essentially
    * generate the same output. (time stamp and machine may differ)
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testMultipleVaryMessageBytes() throws IOException {
+  public void testMultipleVaryMessageBytes() throws IOException,
+      InterruptedException {
     Event e1, e2;
     for (EventSource src : BenchmarkHarness.varyMsgBytes.values()) {
       src.open();
@@ -83,9 +88,11 @@ public class TestSynthSources {
   /**
    * Tests to make sure we get events with the specified number of attributes,
    * with specified attribute size, and values of specified size.
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void checkAttrSynth() throws IOException {
+  public void checkAttrSynth() throws IOException, InterruptedException {
     EventSource src = new AttrSynthSource(5, 10, 20, 15, 1337);
     Event e = null;
     EventSink snk = new ConsoleEventSink(new AvroJsonOutputFormat());
@@ -114,9 +121,12 @@ public class TestSynthSources {
   /**
    * This makes sure that the synth source is reopened, it will essentially
    * generate the same output. (time stamp and machine may differ)
+   * 
+   * @throws InterruptedException
    */
   @Test
-  public void testAttrsMultipleVaryMessageBytes() throws IOException {
+  public void testAttrsMultipleVaryMessageBytes() throws IOException,
+      InterruptedException {
     Event e1, e2;
     for (EventSource src : BenchmarkHarness.varyNumAttrs.values()) {
       src.open();

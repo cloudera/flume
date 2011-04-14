@@ -24,10 +24,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import org.apache.avro.specific.SpecificResponder;
-import org.apache.avro.ipc.AvroRemoteException;
+import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.HttpServer;
 import org.apache.avro.ipc.Server;
+import org.apache.avro.ipc.specific.SpecificResponder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +54,7 @@ public class MasterClientServerAvro implements AvroFlumeClientServer, RPCServer 
 
   public MasterClientServerAvro(MasterClientServer delegate) {
     Preconditions.checkArgument(delegate != null,
-        "MasterCleintServer is null in 'AvroMasterClientServer!");
+        "MasterClientServer is null in 'MasterClientServerAvro!");
     this.delegate = delegate;
     this.port = FlumeConfiguration.get().getMasterHeartbeatPort();
   }

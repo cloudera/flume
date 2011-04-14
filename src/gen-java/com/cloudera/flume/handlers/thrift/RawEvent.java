@@ -20,21 +20,15 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.thrift.*;
-import org.apache.thrift.async.*;
-import org.apache.thrift.meta_data.*;
-import org.apache.thrift.transport.*;
-import org.apache.thrift.protocol.*;
+public class RawEvent implements org.apache.thrift.TBase<RawEvent, RawEvent._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("RawEvent");
 
-public class RawEvent implements TBase<RawEvent, RawEvent._Fields>, java.io.Serializable, Cloneable {
-  private static final TStruct STRUCT_DESC = new TStruct("RawEvent");
-
-  private static final TField RAW_FIELD_DESC = new TField("raw", TType.STRING, (short)1);
+  private static final org.apache.thrift.protocol.TField RAW_FIELD_DESC = new org.apache.thrift.protocol.TField("raw", org.apache.thrift.protocol.TType.STRING, (short)1);
 
   public ByteBuffer raw;
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     RAW((short)1, "raw");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -93,13 +87,13 @@ public class RawEvent implements TBase<RawEvent, RawEvent._Fields>, java.io.Seri
 
   // isset id assignments
 
-  public static final Map<_Fields, FieldMetaData> metaDataMap;
+  public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
-    Map<_Fields, FieldMetaData> tmpMap = new EnumMap<_Fields, FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.RAW, new FieldMetaData("raw", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.STRING)));
+    Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.RAW, new org.apache.thrift.meta_data.FieldMetaData("raw", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING        , true)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    FieldMetaData.addStructMetaDataMap(RawEvent.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(RawEvent.class, metaDataMap);
   }
 
   public RawEvent() {
@@ -117,17 +111,12 @@ public class RawEvent implements TBase<RawEvent, RawEvent._Fields>, java.io.Seri
    */
   public RawEvent(RawEvent other) {
     if (other.isSetRaw()) {
-      this.raw = ByteBuffer.wrap(new byte[other.raw.limit() - other.raw.arrayOffset()]);
-      System.arraycopy(other.raw.array(), other.raw.arrayOffset(), raw.array(), 0, other.raw.limit() - other.raw.arrayOffset());
+      this.raw = org.apache.thrift.TBaseHelper.copyBinary(other.raw);
+;
     }
   }
 
   public RawEvent deepCopy() {
-    return new RawEvent(this);
-  }
-
-  @Deprecated
-  public RawEvent clone() {
     return new RawEvent(this);
   }
 
@@ -136,8 +125,18 @@ public class RawEvent implements TBase<RawEvent, RawEvent._Fields>, java.io.Seri
     this.raw = null;
   }
 
-  public ByteBuffer getRaw() {
-    return this.raw;
+  public byte[] getRaw() {
+    setRaw(org.apache.thrift.TBaseHelper.rightSize(raw));
+    return raw == null ? null : raw.array();
+  }
+
+  public ByteBuffer bufferForRaw() {
+    return raw;
+  }
+
+  public RawEvent setRaw(byte[] raw) {
+    setRaw(raw == null ? (ByteBuffer)null : ByteBuffer.wrap(raw));
+    return this;
   }
 
   public RawEvent setRaw(ByteBuffer raw) {
@@ -149,7 +148,7 @@ public class RawEvent implements TBase<RawEvent, RawEvent._Fields>, java.io.Seri
     this.raw = null;
   }
 
-  /** Returns true if field raw is set (has been asigned a value) and false otherwise */
+  /** Returns true if field raw is set (has been assigned a value) and false otherwise */
   public boolean isSetRaw() {
     return this.raw != null;
   }
@@ -173,10 +172,6 @@ public class RawEvent implements TBase<RawEvent, RawEvent._Fields>, java.io.Seri
     }
   }
 
-  public void setFieldValue(int fieldID, Object value) {
-    setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
-  }
-
   public Object getFieldValue(_Fields field) {
     switch (field) {
     case RAW:
@@ -186,21 +181,17 @@ public class RawEvent implements TBase<RawEvent, RawEvent._Fields>, java.io.Seri
     throw new IllegalStateException();
   }
 
-  public Object getFieldValue(int fieldId) {
-    return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
-  }
-
-  /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
+  /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
   public boolean isSet(_Fields field) {
+    if (field == null) {
+      throw new IllegalArgumentException();
+    }
+
     switch (field) {
     case RAW:
       return isSetRaw();
     }
     throw new IllegalStateException();
-  }
-
-  public boolean isSet(int fieldID) {
-    return isSet(_Fields.findByThriftIdOrThrow(fieldID));
   }
 
   @Override
@@ -245,7 +236,8 @@ public class RawEvent implements TBase<RawEvent, RawEvent._Fields>, java.io.Seri
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetRaw()) {      lastComparison = TBaseHelper.compareTo(this.raw, typedOther.raw);
+    if (isSetRaw()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.raw, typedOther.raw);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -253,25 +245,29 @@ public class RawEvent implements TBase<RawEvent, RawEvent._Fields>, java.io.Seri
     return 0;
   }
 
-  public void read(TProtocol iprot) throws TException {
-    TField field;
+  public _Fields fieldForId(int fieldId) {
+    return _Fields.findByThriftId(fieldId);
+  }
+
+  public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+    org.apache.thrift.protocol.TField field;
     iprot.readStructBegin();
     while (true)
     {
       field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      if (field.type == org.apache.thrift.protocol.TType.STOP) { 
         break;
       }
       switch (field.id) {
         case 1: // RAW
-          if (field.type == TType.STRING) {
+          if (field.type == org.apache.thrift.protocol.TType.STRING) {
             this.raw = iprot.readBinary();
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         default:
-          TProtocolUtil.skip(iprot, field.type);
+          org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
       }
       iprot.readFieldEnd();
     }
@@ -281,7 +277,7 @@ public class RawEvent implements TBase<RawEvent, RawEvent._Fields>, java.io.Seri
     validate();
   }
 
-  public void write(TProtocol oprot) throws TException {
+  public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
@@ -303,15 +299,31 @@ public class RawEvent implements TBase<RawEvent, RawEvent._Fields>, java.io.Seri
     if (this.raw == null) {
       sb.append("null");
     } else {
-      TBaseHelper.toString(this.raw, sb);
+      org.apache.thrift.TBaseHelper.toString(this.raw, sb);
     }
     first = false;
     sb.append(")");
     return sb.toString();
   }
 
-  public void validate() throws TException {
+  public void validate() throws org.apache.thrift.TException {
     // check for required fields
+  }
+
+  private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+    try {
+      write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+    } catch (org.apache.thrift.TException te) {
+      throw new java.io.IOException(te);
+    }
+  }
+
+  private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+    try {
+      read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+    } catch (org.apache.thrift.TException te) {
+      throw new java.io.IOException(te);
+    }
   }
 
 }

@@ -27,10 +27,14 @@ to call at top-level: ant deploy-contrib compile-core-test
       <pathelement location="${basedir}/libbuild/ant-contrib-1.0b3.jar"/>
     </classpath>
   </taskdef>
-  <property name="name" value="flume"/>
-  <property name="version" value="0.9.3-SNAPSHOT"/>
+  <property name="name" value="flume"/>  
+  <property name="version.major" value="0"/>
+  <property name="version.minor" value="9"/>
+  <property name="version.rev" value="3"/>
+  <property name="version.numbers" value="${version.major}.${version.minor}.${version.rev}"/>
+  <property name="version" value="${version.numbers}"/>
   <property name="final.name" value="${name}-${version}"/>
-  <property name="year" value="2009-2010"/>
+  <property name="year" value="2009-2011"/>
 
   <property name="build.dir" value="${basedir}/build"/>
   <property name="build.src" value="${build.dir}/src"/>
@@ -49,7 +53,6 @@ to call at top-level: ant deploy-contrib compile-core-test
   <property name="src.dir" value="${basedir}/src/"/>  	
   <property name="core.src.dir" value="${src.dir}/java"/>
   <property name="antlr.src.dir" value="${src.dir}/antlr"/>
-  <property name="aho.src.dir" value="${src.dir}/ahocorasick"/>
   <property name="test.src.dir" value="${src.dir}/javatest"/>
   <property name="perf.src.dir" value="${src.dir}/javaperf"/>
   <property name="docs.dir" value="${basedir}/docs/"/>
@@ -77,6 +80,8 @@ to call at top-level: ant deploy-contrib compile-core-test
   <property name="test.log.dir" value="${test.build.dir}/logs"/>
   <property name="test.build.classes" value="${test.build.dir}/classes"/>
   <property name="test.include" value="Test*"/>
+  <property name="test.exclude.file" value="${test.src.dir}/empty-file"/>
+  <property name="test.include.file" value="${test.src.dir}/all-tests-file"/>
   <property name="test.classpath.id" value="test.classpath"/>
   <property name="test.output" value="no"/>
   <property name="test.timeout" value="900000"/>
@@ -112,6 +117,20 @@ to call at top-level: ant deploy-contrib compile-core-test
   <!-- javadoc properties  -->
   <property name="javadoc.link.java" value="http://java.sun.com/j2se/1.6.0/docs/api/" />
 
+  <!-- version info filters set -->
+  <tstamp> 
+    <format property="year" pattern="yyyy" locale="en"/>
+  </tstamp>
+
+
+  <filterset id="version.filters">
+    <filter token="YEAR" value="${year}" />
+    <filter token="VERSION" value="${version}"/>
+    <filter token="VERSION_NUMBER" value="${version.numbers}.0"/>
+    <filter token="VERSION_MAJOR_MINOR" value="${version.numbers}"/>
+    <filter token="VERSION_MAJOR" value="${version.major}.${version.minor}"/>
+  </filterset>
+
   <path id="libs.classpath">
     <pathelement location="${conf.dir}"/>
     <fileset dir="${lib.dir}">
@@ -123,6 +142,7 @@ to call at top-level: ant deploy-contrib compile-core-test
     <fileset dir="${build.lib.dir}">
       <include name="**/*.jar" />
       <exclude name="**/excluded/" />
+      <exclude name="**/avro-tools*.jar" />
     </fileset>
   </path>
 
@@ -165,6 +185,7 @@ to call at top-level: ant deploy-contrib compile-core-test
     <mkdir dir="${build.docs}/DeveloperGuide"/>
     <mkdir dir="${build.docs}/UserGuide"/>
     <mkdir dir="${build.docs}/Cookbook"/>
+    <mkdir dir="${build.docs}/Windows"/>
     <mkdir dir="${ivy.tools.lib}"/>
 
     <condition property="ivy.jar.exists">
@@ -187,7 +208,6 @@ to call at top-level: ant deploy-contrib compile-core-test
         <exclude name="**/*.jsp" />
       </fileset>
     </copy>
-    <tstamp/>
 
   </target>
 
@@ -242,22 +262,6 @@ to call at top-level: ant deploy-contrib compile-core-test
   <target name="ivy-retrieve-all"
           depends="ivy-retrieve,ivy-retrieve-test,ivy-retrieve-findbugs,ivy-retrieve-pmd,ivy-retrieve-coverage,ivy-retrieve-releaseaudit" />
 
-  <target name="compile-aho" depends="init,ivy-retrieve-test">
-    <javac 
-     encoding="${build.encoding}" 
-     srcdir="${aho.src.dir}"
-     includes="org/**/*.java"
-     destdir="${build.classes}"
-     debug="${javac.debug}"
-     optimize="${javac.optimize}"
-     target="${javac.version}"
-     source="${javac.version}"
-     deprecation="${javac.deprecation}">
-      <compilerarg line="${javac.args} ${javac.args.warnings}" />
-      <classpath refid="test.classpath"/>
-    </javac>   
-  	
-  </target>
 
 
   <!-- ================================================================== -->
@@ -339,6 +343,10 @@ to call at top-level: ant deploy-contrib compile-core-test
     <path id="avro.classpath">
       <fileset dir="${lib.dir}">
         <include name="**/*.jar"/>
+        <exclude name="**/slf4j*.jar"/>
+      </fileset>
+      <fileset dir="${build.lib.dir}">
+        <include name="**/*.jar"/>
       </fileset>
     </path>
     <echo message="Compiling avro file: ${avrofile}.avpr"/>
@@ -348,7 +356,7 @@ to call at top-level: ant deploy-contrib compile-core-test
       <arg value="${avrofile}" />
       <arg value="${avrofile}.avpr" />
     </java>
-    <java classname="org.apache.avro.specific.SpecificCompiler">
+    <java classname="org.apache.avro.compiler.specific.SpecificCompiler">
       <classpath refid="avro.classpath" />
       <arg value="${avrofile}.avpr" />
       <arg value="${avro.gen.dir}" />
@@ -450,8 +458,7 @@ to call at top-level: ant deploy-contrib compile-core-test
 
   </target>
 
-  <target name="compile-core"
-          depends="init,ivy-retrieve,version,compile-aho,compile-gen">
+  <target name="compile-core" depends="init,version,ivy-retrieve,compile-gen">
 
     <!-- Compile Java files (excluding JSPs) checking warnings -->
     <javac 
@@ -602,7 +609,9 @@ to call at top-level: ant deploy-contrib compile-core-test
       </classpath>
       <batchtest todir="${build.test}" unless="testcase">
         <fileset dir="${test.src.dir}"
-                 includes="**/Test*.java" excludes="**/${test.exclude}.java" />
+                 excludes="**/${test.exclude}.java"
+		 excludesfile="${test.exclude.file}"
+		 includesfile="${test.include.file}"/>
       </batchtest>
       <batchtest todir="${build.test}" if="testcase">
         <fileset dir="${test.src.dir}" includes="**/${testcase}.java"/>
@@ -737,7 +746,7 @@ to call at top-level: ant deploy-contrib compile-core-test
   <!--  converts to docbook and then to html to avoid GPL code insertion  -->
   <!--  in ubuntu requires pkgs: asciidoc,source-highlight,graphviz       -->
   <!-- ================================================================== -->
-  <target name="docs" depends="userguide,cookbook,developerguide,docindex" description="Build documentation"/>
+  <target name="docs" depends="userguide,cookbook,developerguide,windowsguide,docindex" description="Build documentation"/>
 
   <uptodate property="userguide.uptodate"
 	    targetfile="${build.docs}/UserGuide/index.html">
@@ -752,6 +761,11 @@ to call at top-level: ant deploy-contrib compile-core-test
   <uptodate property="developerguide.uptodate"
 	    targetfile="${build.docs}/DeveloperGuide/index.html" >
     <srcfiles dir="${docs.src.dir}/DeveloperGuide" includes="*"/>
+    <srcfiles dir="${docs.src.dir}/web" includes="*"/>
+  </uptodate>
+  <uptodate property="windowsguide.uptodate"
+	    targetfile="${build.docs}/Windows/index.html" >
+    <srcfiles dir="${docs.src.dir}/Windows" includes="*"/>
     <srcfiles dir="${docs.src.dir}/web" includes="*"/>
   </uptodate>
   <uptodate property="docindex.uptodate"
@@ -821,6 +835,27 @@ to call at top-level: ant deploy-contrib compile-core-test
   </target>
 
 
+  <target name="windowsguide" depends="init" description="Build Windows Guide" unless="windowsguide.uptodate">
+    <exec executable="asciidoc" dir="${basedir}" failonerror="true">
+      <arg line="-a revnumber=${version} -a revdate='${TODAY}' -b docbook -o ${build.docs}/Windows/index.xml ${docs.src.dir}/Windows/Windows"/>
+    </exec>
+
+    <exec executable="xmlto" dir="${basedir}" failonerror="true">
+      <arg line="--skip-validation -o ${build.docs}/Windows -m src/docs/web/html.xsl html-nochunks ${build.docs}/Windows/index.xml "/>
+    </exec>
+
+    <delete file="${build.docs}/Windows/index.xml" />
+
+    <copy todir="${docs.dir}/Windows">
+      <fileset dir="${docs.src.dir}/web" includes="**"/>
+    </copy>
+
+    <copy todir="${docs.dir}/Windows">
+      <fileset dir="${docs.src.dir}/Windows" includes="**/*.png"/>
+    </copy>
+  </target>
+
+
   <target name="docindex" depends="init" description="Build Index Page for docs" unless="docindex.uptodate">
     <exec executable="asciidoc" dir="${basedir}" failonerror="true">
       <arg line="-a revnumber=${version} -a revdate='${TODAY}' -b docbook -o ${build.docs}/index.xml ${docs.src.dir}/web/index.txt"/>
@@ -856,6 +891,7 @@ to call at top-level: ant deploy-contrib compile-core-test
         <include name="build.xml" />
         <include name="cloudera/**" />
         <include name="conf/**" />
+        <include name="CHANGELOG.html" />
         <include name="DEVNOTES" />
         <include name="RELEASENOTES" />
         <include name="LICENSE" />
@@ -868,23 +904,45 @@ to call at top-level: ant deploy-contrib compile-core-test
         <include name="src/**" />
         <include name="Makefile" />
         <include name="properties/**" />
-        <include name="src/**" />
-	<include name="docs/**" />
-	<exclude name="findbugsExclude.xml" />
-	<exclude name="libtest/findbugs-ant.jar" />
-	<exclude name="libtest/findbugs.jar" />
+        <include name="docs/**" />
+        <exclude name="findbugsExclude.xml" />
+        <exclude name="libtest/findbugs-ant.jar" />
+        <exclude name="libtest/findbugs.jar" />
       </tarfileset>
 
       <tarfileset dir="." mode="755" prefix="flume-${version}">
- 	<exclude name="bin/flume-env.sh" />
-	<exclude name="bin/flume_extra" />
-	<exclude name="bin/flume_test" />
-	<include name="bin/**"/>
+        <exclude name="bin/flume-env.sh" />
+        <include name="bin/**"/>
       </tarfileset>
 
     </tar>
   </target>
 
+  <target name="bin-tar" depends="jar" description="Make flume.tar">
+    <tar compression="gzip" destfile="${build.dir}/flume-${version}-bin.tar.gz">
+      <tarfileset dir="build" mode="644"  prefix="flume-${version}">
+        <include name="*.jar" />
+        <include name="webapps/**" />
+      </tarfileset>
+
+      <tarfileset dir="." mode="644" prefix="flume-${version}">
+        <include name="conf/**" />
+        <include name="CHANGELOG.html" />
+        <include name="RELEASENOTES" />
+        <include name="LICENSE" />
+        <include name="README" />
+        <include name="NOTICE" />
+        <include name="lib/**" />
+        <include name="properties/**" />
+      </tarfileset>
+
+      <tarfileset dir="." mode="755" prefix="flume-${version}">
+        <exclude name="bin/flume-env.sh" />
+        <include name="bin/**"/>
+      </tarfileset>
+
+    </tar>
+  </target>
   <!-- ================================================================== -->
   <!-- Compile test code                                                  --> 
   <!-- ================================================================== -->
@@ -976,7 +1034,9 @@ to call at top-level: ant deploy-contrib compile-core-test
       <formatter type="${test.junit.output.format}" />
       <batchtest todir="${build.test}" unless="testcase">
         <fileset dir="${test.src.dir}"
-                 includes="**/Test*.java" excludes="**/${test.exclude}.java" />
+                 excludes="**/${test.exclude}.java"
+		 excludesfile="${test.exclude.file}"
+		 includesfile="${test.include.file}"/>
       </batchtest>
       <batchtest todir="${build.test}" if="testcase">
         <fileset dir="${test.src.dir}" includes="**/${testcase}.java"/>
@@ -1099,8 +1159,6 @@ to call at top-level: ant deploy-contrib compile-core-test
       <classpath>
         <source path="${core.src.dir}"
                 output="${build.dir.eclipse-main-classes}" />
-        <source path="${aho.src.dir}"
-                output="${build.dir.eclipse-main-classes}" />
         <source path="${avro.gen.dir}"
                 output="${build.dir.eclipse-main-classes}" />
         <source path="${thrift.gen.dir}"
@@ -1152,7 +1210,6 @@ to call at top-level: ant deploy-contrib compile-core-test
 	 version="true" use="true" windowtitle="${name} ${version} API" 
 	 doctitle="${final.name} API" bottom="Copyright &amp;copy; ${year} Cloudera, Inc.">
       <packageset dir="${core.src.dir}" />
-      <packageset dir="${aho.src.dir}" />
       <packageset dir="${test.src.dir}" />
       <packageset dir="${perf.src.dir}" />
       <link href="${javadoc.link.java}" />
@@ -1162,6 +1219,19 @@ to call at top-level: ant deploy-contrib compile-core-test
       </classpath>
         <group title="flume" packages="com.cloudera.flume*" />
     </javadoc>
+  </target>
+
+  <target name="winstall-filter" depends="tar" description="update windows installer script version">
+   <copy file="${src.dir}/nsis/flume.nsi.template" tofile="flume.nsi">
+     <filterset refid="version.filters"/>
+   </copy>
+  </target>
+
+  <!-- assumes makensis is in path -->
+  <target name="winstall" depends="winstall-filter" description="build NSIS windows installer">
+    <exec executable="makensis" dir="${basedir}" failonerror="true">
+      <arg line="flume.nsi"/>
+    </exec>
   </target>
 
 </project>

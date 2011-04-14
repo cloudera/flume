@@ -1,4 +1,4 @@
-﻿////////////////////
+////////////////////
 Licensed to Cloudera, Inc. under one
 or more contributor license agreements.  See the NOTICE file
 distributed with this work for additional information
@@ -68,7 +68,8 @@ property (THRIFT or AVRO), the default is THRIFT.  Note that same RPC framework 
 +text("_filename_")+ :: One-time text file source.  One event per +\n+ 
 delimited line.
 
-+tail("_filename_"[, _startFromEnd_=false])+ :: Similar to Unix's tail
++tail("_filename_"[, _startFromEnd_=false]{,delim="_regex_",
+delimMode="exclude|prev|next"})+ :: Similar to Unix's tail
 utility. One line is one event. Generates events for the entire file
 then stays open for more data, and follows filename.  (e.g. if tailing
 file "foo" and then "foo" is moved to "bar" and a new file appears
@@ -78,18 +79,29 @@ false, tail will re-read from the beginning of the file.  If it is
 true, it will only start reading from the current end of file.  If the
 last line of a file does not end with a newline character ('\n'), the
 +tail+ source will only send an event with this last line when the
-+tail+ is closed.
++tail+ is closed.  See the section on tailing a file for details on
++delim+ and +delimMode+.
 
 +multitail("_filename_"[, _file2_ [,_file3_ ... ] ])+ :: Like +tail+ but can 
 follow multiple files concurrently.
 
-+tailDir("_dirname_"[, fileregex=".*"])+ :: Tails all files in a
-directory +dirname+ that match the specified +fileregex+.  Be careful
-and make sure because the regex argument requires java style escaping
-of '\' and '\"'.  For example '\w+' would have to be written as
-"\\w+".  If a new file appears, it is added to the list of files to
-tail.  If pointed at a new directory, it will attempt to read all
-files that match!
++tailDir("_dirname_"[, fileregex=".*"[, startFromEnd=false[,
+recurseDepth=0]]]{,delim="_regex_", delimMode="exclude|prev|next"})+
+:: Tails all files in a directory +dirname+ that match the specified
++fileregex+.  Be careful and make sure because the regex argument
+requires java style escaping of '\' and '\"'.  For example '\w+' would
+have to be written as "\\w+".  If a new file appears, it is added to
+the list of files to tail.  If pointed at a new directory, it will
+attempt to read all files that match! If the +startFromEnd+ parameter
+is false, tail will re-read from the beginning of each file. If it is
+true, it will only start reading from the current end of each file.
+If the +recurseDepth+ parameter is > 0 then tailDir will recurse into
+sub-directories. The value defines max level of a directory below the
++dirname+ to tail files in. Zero means do not recurse into
+sub-directories.  Note: fileregex is applied to file names only (not
+including dirs), all directories (which fit +recurseDepth+ parameter)
+are recursed into.  See the section on tailing a file for details on
++delim+ and +delimMode+.
 
 +seqfile("_filename_")+ :: Read from a Hadoop sequence file formatted file, 
 with +com.cloudera.flume.handlers.hdfs.WriteableEventKey+ and 
@@ -373,16 +385,37 @@ specified pass through.
 events that are modified so that *only* the metadata attributes specified pass 
 through.
 
++digest("_algorithm_","_attr_", base64="boolean")+ :: The digest decorator
+calculates a message digest of the event body and writes this value (as bytes)
+to the _attr_ attribute.  The valid algorithms are those valid for
++java.security.MessageDigest+ and includes MD5, SHA-1, SHA-256, SHA-384 and
+SHA-512. It can optionally base64 encode the digest value (defaults to false).
+
 +format("_pattern_")+ :: The format decorator outputs inputted events that are 
 modified so that their bodies are replaced with an escaped version of the 
 +_pattern_+ argument.  Since checksums rely on body data, this should only be 
 used on unreliable flows or reporting flows. Inappropriate use may result in 
 message loss.
 
++exDate("_attr_","_pattern_" [, "_prefix_" [, "_padding_"]])+ :: Parse a date string from 
+the _attr_ value of the event, using the _pattern_ as a reference of how to 
+parse it. The major values of the date will be assigned to new event attributes 
+using "date" as a prefix if no _prefix_ is provided. To add or remove zero padding there
+is the _padding_ variable. By default zero padding is on. Example of zero padding 2010-1-1 becomes 2010-01-01.
+More info on how to construct the _pattern_ can be found here 
+http://download-llnw.oracle.com/javase/1.4.2/docs/api/java/text/SimpleDateFormat.html
+Do note that _attr_ is an already extracted date string from the body of the event.
+exDate doesn't attempt to extract it from the body for you. Example output attributes would be
+dateday, datemonth, dateyear, datehr, datemin, datesec. Where _date_ is the _prefix_.
+
 +regex("_regex_",idx,"_attr_")+ :: The regex decorator applies the regular 
 expression _regex_, extracts the _idx_ th capture group, and writes this value 
 to the _attr_ attribute.  The regex must use java-style escaping.  Thus a 
 regexs that want to use the +\d+ macro need to be specified as "\\d".
+
+regexAll("_regex_", "_name_" [, "_name_"]*)+ :: Applies the regular expression
+_regex_ to the event body, and assignes all pattern groups found to each provided 
+_name_.
 
 +split("_regex_",idx,"_attr_")+ :: The split decorator uses the
 regular expression _regex_ to split the body into tokens (not

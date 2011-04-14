@@ -18,6 +18,7 @@
 package com.cloudera.flume.agent;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -31,6 +32,7 @@ import com.cloudera.flume.conf.SinkFactory.SinkBuilder;
 import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventSink;
 import com.cloudera.flume.reporter.ReportEvent;
+import com.cloudera.flume.reporter.Reportable;
 import com.google.common.base.Preconditions;
 
 /**
@@ -62,7 +64,7 @@ public class AgentSink extends EventSink.Base {
 
   final EventSink sink;
 
-  public AgentSink(String dsthost, int port, ReliabilityMode mode)
+  public AgentSink(Context ctx, String dsthost, int port, ReliabilityMode mode)
       throws FlumeSpecException {
     Preconditions.checkNotNull(dsthost);
 
@@ -71,7 +73,7 @@ public class AgentSink extends EventSink.Base {
       String snk = String.format(
           "{ ackedWriteAhead => { stubbornAppend =>  { insistentOpen => "
               + "rpcSink(\"%s\", %d)} } }", dsthost, port);
-      sink = FlumeBuilder.buildSink(new Context(), snk);
+      sink = FlumeBuilder.buildSink(ctx, snk);
       break;
     }
 
@@ -87,7 +89,7 @@ public class AgentSink extends EventSink.Base {
       String snk = String.format("< %s ? { diskFailover => { insistentAppend "
           + "=> { stubbornAppend => { insistentOpen(%d,%d,%d) => %s} } } } >",
           rpc, maxSingleBo, initialBo, maxCumulativeBo, rpc);
-      sink = FlumeBuilder.buildSink(new Context(), snk);
+      sink = FlumeBuilder.buildSink(ctx, snk);
       break;
 
     }
@@ -95,7 +97,7 @@ public class AgentSink extends EventSink.Base {
     case BEST_EFFORT: {
       String snk = String.format("< { insistentOpen => { stubbornAppend => "
           + "rpcSink(\"%s\", %d) } }  ? null>", dsthost, port);
-      sink = FlumeBuilder.buildSink(new Context(), snk);
+      sink = FlumeBuilder.buildSink(ctx, snk);
       break;
     }
 
@@ -106,18 +108,18 @@ public class AgentSink extends EventSink.Base {
   }
 
   @Override
-  public void append(Event e) throws IOException {
+  public void append(Event e) throws IOException, InterruptedException {
     sink.append(e);
     super.append(e);
   }
 
   @Override
-  public void close() throws IOException {
+  public void close() throws IOException, InterruptedException {
     sink.close();
   }
 
   @Override
-  public void open() throws IOException {
+  public void open() throws IOException, InterruptedException {
     sink.open();
   }
 
@@ -148,7 +150,8 @@ public class AgentSink extends EventSink.Base {
         }
 
         try {
-          return new AgentSink(collector, port, ReliabilityMode.ENDTOEND);
+          return new AgentSink(context, collector, port,
+              ReliabilityMode.ENDTOEND);
         } catch (FlumeSpecException e) {
           LOG.error("AgentSink spec error " + e, e);
           throw new IllegalArgumentException(e);
@@ -187,7 +190,8 @@ public class AgentSink extends EventSink.Base {
         }
 
         try {
-          return new AgentSink(collector, port, ReliabilityMode.DISK_FAILOVER);
+          return new AgentSink(context, collector, port,
+              ReliabilityMode.DISK_FAILOVER);
         } catch (FlumeSpecException e) {
           LOG.error("AgentSink spec error " + e, e);
           throw new IllegalArgumentException(e);
@@ -222,7 +226,8 @@ public class AgentSink extends EventSink.Base {
         }
 
         try {
-          return new AgentSink(collector, port, ReliabilityMode.BEST_EFFORT);
+          return new AgentSink(context, collector, port,
+              ReliabilityMode.BEST_EFFORT);
         } catch (FlumeSpecException e) {
           LOG.error("AgentSink spec error " + e, e);
           throw new IllegalArgumentException(e);
@@ -236,6 +241,20 @@ public class AgentSink extends EventSink.Base {
     return "Agent";
   }
 
+  @Override
+  public ReportEvent getMetrics() {
+    ReportEvent rpt = new ReportEvent(getName());
+    return rpt;
+  }
+
+  @Override
+  public Map<String, Reportable> getSubMetrics() {
+    Map<String, Reportable> map = new HashMap<String, Reportable>();
+    map.put(sink.getName(), sink);
+    return map;
+  }
+
+  @Deprecated
   @Override
   public void getReports(String namePrefix, Map<String, ReportEvent> reports) {
     super.getReports(namePrefix, reports);
