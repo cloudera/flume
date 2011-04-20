@@ -48,10 +48,10 @@ public class TestDiskFailoverSource {
       .getLogger(TestDiskFailoverSource.class);
 
   // has 5 good entries.
-  final static String WAL_OK = "src/data/hadoop_logs_5.hdfs";
+  final static String WAL_OK = "data/hadoop_logs_5.hdfs";
 
   // this file has been prematurely truncated and is thus corrupt.
-  final static String WAL_CORRUPT = "src/data/hadoop_logs_5.hdfs.aa";
+  final static String WAL_CORRUPT = "data/hadoop_logs_5.hdfs.aa";
 
   @Before
   public void setUp() {
@@ -168,7 +168,8 @@ public class TestDiskFailoverSource {
     emptyfile.deleteOnExit();
 
     // copy an ok file that has exactly 5 entries into the wal/logged dir
-    File orig = new File(WAL_OK);
+    File orig = new File(getClass().getClassLoader().getResource(WAL_OK)
+        .getFile());
     File ok = new File(logdir, "ok.0000000.20091104-101213997-0800.seq");
     FileUtil.dumbfilecopy(orig, ok);
 
@@ -252,7 +253,8 @@ public class TestDiskFailoverSource {
     emptyfile2.deleteOnExit();
 
     // copy an ok file that has exactly 5 entries
-    File orig = new File(WAL_OK);
+    File orig = new File(getClass().getClassLoader().getResource(WAL_OK)
+        .getFile());
     File ok = new File(logdir, "ok.0000000.20091104-101213997-0800.seq");
     FileUtil.dumbfilecopy(orig, ok);
 
@@ -326,7 +328,10 @@ public class TestDiskFailoverSource {
     File corrupt = new File(logdir,
         "walcorrupt.0000000.20091104-101213997-0800.seq");
     LOG.info("corrupt file is named: " + corrupt.getAbsolutePath());
-    FileUtil.dumbfilecopy(new File(WAL_CORRUPT), corrupt);
+    FileUtil
+        .dumbfilecopy(
+            new File(getClass().getClassLoader().getResource(WAL_CORRUPT)
+                .getFile()), corrupt);
     corrupt.deleteOnExit();
 
     // check now, and any age is too old.
