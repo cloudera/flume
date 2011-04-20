@@ -44,8 +44,8 @@ public class TestHadoopLogData implements ExampleData {
     EventSource src = new NoNlASCIISynthSource(25, 100, 1);
     src.open();
 
-    SimpleRegexReporterBuilder b = new SimpleRegexReporterBuilder(
-        HADOOP_REGEXES);
+    SimpleRegexReporterBuilder b = new SimpleRegexReporterBuilder(getClass()
+        .getClassLoader().getResource(HADOOP_REGEXES).getFile());
     Collection<RegexGroupHistogramSink> sinks = b.load();
     MultiReporter mr = new MultiReporter("apache_sinks", sinks);
     mr.open();

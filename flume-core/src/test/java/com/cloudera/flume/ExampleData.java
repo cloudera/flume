@@ -23,14 +23,14 @@ package com.cloudera.flume;
  */
 public interface ExampleData {
 
-  final static String APACHE_REGEXES = "src/data/apachelog.regex";
-  final static String APACHE_SIMPLE_REGEXES = "src/data/apachelog.simple.regex";
+  final static String APACHE_REGEXES = "data/apachelog.regex";
+  final static String APACHE_SIMPLE_REGEXES = "data/apachelog.simple.regex";
 
-  final static String HADOOP_REGEXES = "src/data/hadooplogs.regex";
-  final static String HADOOP_REGEXES_11 = "src/data/hadooplogs.more.regex";
-  final static String HADOOP_GREP = "src/data/hadooplogs.grep";
+  final static String HADOOP_REGEXES = "data/hadooplogs.regex";
+  final static String HADOOP_REGEXES_11 = "data/hadooplogs.more.regex";
+  final static String HADOOP_GREP = "data/hadooplogs.grep";
 
-  final static String SYSLOG_LOG = "src/data/syslog.0";
-  final static String TEST = "src/data/scribe_stats";
+  final static String SYSLOG_LOG = "data/syslog.0";
+  final static String TEST = "data/scribe_stats";
 
 }

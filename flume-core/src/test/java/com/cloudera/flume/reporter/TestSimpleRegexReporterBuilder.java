@@ -46,7 +46,8 @@ public class TestSimpleRegexReporterBuilder implements ExampleData {
   @Test
   public void testLoad() throws IOException, InterruptedException {
     SimpleRegexReporterBuilder b = new SimpleRegexReporterBuilder(
-        APACHE_REGEXES);
+        getClass().getClassLoader()
+        .getResource(APACHE_REGEXES).getFile());
 
     Collection<RegexGroupHistogramSink> sinks = b.load();
     MultiReporter mr = new MultiReporter("apache_sinks", sinks);

@@ -78,7 +78,9 @@ public class TestNaiveFileWALDeco {
     File tmp = BenchmarkHarness.tmpdir;
 
     // file with ack begin, data, and end messages
-    File acked = new File("src/data/acked.00000000.20100204-015814430-0800.seq");
+    File acked = new File(getClass().getClassLoader()
+        .getResource("data/acked.00000000.20100204-015814430-0800.seq")
+        .getFile());
     // Assumes the NaiveFileWALManager!
     File writing = new File(new File(tmp,
         BenchmarkHarness.node.getPhysicalNodeName()), "writing");
@@ -135,7 +137,9 @@ public class TestNaiveFileWALDeco {
     File tmp = BenchmarkHarness.tmpdir;
 
     // file with ack begin, data, and end messages
-    File acked = new File("src/data/acked.00000000.20100204-015814430-0800.seq");
+    File acked = new File(getClass().getClassLoader()
+        .getResource("data/acked.00000000.20100204-015814430-0800.seq")
+        .getFile());
     // Assumes the NaiveFileWALManager!
     File writing = new File(new File(tmp,
         BenchmarkHarness.node.getPhysicalNodeName()), "writing");
@@ -198,8 +202,9 @@ public class TestNaiveFileWALDeco {
 
     // Assumes the NaiveFileWALManager!
     // file with ack begin, data and then truncated
-    File truncated = new File(
-        "src/data/truncated.00000000.20100204-015814430-0800.seq");
+    File truncated = new File(getClass().getClassLoader()
+        .getResource("data/truncated.00000000.20100204-015814430-0800.seq")
+        .getFile());
     File writing = new File(new File(tmp,
         BenchmarkHarness.node.getPhysicalNodeName()), "writing");
 
@@ -235,7 +240,8 @@ public class TestNaiveFileWALDeco {
         .exists());
     assertFalse(new File(new File(nodedir, "sending"), truncated.getName())
         .exists());
-    // some of the corrupt data was recovered and re-framed so it ends up in sent
+    // some of the corrupt data was recovered and re-framed so it ends up in
+    // sent
     // state.
     assertTrue(new File(new File(nodedir, "sent"), truncated.getName())
         .exists());

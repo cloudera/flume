@@ -43,7 +43,7 @@ import com.cloudera.util.FileUtil;
 
 public class TestNaiveFileWALManager {
   // has 5 good entries.
-  final static String WAL_OK = "src/data/hadoop_logs_5.hdfs";
+  final static String WAL_OK = "data/hadoop_logs_5.hdfs";
   public static Logger LOG = Logger.getLogger(TestNaiveFileWALManager.class);
 
   @Before
@@ -63,7 +63,8 @@ public class TestNaiveFileWALManager {
     wal.open();
 
     File logdir = new File(dir, NaiveFileWALManager.IMPORTDIR);
-    File src = new File(WAL_OK);
+    File src = new File(getClass().getClassLoader().getResource(WAL_OK)
+        .getFile());
     File dest = new File(logdir, "ok.0000000.20091104-101213997-0800.seq");
     FileUtil.dumbfilecopy(src, dest);
     dest.deleteOnExit();
@@ -143,7 +144,8 @@ public class TestNaiveFileWALManager {
     NaiveFileWALManager wal = new NaiveFileWALManager(tmp);
     wal.open(); // create dirs
 
-    File acked = new File(WAL_OK); // ok but unframed
+    File acked = new File(getClass().getClassLoader().getResource(WAL_OK)
+        .getFile()); // ok but unframed
 
     // copy files and then recover them.
     FileUtil.dumbfilecopy(acked, new File(wal.writingDir,
@@ -341,7 +343,8 @@ public class TestNaiveFileWALManager {
    * Tests import to make sure it gets into the logged state properly.
    */
   public void doTestBadOpen(String conflict) throws IOException {
-    File src = new File(WAL_OK);
+    File src = new File(getClass().getClassLoader().getResource(WAL_OK)
+        .getFile());
     File tmpdir = FileUtil.mktempdir();
 
     FileUtil.dumbfilecopy(src, new File(tmpdir, conflict));

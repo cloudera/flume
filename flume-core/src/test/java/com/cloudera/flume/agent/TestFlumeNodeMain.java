@@ -39,8 +39,15 @@ public class TestFlumeNodeMain {
 
   @Test
   public void testOneshot() throws InterruptedException {
-    final String[] simple = { "-1", "-n", "test", "-c",
-        "test: text(\"" + ExampleData.APACHE_REGEXES + "\") | null;" };
+    final String[] simple = {
+        "-1",
+        "-n",
+        "test",
+        "-c",
+        "test: text(\""
+            + getClass().getClassLoader()
+                .getResource(ExampleData.APACHE_REGEXES).getFile()
+            + "\") | null;" };
     final AtomicReference<Exception> ref = new AtomicReference<Exception>();
     Thread t = new Thread() {
 
@@ -69,8 +76,15 @@ public class TestFlumeNodeMain {
     f.deleteOnExit();
     f.createNewFile(); // create as new empty file.
 
-    final String[] simple = { "-1", "-n", "test", "-c",
-        "test: text(\"" + ExampleData.APACHE_REGEXES + "\") | null;" };
+    final String[] simple = {
+        "-1",
+        "-n",
+        "test",
+        "-c",
+        "test: text(\""
+            + getClass().getClassLoader()
+                .getResource(ExampleData.APACHE_REGEXES).getFile()
+            + "\") | null;" };
     FlumeNode.setup(simple);
   }
 
@@ -82,8 +96,15 @@ public class TestFlumeNodeMain {
       FlumeConfiguration.get().set(FlumeConfiguration.AGENT_LOG_DIR_NEW,
           "/baddirfoobarama");
 
-      final String[] simple = { "-1", "-n", "test", "-c",
-          "test: text(\"" + ExampleData.APACHE_REGEXES + "\") | null;" };
+      final String[] simple = {
+          "-1",
+          "-n",
+          "test",
+          "-c",
+          "test: text(\""
+              + getClass().getClassLoader()
+                  .getResource(ExampleData.APACHE_REGEXES).getFile()
+              + "\") | null;" };
       FlumeNode.setup(simple);
     } catch (IOException e) {
       return;
