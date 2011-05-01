@@ -949,7 +949,7 @@ public class FlumeConfiguration extends Configuration {
   }
 
   public String getPluginClasses() {
-    return get(PLUGIN_CLASSES, "");
+    return get(PLUGIN_CLASSES, "").replaceAll("\\s+", "");
   }
 
   public String getHiveHost() {
