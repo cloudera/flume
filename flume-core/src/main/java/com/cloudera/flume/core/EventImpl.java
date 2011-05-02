@@ -94,7 +94,8 @@ public class EventImpl extends EventBaseImpl {
       String host, Map<String, byte[]> fields) {
     super(fields);
     Preconditions.checkNotNull(s);
-    Preconditions.checkArgument(s.length <= MAX_BODY_SIZE);
+    final long bodySize = s.length;
+    Preconditions.checkArgument(bodySize <= MAX_BODY_SIZE, "The given body with a size of %s bytes exceeds the maximum body size of %s bytes",bodySize,MAX_BODY_SIZE);
     // this string construction took ~5% of exec time!
     // , "byte length is " + s.length + " which is not < " + MAX_BODY_SIZE);
     Preconditions.checkNotNull(pri);
