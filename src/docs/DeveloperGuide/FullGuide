@@ -27,7 +27,9 @@ limitations under the License.
 // Build using 'asciidoc -a toc FullGuide'
 
 include::Logging[]
+include::RunningTests[]
 include::WritingDocumentation[]
+
      ______
     / ___//_  ______  ____
    / /_/ / / / /    \/ __/
