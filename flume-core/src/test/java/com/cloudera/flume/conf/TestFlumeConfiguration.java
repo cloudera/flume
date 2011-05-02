@@ -31,6 +31,38 @@ public class TestFlumeConfiguration {
       super(true);
     }
   }
+  
+  @Test
+  public void testPluginClassesWithWhiteSpaceAtBeginning() {
+	  FlumeConfiguration cfg = new TestableConfiguration();
+	  cfg.set(FlumeConfiguration.PLUGIN_CLASSES, " \n a.b.c,d.e.f");
+	  
+	  assertEquals("White spaces at the beginning must be stripped", "a.b.c,d.e.f", cfg.getPluginClasses());
+  }
+  
+  @Test
+  public void testPluginClassesWithWhiteSpaceAtEnd() {
+	  FlumeConfiguration cfg = new TestableConfiguration();
+	  cfg.set(FlumeConfiguration.PLUGIN_CLASSES, "a.b.c,d.e.f \n ");
+	  
+	  assertEquals("White spaces at the end must be stripped", "a.b.c,d.e.f", cfg.getPluginClasses());
+  }
+  
+  @Test
+  public void testPluginClassesWithWhiteSpaceInTheMiddle() {
+	  FlumeConfiguration cfg = new TestableConfiguration();
+	  cfg.set(FlumeConfiguration.PLUGIN_CLASSES, "a.b.c,\nd.e.f,   g.h.i");
+	  
+	  assertEquals("White spaces in the middle must be stripped", "a.b.c,d.e.f,g.h.i", cfg.getPluginClasses());
+  }
+  
+  @Test
+  public void testPluginClassesWithWhiteSpace() {
+	  FlumeConfiguration cfg = new TestableConfiguration();
+	  cfg.set(FlumeConfiguration.PLUGIN_CLASSES, " \n a.b.c,\nd.e.f,   g.h.i \n ");
+	  
+	  assertEquals("White spaces must be stripped", "a.b.c,d.e.f,g.h.i", cfg.getPluginClasses());
+  }
 
   @Test
   public void testParseGossipServers() {
