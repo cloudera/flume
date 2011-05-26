@@ -34,8 +34,8 @@ flogger: ${OBJS}
 
 ${OBJS}: ${THRIFT_SRCS}
 
-${THRIFT_SRCS}: ../../src/thrift/flume.thrift
-	thrift --gen cpp ../../src/thrift/flume.thrift
+${THRIFT_SRCS}: ../../flume-core/src/main/thrift/flume.thrift
+	thrift --gen cpp ../../flume-core/src/main/thrift/flume.thrift
 
 .PHONY: clean
 clean:
