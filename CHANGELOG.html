@@ -1,3 +1,220 @@
+        Release Notes - Flume - Version v0.9.4
+    
+<h2>        Bug
+</h2>
+<ul>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-48'>FLUME-48</a>] -         collectorSink writes files with .seq suffix even though text files are written out.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-129'>FLUME-129</a>] -         Find and fix bug/race that caused TestTailSourceCursor.testCursorRotatePrexistingSameSizeWithNewModtime to fail.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-203'>FLUME-203</a>] -         Fix TestDiskFailoverAgent flakiness
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-265'>FLUME-265</a>] -         FanOut Collector does not support multiple collectorSink attributes
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-305'>FLUME-305</a>] -         Fix code that causes TestCollectorSink to fail intermittently.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-474'>FLUME-474</a>] -         flume executable doesn&#39;t support extending java.library.path with flume-env.sh
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-482'>FLUME-482</a>] -         Compression producing NullPointerException
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-496'>FLUME-496</a>] -         Handle 64-bit vs 32-bit JVM during windows install.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-511'>FLUME-511</a>] -         Output format args can&#39;t be given via the configuration language
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-513'>FLUME-513</a>] -         Typo fixes
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-515'>FLUME-515</a>] -         Master Node does not bootstrap custom formats extending from AbstractOutputFormat
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-516'>FLUME-516</a>] -         bin/flume script does not properly load pre-existing hadoop jars 
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-523'>FLUME-523</a>] -         Missing jar reference in helloworld plugin&#39;s build.xml
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-540'>FLUME-540</a>] -         Large number of duplicates with agentE2ESink due to old log files
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-548'>FLUME-548</a>] -         TestEvent has a time zone dependency
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-549'>FLUME-549</a>] -         Uncaught doctext warnings from Thrift
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-564'>FLUME-564</a>] -         avro-compiler-1.5.0.jar is not needed
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-571'>FLUME-571</a>] -         Test for DefaultCodec in TestEscapedCustomOutputDfs does not actually work
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-586'>FLUME-586</a>] -         Fix TestDiskFailoverSource and TestNaiveFileWALSource flakyness
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-588'>FLUME-588</a>] -         Fix TestDiskFailoverBehavior flakyness
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-593'>FLUME-593</a>] -         Node should only spawn logical node specified on master.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-595'>FLUME-595</a>] -         Node can fork multiple drivers from subsequent heartbeats when there only should be one.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-597'>FLUME-597</a>] -         Fix handling interruption of blocked WALSource
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-600'>FLUME-600</a>] -         Have collector source create names that are both lexographically and chronologically ordered
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-602'>FLUME-602</a>] -         Fix flaky TestChokeDeco tests.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-606'>FLUME-606</a>] -         Update TestFileSource and TestMultiGrep to get data from the classpath
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-607'>FLUME-607</a>] -         Maven update breaks hello plugin
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-608'>FLUME-608</a>] -         Maven update removed windows build option
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-609'>FLUME-609</a>] -         Maven build introduces new test failures.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-614'>FLUME-614</a>] -         Build for HBase plugin broken due to maven.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-622'>FLUME-622</a>] -         Escape sequences gets stuck with &quot;Illegal group reference&quot; error if replacements have &#39;$&#39; chars.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-623'>FLUME-623</a>] -         Hbase plugin build missing hadoop-test jar
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-624'>FLUME-624</a>] -         Fix intermittent TestAgentSink
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-630'>FLUME-630</a>] -         Maven build breaks doc build.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-642'>FLUME-642</a>] -         fix path of package-info.java annotation.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-646'>FLUME-646</a>] -         Add support to the FlumeNode windows installer to detect  32-bit Java Installations (read JAVA_HOME properly) when  running on 64 bit windows machines. 
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-661'>FLUME-661</a>] -         Remove duplicate copy of documentation source in ./src/docs
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-662'>FLUME-662</a>] -         flume dump and dumplog command line options are broken.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-667'>FLUME-667</a>] -         stacks webapp is missing from node and master
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-669'>FLUME-669</a>] -         Flogger fails to compile
+</li>
+</ul>
+    
+<h2>        Epic
+</h2>
+<ul>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-6'>FLUME-6</a>] -         Add HBase Sink
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-296'>FLUME-296</a>] -         Mavenize Flume
+</li>
+</ul>
+    
+<h2>        Improvement
+</h2>
+<ul>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-31'>FLUME-31</a>] -         ant tar-binaries target
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-226'>FLUME-226</a>] -         Parts of the logical nodes section of the manual are out of date.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-250'>FLUME-250</a>] -         Allow compression in Avro output formats 
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-299'>FLUME-299</a>] -         Add support for subarguments in flume config elements 
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-414'>FLUME-414</a>] -         Improve syntax of HBase sink
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-418'>FLUME-418</a>] -         Add batching and compression arguments to agent and collectors
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-420'>FLUME-420</a>] -         Change Context object to accept Objects.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-427'>FLUME-427</a>] -         make compression codec selection case-insensitive
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-509'>FLUME-509</a>] -         flume-daemon script does not source flume-env script
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-519'>FLUME-519</a>] -         Move FlumeNode.loadOutputFormatPlugins to FormatFactory and add tests.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-520'>FLUME-520</a>] -         Remove various main methods that exist to test
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-521'>FLUME-521</a>] -         Remove deprecated Thrift code
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-550'>FLUME-550</a>] -         Factor out Cursor from TailSource
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-561'>FLUME-561</a>] -         Allow using a file to exclude certain tests from build
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-569'>FLUME-569</a>] -         Make Drivers handle source/sink open and close lifecycle.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-589'>FLUME-589</a>] -         Improve Cancellation to take advantage of InterruptedException
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-596'>FLUME-596</a>] -         Simplify driver by removing unneeded DriverListener.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-598'>FLUME-598</a>] -         Update RPC to send CLOSING state information from LogicalNode Driver.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-618'>FLUME-618</a>] -         Test output should be squelched
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-627'>FLUME-627</a>] -         Make all temp files created by File.createTempFile or FileUtil.mktmpdir live in one dir.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-632'>FLUME-632</a>] -         Support arguments in output format configuration
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-633'>FLUME-633</a>] -         Upgrade to Avro 1.5.1
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-635'>FLUME-635</a>] -         Allow the compression codec to be specified in SequenceFiles
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-639'>FLUME-639</a>] -         Remove LET sink remnants.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-641'>FLUME-641</a>] -         Support aliases for compression codecs
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-644'>FLUME-644</a>] -         Remove unused parts of the Tagger
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-660'>FLUME-660</a>] -         Add seqfile output format to documentation
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-665'>FLUME-665</a>] -         Consolidate version numbers in maven build.
+</li>
+</ul>
+    
+<h2>        New Feature
+</h2>
+<ul>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-27'>FLUME-27</a>] -         Create log4j appender.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-81'>FLUME-81</a>] -         Support for 1 RegExp extractor that populates multi event attributes
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-92'>FLUME-92</a>] -         Extractor to handle extracting of a date&#39;s components from an event field
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-247'>FLUME-247</a>] -         Add Efficient HBase Sink whith Flexible Event&#39;s Attributes Writing
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-373'>FLUME-373</a>] -         Flume windows installer should be build target in build.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-467'>FLUME-467</a>] -         Merge cloudera/hbase with trunk cloudera/master
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-524'>FLUME-524</a>] -         Create a Lo4j / Logback / etc.. Avro Log Appender
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-546'>FLUME-546</a>] -         File reading sources should allow for some sort of parameterized record delimiter
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-572'>FLUME-572</a>] -         Allow using a file to only include certain tests in a build
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-579'>FLUME-579</a>] -         various rpcSources / Sinks should expose port information in metrics data.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-651'>FLUME-651</a>] -         Hook in support for output format arguments into relevant sinks.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-663'>FLUME-663</a>] -         add &#39;flume sink&#39; and &#39;flume source&#39; commands to ease debugging.
+</li>
+</ul>
+        
+<h2>        Task
+</h2>
+<ul>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-464'>FLUME-464</a>] -         Removed deprecated GZIPCompression setting.
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-504'>FLUME-504</a>] -         Update Thrift to 0.6.0
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-530'>FLUME-530</a>] -         Rename &quot;Flume Windows Guide&quot; to be &quot;Installing Flume Nodes on Windows&quot;
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-545'>FLUME-545</a>] -         Upgrade to Avro 1.5.0
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-551'>FLUME-551</a>] -         Document tail custom delimiter options.
+</li>
+</ul>
+    
+<h2>        Sub-task
+</h2>
+<ul>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-584'>FLUME-584</a>] -         Change version to 0.9.4-SNAPSHOT (instead of 0.9.10-SNAPSHOT)
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-585'>FLUME-585</a>] -         Precompile JSP pages
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-587'>FLUME-587</a>] -         Fix test failures due to relocated files
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-590'>FLUME-590</a>] -         Figure out why not all tests are running
+</li>
+<li>[<a href='https://issues.cloudera.org/browse/FLUME-591'>FLUME-591</a>] -         Support the original URLs in the maven build
+</li>
+</ul>
+    
+
         Release Notes - Flume - Version v0.9.3
     
 <h2>        Bug

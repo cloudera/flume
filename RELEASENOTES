@@ -1,6 +1,33 @@
 Flume 0.9.4
 ===========
 
+NOTE: This release was done in preparation to a move to the Apache
+Incubator and did not go through the normal release candidate
+process.
+
+== New features at a glance.
+
+This release provides a few major features:
+
+* An expressive and a simplified Flume-HBase plugin 
+* A Log4j appender that feeds Flume via Avro.
+* Output formats such as Hadoop-native sequence files along with
+  support for sequence file internal compression.
+* Upgrades to RPC mechanisms to Thrift 0.6.0 and Avro 1.5.1 along with
+  and new parameters to enable wire batching and compression.
+* Improved regex extraction mechanisms and new delimiter
+  parametrization for tail.
+* Logs from a node or master are now exposed via web
+  interface. (http://node:35862/logs, or http://master:35871/logs)
+* Although not visible to the user, there should be significant
+  robustness improvements in the internals that controlled the
+  life-cycle of logical nodes.
+
+== Deprecation
+
+A handful of options and language features that were previously
+deprecated have been removed:
+
 Old Thrift sinks have been removed and are no longer available.
 These are 'tacksink' and 'trawsink'. Additionally, the old aliases
 'tsink' and 'tsource' are no longer present. Use the full names
@@ -9,6 +36,37 @@ These are 'tacksink' and 'trawsink'. Additionally, the old aliases
 The setting 'flume.collector.dfs.compress.gzip' was deprecated in
 a previous release. It has now been removed. You should use the
 'flume.collector.dfs.compress.codec' setting instead.
+
+== Developer changes
+
+From a developer side, there are a few major changes: 
+* A maven-based build
+* Robustness improvements in unit tests.  
+* Builders for plugins should now use create(Context, Object...)
+  instead of build(Context, String...)
+
+Mavenization was a major cross-cutting update that converted the
+previous ant-based build to a maven-based build.  Previously
+auto-generated code that required external compilers were checked-in.
+With the new build we require developers to install the maven build
+system and the v0.6.0 thrift compiler. For docs generation asciidoc is
+required, and for windows builds makensis is required.
+
+The life-cycle changes and which allowed us eliminate the majority of
+racy or intermittent tests.  This was done by improving exception
+handling.  There are three classes of exceptions now:
+* IOExceptions are non-fatal and will attempt to recovery depending on
+  the reliability mode.
+* InterruptedExceptions are used as signals to cooperatively exit from
+  any blocking source, sink or logical node.  Logical node should exit
+  in IDLE state unless there are errors on shutdown.
+* RuntimeExceptions and Errors are non-recoverable and will should a
+  logical node in ERROR state.
+
+The builder's changes have been done in a way that will remain
+backwards compatible with previous plug-in sources, sinks, decorators,
+and output formats.  The older interfaces are now deprecated and will
+be removed in future releases.
 
 Flume 0.9.3
 ===========
@@ -42,7 +100,7 @@ and configurations, but one is planned for the 0.9.2 release.
 The bug that caused FLUME-286 has been fixed for Thrift RPCs but not
 for Avro-based RPC mechanisms.  Previous to the fix, the Thrift
 version would not recover when a downstream RPC server had a network
-partion such as a wire cut or power down.  Unlike killing a server,
+partition such as a wire cut or power down.  Unlike killing a server,
 these situations provided no failure feedback.  The Avro version
 currently does not properly detect or recover from these situations so
 the DFO mode can lose data.  This is reported as issue FLUME-313.
@@ -50,7 +108,7 @@ the DFO mode can lose data.  This is reported as issue FLUME-313.
 Flume 0.9.1 Update 1 (CDH3b3) Release Notes
 ===========================================   
 
-This release is a bugfix update to the 0.9.1 release.
+This release is a bug fix update to the 0.9.1 release.
 
 The only new features added to this release are:
 * Support for writing to kerberized HDFS.
@@ -66,7 +124,7 @@ Many documentation updates including:
 * Documentation corrections 
 * More details on plugin behavior
 
-Compatiblity Changes: 
+Compatibility Changes: 
 * When run from the command line, Flume now defaults to storing the
   agent data in /tmp/flume-${user.name} instead of /tmp/flume. When
   upgrading an existing installation, if you have not configured an
@@ -99,8 +157,8 @@ There were several critical fixes in this release as well.
   node configurations 
 * Prevent certain user errors 
 
-Compatability changes:
-* We no longer specifiy a -Xmx memory setting for the JVM.  By default
+Compatibility changes:
+* We no longer specify a -Xmx memory setting for the JVM.  By default
   the JVM will set this value to 128MB.  This value may need to be
   increased on nodes. (FLUME-72)
 
@@ -118,7 +176,7 @@ Highlighted known bugs:
   when recovering from collector outage.  These losses are technically
   allowed but can probably be improved. (FLUME-257)
 * Tail has a race condition that results in event duplication
-  (FLUME-218) and there are issues with non ascii characters
+  (FLUME-218) and there are issues with non ASCII characters
   (FLUME-205).
 
 Flume 0.9.0 (CDH3b2) Release Notes
@@ -135,7 +193,7 @@ Supported platforms: Linux, requires Java 1.6, not tested on windows
 Stable:
 * Introduction / Design
 * Quick Start
-* Psuedo-Distributed Mode (node configuration via master)
+* Pseudo-Distributed Mode (node configuration via master)
 ** Simple web interface
 ** Agent/collector roles
 * Fully-Distributed Mode section:
@@ -160,7 +218,7 @@ Active Development:
 * Logical Naming translations.
 * Multiple Flume Masters
 * Output Formatting options
-* Custom metadata extraction
+* Custom meta-data extraction
 
 Known Bugs
 * ZK session timeout makes master unrecoverable 
