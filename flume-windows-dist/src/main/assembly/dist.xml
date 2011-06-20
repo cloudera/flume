@@ -37,22 +37,6 @@
       </includes>
     </moduleSet>
 
-    <!-- Copy flume master web app -->
-    <moduleSet>
-      <useAllReactorProjects>true</useAllReactorProjects>
-
-      <binaries>
-        <outputDirectory>webapps</outputDirectory>
-        <outputFileNameMapping>flumemaster.${module.extension}</outputFileNameMapping>
-        <unpack>false</unpack>
-        <includes />
-      </binaries>
-
-      <includes>
-        <include>com.cloudera:flume-config-web</include>
-      </includes>
-    </moduleSet>
-
     <!-- Copy flume agent web app -->
     <moduleSet>
       <useAllReactorProjects>true</useAllReactorProjects>
@@ -117,6 +101,7 @@
         <include>LICENSE</include>
         <include>NOTICE</include>
         <include>README</include>
+	<include>RELEASENOTES</include>
       </includes>
     </fileSet>
 

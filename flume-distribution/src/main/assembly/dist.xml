@@ -117,6 +117,7 @@
         <include>LICENSE</include>
         <include>NOTICE</include>
         <include>README</include>
+	<include>RELEASENOTES</include>
       </includes>
     </fileSet>
 

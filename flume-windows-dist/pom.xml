@@ -73,13 +73,6 @@
 
     <dependency>
       <groupId>${project.parent.groupId}</groupId>
-      <artifactId>flume-config-web</artifactId>
-      <type>war</type>
-      <version>${project.parent.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>${project.parent.groupId}</groupId>
       <artifactId>flume-node-web</artifactId>
       <type>war</type>
       <version>${project.parent.version}</version>
