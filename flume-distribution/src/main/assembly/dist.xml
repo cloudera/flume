@@ -104,6 +104,13 @@
       <includes />
     </fileSet>
 
+    <!-- Copy cloudera directory -->
+    <fileSet>
+      <outputDirectory>cloudera</outputDirectory>
+      <directory>../cloudera</directory>
+      <includes />
+    </fileSet>
+
     <!-- Copy conf directory -->
     <fileSet>
       <outputDirectory>conf</outputDirectory>

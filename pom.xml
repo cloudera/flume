@@ -2,6 +2,12 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.cloudera.cdh</groupId>
+    <artifactId>cdh-root</artifactId>
+    <version>3.0-u1-SNAPSHOT</version>
+  </parent>
+
   <groupId>com.cloudera</groupId>
   <artifactId>flume</artifactId>
   <version>0.9.4-cdh3u1-SNAPSHOT</version>
@@ -289,6 +295,24 @@
     </repository>
 
     <repository>
+      <id>cdh.repo</id>
+      <url>https://repository.cloudera.com/content/groups/cloudera-repos</url>
+      <name>Cloudera Repositories</name>
+      <snapshots>
+      <enabled>false</enabled>
+      </snapshots>
+    </repository>
+
+    <repository>
+       <id>cdh.snapshots.repo</id>
+       <url>https://repository.cloudera.com/content/repositories/snapshots</url>
+       <name>Cloudera Snapshots Repository</name>
+       <snapshots>
+         <enabled>true</enabled>
+       </snapshots>
+     </repository>
+
+     <repository>
       <id>com.cloudera.repository.releases</id>
       <url>https://repository.cloudera.com/content/groups/public/</url>
       <releases>
@@ -551,9 +575,9 @@
       <!-- Dependencies: compile - CDH components -->
 
       <dependency>
-        <groupId>com.cloudera.zookeeper</groupId>
+        <groupId>org.apache.zookeeper</groupId>
         <artifactId>zookeeper</artifactId>
-        <version>3.3.1-10</version>
+        <version>${cdh.zookeeper.version}</version>
         <exclusions>
           <exclusion>
             <groupId>javax.jms</groupId>
@@ -573,7 +597,7 @@
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-core</artifactId>
-        <version>0.20.2-CDH3B4</version>
+        <version>${cdh.hadoop.version}</version>
       </dependency>
 
       <dependency>

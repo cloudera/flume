@@ -19,41 +19,62 @@
 ####################
 # Performs a release build
 
-set -ex
+FULL_VERSION=0.9.4-cdh3u1-SNAPSHOT
 
-JAVA32_HOME=${JAVA32_HOME:-$JAVA_HOME}
+# resolve links - $0 may be a softlink
+PRG="${0}"
 
-# Check that JVMs support the right architectures
-# Passing -d with an architecture that's not supported results
-# in a non-zero exit code even with -version
-if ! $JAVA32_HOME/bin/java -d32 -version ; then
-  echo Your jvm in $JAVA32_HOME seems like it doesnt support 32-bit mode 1>&2
-  echo Please set JAVA32_HOME to point to a 32-bit JDK
+while [ -h "${PRG}" ]; do
+  ls=`ls -ld "${PRG}"`
+  link=`expr "$ls" : '.*-> \(.*\)$'`
+  if expr "$link" : '/.*' > /dev/null; then
+    PRG="$link"
+  else
+    PRG=`dirname "${PRG}"`/"$link"
+  fi
+done
+
+BASEDIR=`dirname ${PRG}`
+BASEDIR=`cd ${BASEDIR}/..;pwd`
+cd ${BASEDIR}
+
+if [ -z ${THRIFT_HOME} ] ; then
+  echo "THRIFT_HOME not set"
   exit 1
 fi
 
-if ! [ -e $JAVA5_HOME/bin/java ]; then
-  echo No JAVA5_HOME set. Forrest documentation requires Java 5 to be 1>&2
-  echo installed. 1>&2
+if [ ! -f "${THRIFT_HOME}/bin/thrift" ] ; then
+  echo "Thrift compiler not found at : ${THRIFT_HOME}/bin"
   exit 1
 fi
 
-if ! [ -e $FORREST_HOME/bin/forrest ]; then
-  echo No FORREST_HOME set. Forrest documentation requires Forrest to be 1>&2
-  echo installed. 1>&2
-  exit 1
+# pass githash commit values via environment
+if [ -z "${FLUME_GIT_HASH}" ] ; then 
+  # not in env, load from file
+  if [ -f "$BASEDIR/cloudera/flume_git_hash" ] ; then
+    FLUME_GIT_HASH=`cat $BASEDIR/cloudera/flume_git_hash`
+  else
+    # not in file, load from git repo
+    FLUME_GIT_HASH=`cd $BASEDIR && git rev-parse HEAD`
+    if [ $? = 0 ] ; then 
+      # save the hash for future builds
+      echo $FLUME_GIT_HASH > $BASEDIR/cloudera/flume_git_hash
+    else
+      # not in repo, give up and use unknown
+      FLUME_GIT_HASH="unknown"
+    fi
+  fi
+else 
+  # git hash previously defined by env, save for next build
+  echo $FLUME_GIT_HASH > $BASEDIR/cloudera/flume_git_hash
 fi
 
-# Do the build
-BIN_DIR=$(readlink -f $(dirname $0))
-RELEASE_DIR=$BIN_DIR/..
+echo
+echo "WARNING: DOCUMENTATION IS NOT BEING GENERATED!!!!!"
+echo
 
-cd $BIN_DIR/maven-packaging
-mvn -N install
+# Add -Pfull-build to include documentation build
+mvn clean package -Dmaven.revision=${FLUME_GIT_HASH} -Dthrift.executable=${THRIFT_HOME}/bin/thrift -DskipTests ${DO_MAVEN_DEPLOY}
 
-cd $RELEASE_DIR
-mvn -f cloudera-pom.xml process-resources
-JAVA_HOME=$JAVA32_HOME  ant clean tar -Dversion=${FULL_VERSION} -propertyfile cloudera/build.properties 
-
-cd $BIN_DIR/maven-packaging
-mvn install $DO_MAVEN_DEPLOY
+mkdir build
+cp flume-distribution/target/flume-distribution-${FULL_VERSION}-project.tar.gz build/flume-${FULL_VERSION}.tar.gz

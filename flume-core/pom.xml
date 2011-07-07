@@ -293,7 +293,7 @@
     <!-- Dependencies: compile - CDH components -->
 
     <dependency>
-      <groupId>com.cloudera.zookeeper</groupId>
+      <groupId>org.apache.zookeeper</groupId>
       <artifactId>zookeeper</artifactId>
     </dependency>
 
