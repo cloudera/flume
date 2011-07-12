@@ -19,8 +19,6 @@
 ####################
 # Performs a release build
 
-FULL_VERSION=0.9.4-cdh3u1-SNAPSHOT
-
 # resolve links - $0 may be a softlink
 PRG="${0}"
 
