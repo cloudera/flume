@@ -6,7 +6,7 @@
   <parent>
     <artifactId>flume</artifactId>
     <groupId>com.cloudera</groupId>
-    <version>0.9.4-cdh3u1-SNAPSHOT</version>
+    <version>0.9.4-cdh3u1</version>
   </parent>
 
   <artifactId>flume-distribution</artifactId>

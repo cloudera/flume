@@ -5,12 +5,12 @@
   <parent>
     <groupId>com.cloudera.cdh</groupId>
     <artifactId>cdh-root</artifactId>
-    <version>3.0-u1-SNAPSHOT</version>
+    <version>3.0-u1</version>
   </parent>
 
   <groupId>com.cloudera</groupId>
   <artifactId>flume</artifactId>
-  <version>0.9.4-cdh3u1-SNAPSHOT</version>
+  <version>0.9.4-cdh3u1</version>
   <packaging>pom</packaging>
   <name>Flume</name>
 
