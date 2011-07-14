@@ -1,4 +1,5 @@
-﻿////////////////////
+﻿
+////////////////////
 Licensed to Cloudera, Inc. under one
 or more contributor license agreements.  See the NOTICE file
 distributed with this work for additional information
@@ -340,7 +341,7 @@ collector tier.
 
 Agents and collectors roles have defaults specified in the `conf/flume-site.xml` 
 file.  Look at the `conf/flume-conf.xml` file for properties prefixed with 
-`flume.agent.*` and `flume.collector.*` for descriptions of the configuration 
+`flume.agent.\*` and `flume.collector.\*` for descriptions of the configuration 
 options.
 
 Each node maintains it own node state and has its own configuration. If the 

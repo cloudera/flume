@@ -1,4 +1,5 @@
-﻿////////////////////
+﻿
+////////////////////
 Licensed to Cloudera, Inc. under one
 or more contributor license agreements.  See the NOTICE file
 distributed with this work for additional information
@@ -174,6 +175,7 @@ For jobs initiated by the user, the easiest mechanism to enable Flume logging is
 
 export HADOOP_ROOT_LOGGER=INFO,flume,console 
 ////
+To be added
 
 ==== Logging Hadoop Daemons 
 //// 
@@ -183,3 +185,4 @@ export HADOOP_ROOT_LOGGER=INFO,flume,DRFA
 
 TODO (jon) this doesn't seem to working right now --  need to figure out why. 
 ////
+To be added

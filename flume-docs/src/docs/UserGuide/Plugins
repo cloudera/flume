@@ -49,7 +49,7 @@ IMPORTANT: if you use the provided +flume-site.xml.template+ file to
 create your +flume-site.xml+ be sure to comment out or remove any
 example properties contained in the sample template.
 +
-.Example flume-site.xml contents
+. Example flume-site.xml contents
 [source,xml]
 ----
 <configuration>
@@ -71,7 +71,7 @@ export FLUME_CLASSPATH=`pwd`/plugins/helloworld/helloworld_plugin.jar
 .. in terminal 2 run +bin/flume node -n hello1+
 . At this point the master and hello1 nodes should be started and will have loaded the plugin
 +
-.You should see log output similar to the following in both master and hello1:
+. You should see log output similar to the following in both master and hello1:
 ----
 10/07/29 17:35:28 INFO conf.SourceFactoryImpl: Found source builder helloWorldSource in helloworld.HelloWorldSource
 10/07/29 17:35:28 INFO conf.SinkFactoryImpl: Found sink builder helloWorldSink in helloworld.HelloWorldSink

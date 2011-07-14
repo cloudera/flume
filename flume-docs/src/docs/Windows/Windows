@@ -164,12 +164,13 @@ The installation directory where the Flume node programs are installed
 is called +%FLUME_HOME%+.  By default this is +C:\Program
 Files\Cloudera\Flume 0.9.3\+.
 
-[width="50%",options="header"]
-|=================================================================================
-|Directory          |Purpose
-|%FLUME_HOME%\logs  |Directory where Flume node logs are saved.
-|%FLUME_HOME%\conf  |Directory where flume-site.xml and flume-conf.xml are located
-|=================================================================================
+[grid="all"]
+`-------------------`------------------------------------------------------------
+Directory            Purpose
+---------------------------------------------------------------------------------
+%FLUME_HOME%\logs    Directory where Flume node logs are saved.
+%FLUME_HOME%\conf    Directory where flume-site.xml and flume-conf.xml are located
+---------------------------------------------------------------------------------
 
 The +FLUME_CONF_DIR+ environment variable is respected -- you can keep
 xml configs in a separate directory pointed to by this variable for
