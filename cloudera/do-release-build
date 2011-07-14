@@ -68,12 +68,12 @@ else
   echo $FLUME_GIT_HASH > $BASEDIR/cloudera/flume_git_hash
 fi
 
-echo
-echo "WARNING: DOCUMENTATION IS NOT BEING GENERATED!!!!!"
-echo
+#echo
+#echo "WARNING: DOCUMENTATION IS NOT BEING GENERATED!!!!!"
+#echo
 
 # Add -Pfull-build to include documentation build
-mvn clean package -Dmaven.revision=${FLUME_GIT_HASH} -Dthrift.executable=${THRIFT_HOME}/bin/thrift -DskipTests ${DO_MAVEN_DEPLOY}
+mvn clean package -Dmaven.revision=${FLUME_GIT_HASH} -Dthrift.executable=${THRIFT_HOME}/bin/thrift -DskipTests -Pfull-build ${DO_MAVEN_DEPLOY}
 
 mkdir build
 cp flume-distribution/target/flume-distribution-${FULL_VERSION}-project.tar.gz build/flume-${FULL_VERSION}.tar.gz
