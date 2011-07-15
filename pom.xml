@@ -555,6 +555,18 @@
         <groupId>org.apache.avro</groupId>
         <artifactId>avro</artifactId>
         <version>1.5.1</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.xerial.snappy</groupId>
+            <artifactId>snappy-java</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>org.xerial.snappy</groupId>
+        <artifactId>snappy-java</artifactId>
+        <version>1.0.3-rc2</version>
       </dependency>
 
       <dependency>
