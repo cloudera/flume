@@ -6,11 +6,12 @@
     <groupId>com.cloudera.cdh</groupId>
     <artifactId>cdh-root</artifactId>
     <version>3.0-u2-SNAPSHOT</version>
+    <relativePath>../../../pom.xml</relativePath>
   </parent>
 
   <groupId>com.cloudera</groupId>
   <artifactId>flume</artifactId>
-  <version>0.9.4-cdh3u2-SNAPSHOT</version>
+  <version>${cdh.flume.version}</version>
   <packaging>pom</packaging>
   <name>Flume</name>
 
