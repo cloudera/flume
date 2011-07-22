@@ -11,7 +11,7 @@
 
   <groupId>com.cloudera</groupId>
   <artifactId>flume</artifactId>
-  <version>${cdh.flume.version}</version>
+  <version>0.9.4-cdh3u2-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Flume</name>
 
