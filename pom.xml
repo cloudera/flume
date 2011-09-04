@@ -381,19 +381,6 @@
             <forkMode>always</forkMode>
             <forkedProcessTimeoutInSeconds>480</forkedProcessTimeoutInSeconds>
             <redirectTestOutputToFile>true</redirectTestOutputToFile>
-	    <excludes>
-	      <exclude>**/TestCollectorSink.java</exclude> 
-	      <!-- testHdfsDownInterruptBeforeOpen -->
-	      <exclude>**/TestLivenessManager.java</exclude> 
-	      <!-- testNoHang -->	
-	      <exclude>**/TestConcurrentWALMan.java</exclude> 
-	      <!-- test10thread -->	
-	      <exclude>**/TestConcurrentDFOMan.java</exclude> 
-	      <!-- test100thread -->	      
-	      <exclude>**/TestTailSource.java</exclude> 
-	      <!-- testCloseBlocksUntilThreadDone -->	      
-
-	    </excludes>
           </configuration>
         </plugin>
 
