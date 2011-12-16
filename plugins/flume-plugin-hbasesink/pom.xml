@@ -5,7 +5,7 @@
     <relativePath>../../pom.xml</relativePath>
     <groupId>com.cloudera</groupId>
     <artifactId>flume</artifactId>
-    <version>0.9.4-cdh3u3-SNAPSHOT</version>
+    <version>0.9.4-cdh4a1-SNAPSHOT</version>
   </parent>
 
   <modelVersion>4.0.0</modelVersion>
@@ -24,13 +24,13 @@
     <dependency>
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase</artifactId>
-      <version>${cdh.hbase.version}</version>
+      <version>0.90.4-cdh3u3-SNAPSHOT</version>
     </dependency>
 
     <dependency>
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase</artifactId>
-      <version>${cdh.hbase.version}</version>
+      <version>0.90.4-cdh3u3-SNAPSHOT</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
@@ -38,7 +38,7 @@
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-test</artifactId>
-      <version>${cdh.hadoop.version}</version>
+      <version>0.20.2-cdh3u3-SNAPSHOT</version>
       <scope>test</scope>
     </dependency>
 

@@ -5,13 +5,13 @@
   <parent>
     <groupId>com.cloudera.cdh</groupId>
     <artifactId>cdh-root</artifactId>
-    <version>3.0-u3-SNAPSHOT</version>
+    <version>4.0-a1-SNAPSHOT</version>
     <relativePath>../../../pom.xml</relativePath>
   </parent>
 
   <groupId>com.cloudera</groupId>
   <artifactId>flume</artifactId>
-  <version>0.9.4-cdh3u3-SNAPSHOT</version>
+  <version>0.9.4-cdh4a1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Flume</name>
 
@@ -609,7 +609,7 @@
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-core</artifactId>
-        <version>${cdh.hadoop.version}</version>
+        <version>0.20.2-cdh3u3-SNAPSHOT</version>
       </dependency>
 
       <dependency>
