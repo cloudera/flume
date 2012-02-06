@@ -5,13 +5,13 @@
   <parent>
     <groupId>com.cloudera.cdh</groupId>
     <artifactId>cdh-root</artifactId>
-    <version>4.0-b1-SNAPSHOT</version>
+    <version>4.0-b2-SNAPSHOT</version>
     <relativePath>../../../pom.xml</relativePath>
   </parent>
 
   <groupId>com.cloudera</groupId>
   <artifactId>flume</artifactId>
-  <version>0.9.4-cdh4b1-SNAPSHOT</version>
+  <version>0.9.4-cdh4b2-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Flume</name>
 
@@ -133,7 +133,7 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <properties>
-        <hadoop.version>0.23.0-cdh4b1-SNAPSHOT</hadoop.version>
+        <hadoop.version>${cdh.hadoop.version}</hadoop.version>
         <hadoop.common.artifact.id>hadoop-common</hadoop.common.artifact.id>
         <FlushingSeqFile>**/FlushingSequenceFileWriter.java</FlushingSeqFile>
         <RawSeqFile>**/RawSequenceFileWriter.java</RawSeqFile>
