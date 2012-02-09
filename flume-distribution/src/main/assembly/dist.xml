@@ -15,88 +15,7 @@
   <includeBaseDirectory>true</includeBaseDirectory>
   <baseDirectory>flume-${project.version}</baseDirectory>
 
-  <moduleSets>
-
-    <!-- Copy flume core jar to lib -->
-    <moduleSet>
-      <useAllReactorProjects>true</useAllReactorProjects>
-
-      <sources>
-        <outputDirectory>/</outputDirectory>
-        <includes />
-	<excludes>
-	  <!-- maven build stuff -->
-	  <exclude>**/target/**</exclude>
-	  <!-- default eclipse junk -->
-	  <exclude>**/bin/**</exclude>
-	  <exclude>**/.settings/**</exclude>
-	  <exclude>**/.project</exclude>
-	  <exclude>**/.classpath</exclude>
-	  <exclude>**/.gitignore</exclude>
-	</excludes>
-      </sources>
-
-      <binaries>
-        <outputDirectory>/</outputDirectory>
-        <unpack>false</unpack>
-        <includes />
-
-        <dependencySets>
-          <dependencySet>
-	    <scope>provided</scope>
-            <outputDirectory>/</outputDirectory>
-	    <useProjectArtifact>false</useProjectArtifact>
-          </dependencySet>
-
-          <dependencySet>
-	    <scope>runtime</scope>
-            <outputDirectory>lib</outputDirectory>
-	    <useProjectArtifact>false</useProjectArtifact>
-          </dependencySet>
-        </dependencySets>
-      </binaries>
-
-      <includes>
-        <include>com.cloudera:flume-core</include>
-      </includes>
-    </moduleSet>
-
-    <!-- Copy flume master web app -->
-    <moduleSet>
-      <useAllReactorProjects>true</useAllReactorProjects>
-
-      <binaries>
-        <outputDirectory>webapps</outputDirectory>
-        <outputFileNameMapping>flumemaster.${module.extension}</outputFileNameMapping>
-        <unpack>false</unpack>
-        <includes />
-      </binaries>
-
-      <includes>
-        <include>com.cloudera:flume-config-web</include>
-      </includes>
-    </moduleSet>
-
-    <!-- Copy flume agent web app -->
-    <moduleSet>
-      <useAllReactorProjects>true</useAllReactorProjects>
-
-      <binaries>
-        <outputDirectory>webapps</outputDirectory>
-        <outputFileNameMapping>flumeagent.${module.extension}</outputFileNameMapping>
-        <unpack>false</unpack>
-        <includes />
-      </binaries>
-
-      <includes>
-        <include>com.cloudera:flume-node-web</include>
-      </includes>
-    </moduleSet>
-
-  </moduleSets>
-
   <fileSets>
-
     <!-- Copy bin directory -->
     <fileSet>
       <outputDirectory>bin</outputDirectory>
@@ -164,6 +83,7 @@
       <directory>../</directory>
       <includes>
 	<include>flume-config-web/**</include>
+	<include>flume-core/**</include>
 	<include>flume-distribution/**</include>
 	<include>flume-docs/**</include>
 	<include>flume-log4j-appender/**</include>
@@ -201,4 +121,51 @@
 
   </fileSets>
 
+  <dependencySets>
+    <!-- Copy flume-core libs -->
+    <dependencySet>
+      <outputDirectory>/</outputDirectory>
+      <useProjectArtifact>true</useProjectArtifact>
+      <includes>
+        <include>com.cloudera:flume-core</include>
+      </includes>
+      <useTransitiveDependencies>false</useTransitiveDependencies>
+    </dependencySet>
+    
+    <dependencySet>
+      <scope>runtime</scope>
+      <outputDirectory>lib</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+      <excludes>
+        <exclude>com.cloudera:flume-*</exclude>
+      </excludes>
+      <useTransitiveDependencies>true</useTransitiveDependencies>
+
+    </dependencySet>
+
+    <!-- Copy flume-config-web -->
+    <dependencySet>
+      <outputDirectory>webapps</outputDirectory>
+      <outputFileNameMapping>flumemaster.${artifact.extension}</outputFileNameMapping>
+      <unpack>false</unpack>
+      <includes>
+        <include>com.cloudera:flume-config-web</include>
+      </includes>
+      <useTransitiveDependencies>false</useTransitiveDependencies>
+    </dependencySet>
+
+    <!-- Copy flume-node-web -->
+    <dependencySet>
+      <outputDirectory>webapps</outputDirectory>
+      <outputFileNameMapping>flumeagent.${artifact.extension}</outputFileNameMapping>
+      <unpack>false</unpack>
+      <includes>
+        <include>com.cloudera:flume-node-web</include>
+      </includes>
+      <useTransitiveDependencies>false</useTransitiveDependencies>
+    </dependencySet>
+
+    
+  </dependencySets>
+  
 </assembly>
