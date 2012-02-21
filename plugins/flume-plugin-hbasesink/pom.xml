@@ -13,6 +13,56 @@
   <artifactId>flume-plugin-hbasesink</artifactId>
   <name>Flume HBase Plugin</name>
 
+  <profiles>
+    <profile>
+      <id>hadoop-0.23</id>
+      <activation>
+        <property>
+          <name>hadoop.profile</name>
+          <value>23</value>
+        </property>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+            <artifactId>${hadoop.common.artifact.id}</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-minicluster</artifactId>
+          <version>${hadoop.version}</version>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+<!-- 
+    <profile>
+      <id>hadoop-0.20.2-CDH3B4</id>
+      <activation>
+        <property>
+          <name>!hadoop.profile</name>
+        </property>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-test</artifactId>
+          <version>${hadoop.version}</version>
+          <scope>test</scope>
+          <exclusions>
+            <exclusion>
+              <groupId>com.cloudera.cdh</groupId>
+              <artifactId>hadoop-ant</artifactId>
+            </exclusion>
+          </exclusions>
+        </dependency>
+      </dependencies>
+    </profile>
+-->
+  </profiles>
+
   <dependencies>
 
     <dependency>
@@ -24,7 +74,7 @@
     <dependency>
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase</artifactId>
-      <version>0.90.4-cdh3u3-SNAPSHOT</version>
+      <version>${cdh.hbase.version}</version>
       <exclusions>
         <exclusion>
           <groupId>com.cloudera.cdh</groupId>
@@ -36,21 +86,8 @@
     <dependency>
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase</artifactId>
-      <version>0.90.4-cdh3u3-SNAPSHOT</version>
+      <version>${cdh.hbase.version}</version>
       <classifier>tests</classifier>
-      <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>com.cloudera.cdh</groupId>
-          <artifactId>hadoop-ant</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.hadoop</groupId>
-      <artifactId>hadoop-test</artifactId>
-      <version>0.20.2-cdh3u3-SNAPSHOT</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>

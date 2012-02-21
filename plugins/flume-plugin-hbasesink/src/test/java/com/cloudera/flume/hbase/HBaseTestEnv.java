@@ -11,14 +11,20 @@ package com.cloudera.flume.hbase;
 
 import java.io.File;
 
-import org.apache.hadoop.hbase.HBaseClusterTestCase;
+import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.conf.Configuration;
 
 import com.cloudera.util.FileUtil;
 
-public class HBaseTestEnv extends HBaseClusterTestCase {
+public class HBaseTestEnv extends HBaseTestingUtility {
   private File hbaseTestDir;
+  public static Configuration conf;
 
-  @Override
+  public HBaseTestEnv() {
+    super();
+    conf = getConfiguration();
+  }
+
   public String getName() {
     // TODO replace with actual test name
     return "HBaseTestEnv";
@@ -26,12 +32,12 @@ public class HBaseTestEnv extends HBaseClusterTestCase {
 
   public void setUp() throws Exception {
     hbaseTestDir = FileUtil.mktempdir();
-
-    super.setUp();
+    startMiniZKCluster();
+    startMiniHBaseCluster(1,1);
   }
 
   public void tearDown() throws Exception {
-    super.tearDown();
+    shutdownMiniCluster();
     FileUtil.rmr(hbaseTestDir);
   }
 }

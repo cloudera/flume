@@ -155,6 +155,12 @@
             <artifactId>hadoop-mapreduce-client-jobclient</artifactId>
             <version>${hadoop.version}</version>
           </dependency>
+          <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-minicluster</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>test</scope>
+          </dependency>
         </dependencies>
       </dependencyManagement>
     </profile>
@@ -376,6 +382,17 @@
       </snapshots>
     </repository>
 
+     <repository>
+      <id>com.cloudera.repository.releases</id>
+      <url>https://repository.cloudera.com/content/groups/public/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+
     <repository>
        <id>cdh.snapshots.repo</id>
        <url>https://repository.cloudera.com/content/repositories/snapshots</url>
@@ -384,17 +401,6 @@
          <enabled>true</enabled>
        </snapshots>
      </repository>
-
-     <repository>
-      <id>com.cloudera.repository.releases</id>
-      <url>https://repository.cloudera.com/content/groups/public/</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
 
     <repository>
       <id>com.cloudera.repository.thirdparty</id>

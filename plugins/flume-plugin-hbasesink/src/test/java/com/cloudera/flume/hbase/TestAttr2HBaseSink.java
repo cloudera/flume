@@ -24,6 +24,7 @@ import com.cloudera.flume.core.EventSink;
 import com.cloudera.util.Clock;
 import junit.framework.Assert;
 import org.apache.hadoop.hbase.HBaseTestCase;
+import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.Get;
@@ -50,7 +51,7 @@ public class TestAttr2HBaseSink {
     // expensive, so just do it once for all tests, just make sure
     // that tests don't overlap (use diff tables for each test)
     hbaseEnv = new HBaseTestEnv();
-    hbaseEnv.conf.set(HBaseTestCase.TEST_DIRECTORY_KEY, "build/test/data");
+    hbaseEnv.conf.set(HBaseTestingUtility.BASE_TEST_DIRECTORY_KEY, "build/test/data");
     hbaseEnv.setUp();
   }
 
@@ -66,7 +67,7 @@ public class TestAttr2HBaseSink {
    */
   @Test
   public void testSink() throws IOException, InterruptedException {
-    final String tableName = "testSink";
+    final String tableName = "testSinkAttr";
     final String tableSysFamily = "sysFamily";
     final String tableFamily1 = "family1";
     final String tableFamily2 = "family2";
@@ -79,7 +80,7 @@ public class TestAttr2HBaseSink {
     desc.addFamily(new HColumnDescriptor(tableSysFamily));
     desc.addFamily(new HColumnDescriptor(tableFamily1));
     desc.addFamily(new HColumnDescriptor(tableFamily2));
-    HBaseAdmin admin = new HBaseAdmin(hbaseEnv.conf);
+    HBaseAdmin admin = hbaseEnv.getHBaseAdmin();
     admin.createTable(desc);
 
     // explicit constructor rather than builder - we want to control the conf
@@ -151,6 +152,8 @@ public class TestAttr2HBaseSink {
       }
     } finally {
       table.close();
+      admin.disableTable(tableName);
+      admin.deleteTable(tableName);
     }
   }
 
