@@ -145,6 +145,8 @@ if [ "$cygwin" == false ] ; then
       CLASSPATH="${CLASSPATH}:${HADOOP_CONF_DIR}" 
   elif [ -n "${HADOOP_HOME}" ] ; then
       CLASSPATH="${CLASSPATH}:${HADOOP_HOME}/conf"
+  elif [ -n "${HADOOP_PREFIX}" ] ; then
+      CLASSPATH="${CLASSPATH}:${HADOOP_PREFIX}/conf"
   elif [ -e "/usr/lib/hadoop/conf" ] ; then
       # if neither is present see if the CDH dir exists
       CLASSPATH="${CLASSPATH}:/usr/lib/hadoop/conf";
@@ -173,6 +175,35 @@ if [ "$cygwin" == false ] ; then
       # core jars may be missing, we'll check for this below
       break
   done
+
+  while true; do
+      if [ -n "$HADOOP_PREFIX" ]; then
+        HADCOREJARS=`find ${HADOOP_PREFIX}/hadoop-common.jar -not -name "*tests*" ||  true`
+        if [ -n "$HADCOREJARS" ]; then
+              HADOOP_CORE_FOUND=true
+              CLASSPATH="$CLASSPATH:${HADCOREJARS}"
+              break;
+        else
+           HADCOREJARS=`find ${HADOOP_PREFIX}/hadoop-common*.jar -not -name "*tests*" ||  true`
+           if [ -n "$HADCOREJARS" ]; then
+             HADOOP_CORE_FOUND=true
+             CLASSPATH="$CLASSPATH:${HADCOREJARS}"
+             break;
+           fi
+        fi
+      fi
+
+      HADCOREJARS=`find ./lib/hadoop-common*.jar 2> /dev/null || true`
+      if [ -n "$HADCOREJARS" ]; then
+      # if this is the dev environment then hadoop jar will
+      # get added as part of ./lib (below)
+          break
+      fi
+
+# core jars may be missing, we'll check for this below
+      break
+  done
+
 
   append_jars_onto_classpath "$CMDPATH/lib"
   append_jars_onto_classpath "$CMDPATH/libtest"
@@ -221,9 +252,14 @@ if [ $HADOOP_CORE_FOUND == false ]; then
     HADTEST=${CLASSPATH/hadoop-core*.jar/}
     HADTESTLEN=${#HADTEST}
     # lengths should be different if jars are in classpath
-    if [ $LENCP -eq $HADTESTLEN ]; then
-        echo "HADOOP_HOME is unset, hadoop jars may not be added to classpath"
+    # replace hadoop-core*.jar with 0 len string
+    HADTEST2=${CLASSPATH/hadoop-common*.jar/}
+    HADTESTLEN2=${#HADTEST2}    
+    # lengths should be different if jars are in classpath
+    if [ $LENCP -eq $HADTESTLEN -a $LENCP -eq $HADTESTLEN2 ]; then
+        echo "HADOOP_HOME and HADOOP_PREFIX is unset, hadoop jars may not be added to classpath"
     fi
+
 fi
 
 if [ -f "${HADOOP_CONF_DIR}/hadoop-env.sh" ]; then
