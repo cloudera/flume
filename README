@@ -1,5 +1,7 @@
 h1. Welcome to Flume!
 
+NOTE: We have moved to the Apache Incubator. https://cwiki.apache.org/FLUME/
+
 Flume is a distributed, reliable, and available service for
 efficiently collecting, aggregating, and moving large amounts of log
 data. It has a simple and flexible architecture based on streaming
@@ -13,26 +15,20 @@ Flume is open-sourced under the Apache Software Foundation License v2.0.
 
 h2.  Documentation
 
-Flume's installation instructions can be found here:
+https://cwiki.apache.org/FLUME/
 
-https://docs.cloudera.com/display/DOC/Flume+Installation
-
-Flume's user guide, cookbook, and FAQ are available here:
-
-* http://archive.cloudera.com/cdh/3/flume/UserGuide/index.html
-* http://archive.cloudera.com/cdh/3/flume/Cookbook/index.html
-* http://github.com/cloudera/flume/wiki/FAQ
 
 h2. Contact us!
 
-* User mailing list: https://groups.google.com/a/cloudera.org/group/flume-user/topics
-* Developer mailling list: https://groups.google.com/a/cloudera.org/group/flume-dev/topics
+
+* User mailing list: flume-user@incubator.apache.org
+* Developer mailling list: flume-dev@incubator.apache.org
+* Instructions on how to subscribe to mailing list https://cwiki.apache.org/FLUME/mailing-lists.html
 * IRC channel #flume on irc.freenode.net
 
 Bug and Issue tracker.
 
-* http://issues.cloudera.org/
-* https://issues.cloudera.org/browse/FLUME
+* https://issues.apache.org/jira/browse/FLUME
 
 h2. Compiling Flume
 

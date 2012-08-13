@@ -20,6 +20,7 @@ package com.cloudera.flume.conf;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,12 +38,13 @@ import org.slf4j.LoggerFactory;
 import com.cloudera.flume.collector.CollectorSink;
 import com.cloudera.flume.conf.SinkFactory.SinkBuilder;
 import com.cloudera.flume.core.BackOffFailOverSink;
-import com.cloudera.flume.core.Event;
 import com.cloudera.flume.core.EventSink;
 import com.cloudera.flume.core.EventSinkDecorator;
 import com.cloudera.flume.core.EventSource;
 import com.cloudera.flume.core.FanOutSink;
 import com.cloudera.flume.handlers.rolling.RollSink;
+import com.cloudera.flume.handlers.text.FormatFactory;
+import com.cloudera.flume.handlers.text.output.OutputFormat;
 import com.cloudera.flume.master.availability.FailoverChainSink;
 import com.cloudera.util.Pair;
 import com.google.common.base.Preconditions;
@@ -89,9 +91,10 @@ public class FlumeBuilder {
 
   enum ASTNODE {
     DEC, HEX, OCT, STRING, BOOL, FLOAT, // literals
+    FUNC, // function node
     SINK, SOURCE, // sink or source
     KWARG, // kwarg support
-    MULTI, DECO, BACKUP, LET, ROLL, GEN, FAILCHAIN, // compound sinks
+    MULTI, DECO, BACKUP, ROLL, GEN, FAILCHAIN, // compound sinks
     NODE, // combination of sink and source
   };
 
@@ -126,6 +129,10 @@ public class FlumeBuilder {
 
   static CommonTree parseLiteral(String s) throws RecognitionException {
     return (CommonTree) getDeployParser(s).literal().getTree();
+  }
+
+  static CommonTree parseArg(String s) throws RecognitionException {
+    return (CommonTree) getDeployParser(s).arg().getTree();
   }
 
   public static CommonTree parseSink(String s) throws RecognitionException {
@@ -211,8 +218,8 @@ public class FlumeBuilder {
         CommonTree tsrc = (CommonTree) t.getChild(1);
         CommonTree tsnk = (CommonTree) t.getChild(2);
 
-        Pair<String, String> p = new Pair<String, String>(FlumeSpecGen
-            .genEventSource(tsrc), FlumeSpecGen.genEventSink(tsnk));
+        Pair<String, String> p = new Pair<String, String>(
+            FlumeSpecGen.genEventSource(tsrc), FlumeSpecGen.genEventSink(tsnk));
         cfg.put(host, p);
       }
       return cfg;
@@ -331,7 +338,7 @@ public class FlumeBuilder {
    * TODO (jon) move to builders, or allow builders to take Integers/Booleans as
    * well as Strings
    */
-  public static String buildSimpleArg(CommonTree t) throws FlumeSpecException {
+  public static Object buildSimpleArg(CommonTree t) throws FlumeSpecException {
     ASTNODE type = ASTNODE.valueOf(t.getText()); // convert to enum
     switch (type) {
     case HEX:
@@ -359,6 +366,15 @@ public class FlumeBuilder {
       Preconditions.checkArgument(str.startsWith("\"") && str.endsWith("\""));
       str = str.substring(1, str.length() - 1);
       return StringEscapeUtils.unescapeJava(str);
+    case FUNC:
+      String name = t.getChild(0).getText();
+      List<Object> args = new ArrayList<Object>();
+      int children = t.getChildCount();
+      for (int j = 1; j < children; j++) {
+        args.add(buildSimpleArg((CommonTree) t.getChild(j)));
+      }
+      FunctionSpec funSpec = new FunctionSpec(name, args.toArray());
+      return funSpec;
     case KWARG:
       return null;
     default:
@@ -366,6 +382,48 @@ public class FlumeBuilder {
           + t.toStringTree());
     }
   }
+
+  /**
+   * Container class for holding function arguments
+   */
+  public static class FunctionSpec {
+    String name;
+    Object[] args;
+
+    FunctionSpec(String name, Object... args) {
+      this.name = name;
+      this.args = args;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public Object[] getArgs() {
+      return args;
+    }
+
+    public String toString() {
+      return name + " " + Arrays.toString(args);
+    }
+  }
+
+  public static OutputFormat createFormat(FormatFactory ff, Object o ) throws FlumeSpecException {
+    if (o == null) {
+      // return the default.
+      return ff.createOutputFormat(null);
+    }
+    if (o instanceof FunctionSpec) {
+      FunctionSpec fs = (FunctionSpec)o;
+      return ff.createOutputFormat(fs.getName(), fs.getArgs());
+    }
+
+    LOG.warn("Deprecated syntax: Expected a format spec but instead "
+        + "had a (" + o.getClass().getSimpleName() + ") "
+        + o.toString());
+    return ff.getOutputFormat(o.toString());
+  }
+
 
   public static Pair<String, CommonTree> buildKWArg(CommonTree t) {
     ASTNODE type = ASTNODE.valueOf(t.getText()); // convert to enum
@@ -385,22 +443,22 @@ public class FlumeBuilder {
    * @throws FlumeSpecException
    */
   @SuppressWarnings("unchecked")
-  static Pair<String, List<String>> handleArgs(CommonTree t, Context ctx)
+  static Pair<String, List<Object>> handleArgs(CommonTree t, Context ctx)
       throws FlumeSpecException {
-    List<CommonTree> children = (List<CommonTree>) new ArrayList<CommonTree>(t
-        .getChildren());
+    List<CommonTree> children = (List<CommonTree>) new ArrayList<CommonTree>(
+        t.getChildren());
     String sinkType = children.remove(0).getText();
-    List<String> args = new ArrayList<String>();
+    List<Object> args = new ArrayList<Object>();
     for (CommonTree tr : children) {
-      String arg = buildSimpleArg(tr);
+      Object arg = buildSimpleArg(tr);
       if (arg != null) {
         args.add(arg);
       } else {
         Pair<String, CommonTree> kwarg = buildKWArg(tr);
-        ctx.putValue(kwarg.getLeft(), buildSimpleArg(kwarg.getRight()));
+        ctx.putObj(kwarg.getLeft(), buildSimpleArg(kwarg.getRight()));
       }
     }
-    return new Pair<String, List<String>>(sinkType, args);
+    return new Pair<String, List<Object>>(sinkType, args);
   }
 
   static EventSource buildEventSource(Context context, CommonTree t)
@@ -409,12 +467,12 @@ public class FlumeBuilder {
     switch (type) {
     case SOURCE: {
       Context ctx = new Context(context);
-      Pair<String, List<String>> idArgs = handleArgs(t, ctx);
+      Pair<String, List<Object>> idArgs = handleArgs(t, ctx);
       String sourceType = idArgs.getLeft();
-      List<String> args = idArgs.getRight();
+      List<Object> args = idArgs.getRight();
 
-      EventSource src = srcFactory.getSource(ctx, sourceType, args
-          .toArray(new String[0]));
+      EventSource src = srcFactory
+          .createSource(ctx, sourceType, args.toArray());
       if (src == null) {
         throw new FlumeIdException("Invalid source: "
             + FlumeSpecGen.genEventSource(t));
@@ -435,12 +493,11 @@ public class FlumeBuilder {
     case SINK: {
 
       Context ctx = new Context(context);
-      Pair<String, List<String>> idargs = handleArgs(t, ctx);
+      Pair<String, List<Object>> idargs = handleArgs(t, ctx);
       String sinkType = idargs.getLeft();
-      List<String> args = idargs.getRight();
+      List<Object> args = idargs.getRight();
 
-      EventSink snk = sinkFactory.getSink(ctx, sinkType, args
-          .toArray(new String[0]));
+      EventSink snk = sinkFactory.createSink(ctx, sinkType, args.toArray());
 
       if (snk == null) {
         throw new FlumeIdException("Invalid sink: "
@@ -509,81 +566,35 @@ public class FlumeBuilder {
       }
     }
 
-    case LET: {
-      List<CommonTree> letNodes = (List<CommonTree>) t.getChildren();
-      Preconditions.checkArgument(letNodes.size() == 3);
-      String argName = letNodes.get(0).getText();
-      CommonTree arg = letNodes.get(1);
-      CommonTree body = letNodes.get(2);
-      try {
-        EventSink argSink = buildEventSink(context, arg, sinkFactory);
-
-        // TODO (jon) This isn't exactly right. 'let' currently does
-        // "substitution on parse", which means when there are multiple
-        // instances of the let subexpression, it will get opened twice (which
-        // is now illegal). This hack makes things work by relaxing open's
-        // semantics so that multiple opens are ignored.
-
-        // Another approach is to have "substitution on open". Let would work
-        // differently than here. We would have LetDecorator that internally
-        // keeps the subexpression and then body. The references to the
-        // subexpression in the body would get replaced with a reference. On
-        // open, the subexpression would be opened, and the body as well. As the
-        // body is traversed, if the reference would not be opened, but would
-        // substitute the (already) open subexpression in its place.
-
-        EventSink argSinkRef = new EventSinkDecorator<EventSink>(argSink) {
-          boolean open = false;
-
-          @Override
-          public void open() throws IOException, InterruptedException {
-            if (open) {
-              return; // Do nothing because already open
-            }
-            open = true;
-            sink.open();
-          }
-
-          @Override
-          public void append(Event e) throws IOException, InterruptedException {
-            Preconditions.checkState(open);
-            sink.append(e);
-          }
-
-          @Override
-          public void close() throws IOException, InterruptedException {
-            open = false;
-            sink.close();
-          }
-
-        };
-
-        // add arg to context
-
-        LinkedSinkFactory linkedFactory = new LinkedSinkFactory(sinkFactory,
-            argName, argSinkRef);
-        EventSink bodySink = buildEventSink(context, body, linkedFactory);
-        return bodySink;
-      } catch (FlumeSpecException ife) {
-        throw ife;
-      }
-    }
-
     case ROLL: {
       List<CommonTree> rollArgs = (List<CommonTree>) t.getChildren();
       try {
-        Preconditions.checkArgument(rollArgs.size() == 2, "bad parse tree! "
-            + t.toStringTree() + "roll only takes two arguments");
+        Preconditions.checkArgument(rollArgs.size() >= 2, "bad parse tree! "
+            + t.toStringTree() + "roll requires at least two arguments");
+        SinkBuilder rollBuilder = RollSink.builder();
+        Context ctx = new Context(context); // new scope
+        List<Object> args = new ArrayList<Object>();
+
+        // first is the sub sink spec
         CommonTree ctbody = rollArgs.get(0);
-        Long period = Long.parseLong(buildSimpleArg(rollArgs.get(1)));
-        String body = FlumeSpecGen.genEventSink(ctbody);
-        // TODO (jon) replace the hard coded 250 with a parameterizable value
-        RollSink roller = new RollSink(context, body, period, 250);
-        return roller;
+        String body= FlumeSpecGen.genEventSink(ctbody);
+        args.add(body);
+
+        // all others are args
+        for (int i =1; i< rollArgs.size(); i++) {
+          CommonTree tr = rollArgs.get(i);
+          Object arg = buildSimpleArg(tr);
+          if (arg != null) {
+            args.add(arg);
+          } else {
+            Pair<String, CommonTree> kwarg = buildKWArg(tr);
+            ctx.putObj(kwarg.getLeft(), buildSimpleArg(kwarg.getRight()));
+          }
+        }
+        return rollBuilder.create(ctx, args.toArray());
       } catch (IllegalArgumentException iae) {
         throw new FlumeSpecException(iae.getMessage());
       }
-
     }
 
     case GEN: {
@@ -600,16 +611,16 @@ public class FlumeBuilder {
         String body = FlumeSpecGen.genEventSink(ctbody);
 
         Context ctx = new Context(context);
-        Pair<String, List<String>> idArgs = handleArgs(t, ctx);
+        Pair<String, List<Object>> idArgs = handleArgs(t, ctx);
         String sourceType = idArgs.getLeft();
-        List<String> args = idArgs.getRight();
+        List<Object> args = idArgs.getRight();
         args.add(0, body);
 
         // TODO replace with Generator Sink lookup
         Preconditions.checkArgument("collector".equals(sourceType));
         SinkBuilder builder = CollectorSink.builder();
 
-        return builder.build(ctx, args.toArray(new String[0]));
+        return builder.create(ctx, args.toArray());
 
       } catch (IllegalArgumentException iae) {
         throw new FlumeSpecException(iae.getMessage());
@@ -631,7 +642,7 @@ public class FlumeBuilder {
           continue;
         }
         // assumes this is a STRING
-        rargs.add(buildSimpleArg(ct));
+        rargs.add(buildSimpleArg(ct).toString());
       }
       String body = FlumeSpecGen.genEventSink(ctbody);
       FlumeConfiguration conf = FlumeConfiguration.get();
@@ -648,15 +659,14 @@ public class FlumeBuilder {
     }
   }
 
-  @SuppressWarnings("unchecked")
   static EventSinkDecorator<EventSink> buildEventSinkDecorator(Context context,
       CommonTree t) throws FlumeSpecException {
     Context ctx = new Context(context);
-    Pair<String, List<String>> idArgs = handleArgs(t, ctx);
+    Pair<String, List<Object>> idArgs = handleArgs(t, ctx);
     String sinkType = idArgs.getLeft();
-    List<String> args = idArgs.getRight();
-    EventSinkDecorator deco = sinkFactory.getDecorator(ctx, sinkType, args
-        .toArray(new String[0]));
+    List<Object> args = idArgs.getRight();
+    EventSinkDecorator<EventSink> deco = sinkFactory.createDecorator(ctx,
+        sinkType, args.toArray());
     if (deco == null) {
       throw new FlumeIdException("Invalid sink decorator: "
           + FlumeSpecGen.genEventSinkDecorator(t));

@@ -128,8 +128,11 @@ public class SinkFactoryImpl extends SinkFactory {
       { "text", TextFileSink.builder() },
       { "seqfile", SeqfileEventSink.builder() },
       { "dfs", DFSEventSink.builder() }, // escapes
-      { "customdfs", CustomDfsSink.builder() }, // does not escape
-      { "escapedCustomDfs", EscapedCustomDfsSink.builder() }, // escapes
+      { "formatDfs", CustomDfsSink.builder() }, // does not escape
+      { "escapedFormatDfs", EscapedCustomDfsSink.builder() }, // escapes
+      { "customdfs", CustomDfsSink.builder() }, // TODO deprecate
+      { "escapedCustomDfs", EscapedCustomDfsSink.builder() }, // TODO deprecate
+
       { "rpcSink", RpcSink.builder() }, // creates AvroEventSink or
       // ThriftEventSink
       { "syslogTcp", SyslogTcpSink.builder() },
@@ -298,6 +301,21 @@ public class SinkFactoryImpl extends SinkFactory {
       if (builder == null)
         return null;
       return builder.build(context, args);
+    } catch (NumberFormatException nfe) {
+      throw new FlumeArgException("Illegal number format: " + nfe.getMessage());
+    } catch (IllegalArgumentException iae) {
+      throw new FlumeArgException(iae.getMessage());
+    }
+  }
+
+  @Override
+  public EventSink createSink(Context context, String name, Object... args)
+      throws FlumeSpecException {
+    try {
+      SinkBuilder builder = sinks.get(name);
+      if (builder == null)
+        return null;
+      return builder.create(context, args);
     } catch (NumberFormatException nfe) {
       throw new FlumeArgException("Illegal number format: " + nfe.getMessage());
     } catch (IllegalArgumentException iae) {

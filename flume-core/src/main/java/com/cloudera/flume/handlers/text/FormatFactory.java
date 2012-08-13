@@ -17,6 +17,8 @@
  */
 package com.cloudera.flume.handlers.text;
 
+import static com.cloudera.util.ArrayUtils.toStrings;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,6 +34,7 @@ import com.cloudera.flume.conf.FlumeSpecException;
 import com.cloudera.flume.handlers.avro.AvroDataFileOutputFormat;
 import com.cloudera.flume.handlers.avro.AvroJsonOutputFormat;
 import com.cloudera.flume.handlers.avro.AvroNativeFileOutputFormat;
+import com.cloudera.flume.handlers.seqfile.SequenceFileOutputFormat;
 import com.cloudera.flume.handlers.text.output.DebugOutputFormat;
 import com.cloudera.flume.handlers.text.output.JsonOutputFormat;
 import com.cloudera.flume.handlers.text.output.Log4jOutputFormat;
@@ -52,9 +55,14 @@ public class FormatFactory {
       .getLogger(FormatFactory.class);
 
   public abstract static class OutputFormatBuilder {
+    @Deprecated
     public abstract OutputFormat build(String... args);
 
     public abstract String getName();
+
+    public OutputFormat create(Object... args) {
+      return build(toStrings(args));
+    }
 
   };
 
@@ -86,6 +94,7 @@ public class FormatFactory {
       add(AvroJsonOutputFormat.builder());
       add(AvroDataFileOutputFormat.builder());
       add(AvroNativeFileOutputFormat.builder());
+      add(SequenceFileOutputFormat.builder());
     }
   };
 
@@ -109,6 +118,28 @@ public class FormatFactory {
     this(CORE_FORMATS);
   }
 
+  public OutputFormat createOutputFormat(String name, Object... args)
+      throws FlumeSpecException {
+    OutputFormatBuilder builder;
+
+    // purposely said no format? return default.
+    if (name == null) {
+      return DEFAULT.build();
+    }
+
+    // specified a format but it was invalid? This is a problem.
+    synchronized (registeredFormats) {
+      builder = registeredFormats.get(name);
+    }
+
+    if (builder == null) {
+      throw new FlumeSpecException("Invalid output format: " + name);
+    }
+
+    return builder.create(args);
+  }
+
+  @Deprecated
   public OutputFormat getOutputFormat(String name, String... args)
       throws FlumeSpecException {
     OutputFormatBuilder builder;

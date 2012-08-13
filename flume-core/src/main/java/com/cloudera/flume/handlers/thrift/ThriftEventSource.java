@@ -54,6 +54,8 @@ public class ThriftEventSource extends EventSource.Base {
 
   static final Logger LOG = LoggerFactory.getLogger(ThriftEventSource.class);
 
+  public static final String C_TRUNCATE = "truncate";
+  public static final String A_SERVERPORT = "serverPort";
   public static final String A_QUEUE_CAPACITY = "queueCapacity";
   public static final String A_QUEUE_FREE = "queueFree";
   public static final String A_ENQUEUED = "enqueued";
@@ -68,16 +70,18 @@ public class ThriftEventSource extends EventSource.Base {
   final AtomicLong enqueued = new AtomicLong();
   final AtomicLong dequeued = new AtomicLong();
   final AtomicLong bytesIn = new AtomicLong();
+  final boolean shouldTruncate;
 
   boolean closed = true;
 
   /**
    * Create a thrift event source listening on port with a qsize buffer.
    */
-  public ThriftEventSource(int port, int qsize) {
+  public ThriftEventSource(int port, int qsize, boolean truncated) {
     this.port = port;
     this.svr = new ThriftFlumeEventServer();
     this.q = new LinkedBlockingQueue<Event>(qsize);
+    this.shouldTruncate = truncated;
   }
 
   /**
@@ -87,6 +91,7 @@ public class ThriftEventSource extends EventSource.Base {
    */
   synchronized public ReportEvent getMetrics() {
     ReportEvent rpt = super.getMetrics();
+    rpt.setLongMetric(A_SERVERPORT, port);
     rpt.setLongMetric(A_QUEUE_CAPACITY, q.size());
     rpt.setLongMetric(A_QUEUE_FREE, q.remainingCapacity());
     rpt.setLongMetric(A_ENQUEUED, enqueued.get());
@@ -98,15 +103,16 @@ public class ThriftEventSource extends EventSource.Base {
   /**
    * This constructor allows the for an arbitrary blocking queue implementation.
    */
-  public ThriftEventSource(int port, BlockingQueue<Event> q) {
+  public ThriftEventSource(int port, BlockingQueue<Event> q, boolean truncated) {
     Preconditions.checkNotNull(q);
     this.port = port;
     this.svr = new ThriftFlumeEventServer();
     this.q = q;
+    this.shouldTruncate = truncated;
   }
 
   public ThriftEventSource(int port) {
-    this(port, DEFAULT_QUEUE_SIZE);
+    this(port, DEFAULT_QUEUE_SIZE, false);
   }
 
   /**
@@ -133,7 +139,7 @@ public class ThriftEventSource extends EventSource.Base {
               enqueue(e);
               super.append(e);
             }
-          }));
+          }, shouldTruncate));
       Factory protFactory = new TBinaryProtocol.Factory(true, true);
 
       TSaneServerSocket serverTransport = new TSaneServerSocket(port);
@@ -223,13 +229,25 @@ public class ThriftEventSource extends EventSource.Base {
       @Override
       public EventSource build(Context ctx, String... argv) {
         Preconditions.checkArgument(argv.length == 1,
-            "usage: thriftSource(port)");
+            "usage: thriftSource(port{, " + C_TRUNCATE + "=false)");
 
         int port = Integer.parseInt(argv[0]);
 
-        return new ThriftEventSource(port);
+        String val = ctx.getObj(C_TRUNCATE, String.class);
+        boolean truncates = (val == null) ? false : Boolean.parseBoolean(val);
+
+        return new ThriftEventSource(port, DEFAULT_QUEUE_SIZE, truncates);
       }
 
     };
+  }
+
+  /**
+   * Exposed for testing
+   * 
+   * @return
+   */
+  ThriftFlumeEventServer getServer() {
+    return svr;
   }
 }

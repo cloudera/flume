@@ -47,10 +47,28 @@ public class FlumeSpecGen {
       return t.getChild(0).getText();
     case KWARG:
       return t.getChild(0).getText() + "=" + genArg((CommonTree) t.getChild(1));
+    case FUNC:
+      return genFunc(t);
     default:
       throw new FlumeSpecException("Not a node of literal type: "
           + t.toStringTree());
     }
+  }
+
+  static String genFunc(CommonTree t) throws FlumeSpecException {
+    StringBuilder sb = new StringBuilder();
+    sb.append(t.getChild(0).getText());
+    sb.append("(");
+
+    for (int i=1; i<t.getChildCount(); i++) {
+      if (i > 1) {
+        sb.append(", ");
+      }
+      sb.append(genArg((CommonTree)t.getChild(i)));
+    }
+    sb.append(")");
+
+    return sb.toString();
   }
 
   static String genArgs(List<String> args, String pre, String delim, String post) {
@@ -152,17 +170,6 @@ public class FlumeSpecGen {
       String mainSink = genEventSink(main);
       String backupSink = genEventSink(backup);
       return "< " + mainSink + " ? " + backupSink + " >";
-    }
-
-    case LET: {
-      List<CommonTree> backupNodes = (List<CommonTree>) t.getChildren();
-      Preconditions.checkArgument(backupNodes.size() == 3);
-      CommonTree name = backupNodes.get(0);
-      CommonTree sub = backupNodes.get(1);
-      CommonTree body = backupNodes.get(2);
-      String argSink = genEventSink(sub);
-      String bodySink = genEventSink(body);
-      return "let " + name.getText() + " := " + argSink + " in " + bodySink;
     }
 
     case ROLL: {

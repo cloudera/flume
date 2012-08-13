@@ -36,8 +36,8 @@ import com.cloudera.flume.core.EventSink;
 import com.cloudera.flume.core.MaskDecorator;
 import com.cloudera.flume.handlers.debug.MemorySinkSource;
 import com.cloudera.flume.handlers.endtoend.ValueDecorator;
-import com.cloudera.util.BenchmarkHarness;
 import com.cloudera.util.FileUtil;
+import com.cloudera.util.FlumeTestHarness;
 
 /**
  * This test case demonstrates a usecase where a tag conflict occurs.
@@ -54,11 +54,9 @@ public class TestRollRollTags {
   @Test
   public void testMaskNoConflict() throws IOException, InterruptedException {
     MemorySinkSource mem = new MemorySinkSource();
-    EventSink s1 = new ValueDecorator<EventSink>(mem, "duped",
-        "second".getBytes());
+    EventSink s1 = new ValueDecorator<EventSink>(mem, "duped", "second");
     EventSink s2 = new MaskDecorator<EventSink>(s1, "duped");
-    EventSink snk = new ValueDecorator<EventSink>(s2, "duped",
-        "first".getBytes());
+    EventSink snk = new ValueDecorator<EventSink>(s2, "duped", "first");
     snk.open();
 
     Event e = new EventImpl("foo".getBytes());
@@ -112,7 +110,8 @@ public class TestRollRollTags {
   // should no longer.
   @Test
   public void testAgentCollector() throws FlumeSpecException, IOException, InterruptedException {
-    BenchmarkHarness.setupLocalWriteDir();
+
+    FlumeTestHarness.setupLocalWriteDir();
     File path = FileUtil.createTempFile("collector", ".tmp");
     path.deleteOnExit();
 
@@ -123,13 +122,13 @@ public class TestRollRollTags {
     snk.open();
     snk.append(e); // should not bork.
     snk.close();
-    BenchmarkHarness.cleanupLocalWriteDir();
+    FlumeTestHarness.cleanupLocalWriteDir();
   }
 
   @Test
   public void testAgentCollectorFixed() throws FlumeSpecException, IOException,
       InterruptedException {
-    BenchmarkHarness.setupLocalWriteDir();
+    FlumeTestHarness.setupLocalWriteDir();
     File path = FileUtil.createTempFile("collector", ".tmp");
     path.deleteOnExit();
 
@@ -141,6 +140,6 @@ public class TestRollRollTags {
     snk.open();
     snk.append(e); // should not bork.
     snk.close();
-    BenchmarkHarness.cleanupLocalWriteDir();
+    FlumeTestHarness.cleanupLocalWriteDir();
   }
 }

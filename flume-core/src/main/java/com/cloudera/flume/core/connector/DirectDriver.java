@@ -112,7 +112,7 @@ public class DirectDriver extends Driver {
         }
       } catch (Exception e1) {
         // Catches all exceptions or throwables. This is a separate thread
-        LOG.error("Closing down due to exception during append calls");
+        LOG.error("Closing down due to exception during append calls", e1);
         errorCleanup(PumperThread.this.getName(), e1);
         return;
       }
@@ -157,14 +157,14 @@ public class DirectDriver extends Driver {
       }
     }
 
-    void errorCleanup(String nodeName, Exception ex) {
-      LOG.info("Connector " + nodeName + " exited with error: "
-          + ex.getMessage());
-      ensureClosed(nodeName);
+    void errorCleanup(String node, Exception ex) {
+      LOG.info("Connector " + node + " exited with error: " + ex.getMessage(),
+          ex);
+      ensureClosed(node);
       synchronized (stateSignal) {
         lastExn = ex;
         stopped = true;
-        LOG.error("Exiting driver " + nodeName + " in error state "
+        LOG.error("Exiting driver " + node + " in error state "
             + DirectDriver.this + " because " + ex.getMessage());
         state = DriverState.ERROR;
         stateSignal.notifyAll();

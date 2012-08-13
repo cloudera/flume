@@ -6,14 +6,15 @@
   <parent>
     <artifactId>flume</artifactId>
     <groupId>com.cloudera</groupId>
-    <version>0.9.4-SNAPSHOT</version>
+    <version>0.9.5-SNAPSHOT</version>
   </parent>
 
   <name>Flume Core</name>
-  <groupId>com.cloudera</groupId>
   <artifactId>flume-core</artifactId>
-  <version>0.9.4-SNAPSHOT</version>
 
+  <properties>
+    <build.revision>NOT AVAILABLE</build.revision>
+  </properties>
   <build>
     <plugins>
 
@@ -37,25 +38,6 @@
           </dependency>
         </dependencies>
       </plugin>
-
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>cloudera-buildnumber-maven-plugin</artifactId>
-        <version>1.0-beta-5</version>
-        <configuration>
-          <fullGitRev>true</fullGitRev>
-          <timestampFormat>{0, date, E MMM dd HH:mm:ss z yyyy}</timestampFormat>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>validate</phase>
-            <goals>
-              <goal>create</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-antrun-plugin</artifactId>
@@ -63,26 +45,26 @@
         <executions>
           <execution>
             <id>generate-version-file</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
             <configuration>
               <target>
                 <copy
-                  todir="${project.build.directory}/generated-sources/version"
+                  todir="${project.build.directory}/generated-sources/version/com/cloudera/flume"
                   overwrite="true">
                   <fileset dir="${basedir}/src/main/version" />
                   <filterset begintoken="%" endtoken="%">
                     <filter token="VERSION" value="${project.version}" />
-                    <filter token="REV" value="${buildNumber}" />
+                    <filter token="REV" value="${build.revision}" />
                     <filter token="USER" value="${user.name}" />
-                    <filter token="DATE" value="${timestamp}" />
+                    <filter token="DATE" value="${maven.build.timestamp}" />
                     <filter token="URL" value="${project.scm.url}" />
                   </filterset>
                 </copy>
               </target>
             </configuration>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
           </execution>
         </executions>
       </plugin>
@@ -110,7 +92,7 @@
       <plugin>
         <groupId>org.apache.avro</groupId>
         <artifactId>avro-maven-plugin</artifactId>
-        <version>1.5.0</version>
+        <version>1.5.1</version>
         <executions>
           <execution>
             <phase>generate-sources</phase>
@@ -154,7 +136,22 @@
             </goals>
           </execution>
         </executions>
+
+
       </plugin>
+
+     <plugin>
+       <groupId>org.apache.maven.plugins</groupId>
+       <artifactId>maven-jar-plugin</artifactId>
+       <version>2.2</version>
+       <executions>
+         <execution>
+           <goals>
+             <goal>test-jar</goal>
+           </goals>
+         </execution>
+       </executions>
+     </plugin>
 
     </plugins>
   </build>
@@ -215,6 +212,11 @@
     <dependency>
       <groupId>org.antlr</groupId>
       <artifactId>antlr</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.antlr</groupId>
+      <artifactId>antlr-runtime</artifactId>
     </dependency>
 
     <dependency>
