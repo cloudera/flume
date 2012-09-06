@@ -6,7 +6,7 @@
     <relativePath>../../pom.xml</relativePath>
     <artifactId>flume</artifactId>
     <groupId>com.cloudera</groupId>
-    <version>0.9.4-cdh4.1.0-SNAPSHOT</version>
+    <version>0.9.4-cdh4.2.0-SNAPSHOT</version>
   </parent>
 
   <groupId>com.cloudera.flume.plugin</groupId>
