@@ -37,7 +37,11 @@ public class ByteBufferInputStream extends InputStream {
   @Override
   public int read() throws IOException {
     try {
-      return buf.get();
+      // ORIGINAL
+      //return buf.get();
+    	
+      // To support UTF-8 encoding. Fixed by tyouiifan
+      return buf.get() & 0xFF;
     } catch (BufferUnderflowException e) {
       throw new EOFException();
     }
