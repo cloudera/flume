@@ -56,8 +56,7 @@ public class FailoverChainSink extends EventSink.Base {
   public FailoverChainSink(Context context, String specFormat,
       List<String> list, long initialBackoff, long maxBackoff)
       throws FlumeSpecException {
-    snk = buildSpec(context, specFormat, list, new CappedExponentialBackoff(
-        initialBackoff, maxBackoff));
+    snk = buildSpec(context, specFormat, list, initialBackoff, maxBackoff);
   }
 
   /**
@@ -81,7 +80,7 @@ public class FailoverChainSink extends EventSink.Base {
         cur = tsnk;
         continue;
       }
-      cur = new BackOffFailOverSink(tsnk, cur, policy);
+      cur = new BackOffFailOverSink(tsnk, cur, initialBackoff, maxBackoff);
     }
     return cur;
   }
