@@ -6,7 +6,7 @@
   <parent>
     <artifactId>flume</artifactId>
     <groupId>com.cloudera</groupId>
-    <version>0.9.4-cdh4.2.1-SNAPSHOT</version>
+    <version>0.9.4-cdh4.2.1</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
