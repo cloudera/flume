@@ -314,6 +314,14 @@ public class Cursor {
         return false;
       }
 
+      // d) possable size channged without seen modification timestamp changed
+      if (in.size() == chlen && file.length() == chlen
+           && file.lastModified() != lastFileMod) {
+        LOG.debug("tail " + file + " : only seen modified timestamp changed, "
+            + "postponing judgement";
+        return false;
+      }
+
       LOG.debug("tail " + file + " : file rotated!");
       resetRAF(); // resetting raf to catch up new file
 
