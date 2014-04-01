@@ -318,7 +318,7 @@ public class Cursor {
       if (in.size() == chlen && file.length() == chlen
            && file.lastModified() != lastFileMod) {
         LOG.debug("tail " + file + " : only seen modified timestamp changed, "
-            + "postponing judgement";
+            + "postponing judgement");
         return false;
       }
 
