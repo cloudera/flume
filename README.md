@@ -1,6 +1,6 @@
-h1. Welcome to Flume!
+# Welcome to Flume!
 
-NOTE: We have moved to the Apache Incubator. https://cwiki.apache.org/FLUME/
+NOTE: We have moved to the [Apache Incubator](https://cwiki.apache.org/FLUME/). 
 
 Flume is a distributed, reliable, and available service for
 efficiently collecting, aggregating, and moving large amounts of log
@@ -13,29 +13,24 @@ application
 
 Flume is open-sourced under the Apache Software Foundation License v2.0.  
 
-h2.  Documentation
+##  [Documentation](https://cwiki.apache.org/FLUME/)
 
-https://cwiki.apache.org/FLUME/
-
-
-h2. Contact us!
+## Contact us!
 
 
-* User mailing list: flume-user@incubator.apache.org
-* Developer mailling list: flume-dev@incubator.apache.org
-* Instructions on how to subscribe to mailing list https://cwiki.apache.org/FLUME/mailing-lists.html
-* IRC channel #flume on irc.freenode.net
+- User mailing list: [flume-user@incubator.apache.org]
+- Developer mailling list: [flume-dev@incubator.apache.org]
+- Instructions on how to subscribe to mailing list [https://cwiki.apache.org/FLUME/mailing-lists.html]
+- IRC channel #flume on [irc.freenode.net]
 
-Bug and Issue tracker.
+[Bug and Issue tracker](https://issues.apache.org/jira/browse/FLUME).
 
-* https://issues.apache.org/jira/browse/FLUME
-
-h2. Compiling Flume
+## Compiling Flume
 
 Compiling Flume requires the following tools:
 
-* Java JDK 1.6
-* Apache Maven
+- Java JDK 1.6
+- Apache Maven
 
 To compile Flume, run `mvn compile`.
 To build a distribution, run `mvn package`.
